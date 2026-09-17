@@ -240,6 +240,9 @@ active_mode_selection = st.sidebar.radio(
     key="active_data_source"
 )
 
+APP_BUILD_VERSION = "2026.09.17-v2.1"
+st.sidebar.caption(f"⚡ Engine Build: `{APP_BUILD_VERSION}`")
+
 # ESPN Sync Management in Sidebar
 with st.sidebar.expander("⚙️ ESPN Connection Settings", expanded=not has_espn):
     if espn_creds.get("found_in_secrets"):
