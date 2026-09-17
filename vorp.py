@@ -26,10 +26,12 @@ def calculate_waiver_baselines(
     The flex baseline is the highest projected remaining player among RB/WR/TE
     after the primary positional baselines are accounted for.
     """
-    # 1. Simulate all waiver players
+    # 1. Simulate all waiver players (restricted to offensive skill positions)
     simulated_waivers = []
     for player in waiver_pool:
         pos = player.get("position", "WR").upper()
+        if pos not in ["QB", "RB", "WR", "TE"]:
+            continue
         mu = float(player.get("mu", 8.0))
         sigma = float(player.get("sigma", 4.0))
         p_active = float(player.get("p_active", 1.0))
@@ -259,9 +261,12 @@ def calculate_contingency_leverage(
             standalone_sim = sample_player("RB", standalone_mu, standalone_sigma, n=n_simulations)
             stand_summary = summarize_distribution(standalone_sim)
 
+            status_val = player.get("roster_status") or player.get("status") or ("👑 Rostered" if player.get("slot") else "⚡ Waivers")
+
             records.append({
                 "Player": name,
                 "Team": team,
+                "Status": status_val,
                 "Standalone Med": round(stand_summary["median"], 1),
                 "Starter Inj. Hazard": f"{p_starter_injury * 100:.0f}%",
                 "Conditional RB1 Pts": round(cond_summary["mean"], 1),
@@ -272,7 +277,7 @@ def calculate_contingency_leverage(
     df = pd.DataFrame(records)
     if not df.empty:
         return df.sort_values(by="Contingency Index", ascending=False).reset_index(drop=True)
-    return pd.DataFrame(columns=["Player", "Team", "Standalone Med", "Starter Inj. Hazard", "Conditional RB1 Pts", "Contingency P90 Ceiling", "Contingency Index"])
+    return pd.DataFrame(columns=["Player", "Team", "Status", "Standalone Med", "Starter Inj. Hazard", "Conditional RB1 Pts", "Contingency P90 Ceiling", "Contingency Index"])
 
 
 def calculate_suggested_faab(
@@ -353,8 +358,10 @@ def rank_waiver_wire_pool(
     }
 
     for player in waiver_pool:
-        name = player.get("name", "Unknown")
         pos = player.get("position", "WR").upper()
+        if pos not in ["QB", "RB", "WR", "TE"]:
+            continue
+        name = player.get("name", "Unknown")
         team = player.get("team", "FA")
         mu = float(player.get("mu", 8.0))
         sigma = float(player.get("sigma", 4.0))
@@ -516,6 +523,8 @@ def calculate_waiver_roster_upgrades(
 
     for w in waiver_pool:
         w_pos = w.get("position", "WR").upper()
+        if w_pos not in ["QB", "RB", "WR", "TE"]:
+            continue
         w_mu = float(w.get("mu", 8.0))
         w_sig = float(w.get("sigma", 4.0))
         w_act = float(w.get("p_active", 1.0))
@@ -685,8 +694,13 @@ def calculate_waiver_roster_upgrades(
     # Calculate dynamic FAAB bid & format Atomic Transaction Pairs
     atomic_pairs = []
     faab_displays = []
+    cut_counts: Dict[str, int] = {}
     for idx, row in df.iterrows():
         p_rank = idx + 1
+        cut_c = row["Cut Candidate"]
+        cut_counts[cut_c] = cut_counts.get(cut_c, 0) + 1
+        alt_suffix = "" if cut_counts[cut_c] == 1 else f" (Alternate Claim #{cut_counts[cut_c]-1})"
+
         faab_val, faab_pct, faab_str = calculate_suggested_faab(
             net_pts_gain=float(row["Net Proj Gain"]),
             win_leverage=float(row["Net Proj Gain"]) * 0.015,
@@ -697,9 +711,9 @@ def calculate_waiver_roster_upgrades(
         )
         faab_displays.append(faab_str)
         if row.get("is_stash", False):
-            pair_str = f"[Priority #{p_rank}] Add {row['Target Waiver Add']} ➔ Drop {row['Cut Candidate']} | Net Ceiling +{row['Net P90 Gain']:.1f} pts | Suggested FAAB: {faab_str}"
+            pair_str = f"[Priority #{p_rank}] Add {row['Target Waiver Add']} ➔ Drop {cut_c}{alt_suffix} | Net Ceiling +{row['Net P90 Gain']:.1f} pts | Suggested FAAB: {faab_str}"
         else:
-            pair_str = f"[Priority #{p_rank}] Add {row['Target Waiver Add']} ➔ Drop {row['Cut Candidate']} | Net Gain {row['Net Proj Gain']:+.1f} pts | Suggested FAAB: {faab_str}"
+            pair_str = f"[Priority #{p_rank}] Add {row['Target Waiver Add']} ➔ Drop {cut_c}{alt_suffix} | Net Gain {row['Net Proj Gain']:+.1f} pts | Suggested FAAB: {faab_str}"
         atomic_pairs.append(pair_str)
 
     df["Suggested FAAB"] = faab_displays

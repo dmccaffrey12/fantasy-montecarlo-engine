@@ -47,6 +47,16 @@ def get_odds_api_key() -> str:
     except Exception:
         pass
 
+    if not extracted_keys:
+        try:
+            local_secrets_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".streamlit", "secrets.toml")
+            if os.path.exists(local_secrets_path):
+                import toml
+                disk_secrets = toml.load(local_secrets_path)
+                extract(disk_secrets)
+        except Exception:
+            pass
+
     for k in ["odds_api_key", "the_odds_api_key", "odds_key", "oddsapi_key", "api_key"]:
         if k in extracted_keys and extracted_keys[k]:
             return extracted_keys[k]
@@ -87,6 +97,16 @@ def get_espn_credentials(secrets_dict: Optional[Dict[str, Any]] = None) -> Dict[
                 extract_from_mapping(st.secrets, secrets_keys)
         except Exception:
             pass
+        # 1b. Fallback to local .streamlit/secrets.toml if secrets_keys is empty
+        if not secrets_keys:
+            try:
+                local_secrets_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".streamlit", "secrets.toml")
+                if os.path.exists(local_secrets_path):
+                    import toml
+                    disk_secrets = toml.load(local_secrets_path)
+                    extract_from_mapping(disk_secrets, secrets_keys)
+            except Exception:
+                pass
         # 2. Environment variables fallback (only if secrets_dict was not explicitly provided)
         for env_k, env_v in os.environ.items():
             clean_env_k = str(env_k).lower().replace("-", "_").replace(" ", "_")
@@ -771,10 +791,32 @@ def sync_espn_league(
             sorted_roster = sorted([p for p in full_roster if not p.get("is_inactive")], key=lambda x: x["mu"], reverse=True)
             starters = sorted_roster[:7]
 
+        owners_list = getattr(team, "owners", [])
+        owner_display = getattr(team, "owner", team.team_name)
+        owner_swids = []
+        if owners_list and isinstance(owners_list, list):
+            first_o = owners_list[0]
+            fn = first_o.get("firstName", "").strip() if isinstance(first_o, dict) else ""
+            ln = first_o.get("lastName", "").strip() if isinstance(first_o, dict) else ""
+            dn = first_o.get("displayName", "").strip() if isinstance(first_o, dict) else ""
+            if fn or ln:
+                owner_display = f"{fn} {ln} ({dn})".strip() if dn else f"{fn} {ln}".strip()
+            elif dn:
+                owner_display = dn
+            for o in owners_list:
+                if isinstance(o, dict) and o.get("id"):
+                    owner_swids.append(str(o["id"]).strip().strip("{}").lower())
+
+        spent_faab = int(getattr(team, "acquisition_budget_spent", 0) or 0)
+        remaining_faab = max(0, 100 - spent_faab)
+
         team_dict = {
             "team_id": team.team_id,
-            "team_name": team.team_name,
-            "owner": getattr(team, "owner", team.team_name),
+            "team_name": str(team.team_name),
+            "owner": owner_display,
+            "owner_swids": owner_swids,
+            "acquisition_budget_spent": spent_faab,
+            "remaining_faab": remaining_faab,
             "starters": starters,
             "bench": bench,
             "ir": ir,
@@ -784,19 +826,21 @@ def sync_espn_league(
         team_map[team.team_name] = team_dict
         team_id_map[team.team_id] = team_dict
 
-    # Ingest Current Week Scoreboard Matchups (Fast)
+    # Ingest Current Week Scoreboard Matchups (Fast & Safe)
     weekly_matchups = {}
     try:
         sb = league.scoreboard(week=current_week)
         m_list = []
         for m in sb:
             if m.home_team and m.away_team:
+                h_name = str(m.home_team.team_name)
+                a_name = str(m.away_team.team_name)
                 m_list.append({
                     "home_team_id": m.home_team.team_id,
-                    "home_team_name": m.home_team.team_name,
+                    "home_team_name": h_name,
                     "away_team_id": m.away_team.team_id,
-                    "away_team_name": m.away_team.team_name,
-                    "display": f"{m.away_team.team_name} vs {m.home_team.team_name}"
+                    "away_team_name": a_name,
+                    "display": f"{a_name} vs {h_name}"
                 })
         if m_list:
             weekly_matchups[current_week] = m_list
@@ -825,7 +869,13 @@ def sync_espn_league(
             clean_status, p_active, is_inactive = parse_player_injury_and_status(
                 inj_status_raw=getattr(fa, "injuryStatus", "ACTIVE")
             )
-            proj = 0.0 if is_inactive else float(getattr(fa, "projected_avg_points", 0.0) or getattr(fa, "avg_points", 0.0) or getattr(fa, "projected_points", 0.0) or 8.0)
+            # Prioritize weekly matchup projection over season-long average
+            proj = 0.0 if is_inactive else float(
+                getattr(fa, "projected_points", 0.0) or
+                getattr(fa, "projected_avg_points", 0.0) or
+                getattr(fa, "avg_points", 0.0) or
+                0.0
+            )
 
             matched_props = get_matched_player_props(fa.name, props_cache, fa.position)
             p_act_poly = p_active
@@ -842,6 +892,9 @@ def sync_espn_league(
                 return_breakdown=True
             )
 
+            is_dst = fa.position in ["D/ST", "DEF"]
+            is_kicker = fa.position in ["K"]
+
             free_agents_data.append({
                 "name": fa.name,
                 "position": fa.position,
@@ -852,6 +905,8 @@ def sync_espn_league(
                 "injury_status": clean_status,
                 "is_inactive": is_inactive,
                 "proj_points": proj,
+                "is_dst": is_dst,
+                "is_kicker": is_kicker,
                 "prop_source": breakdown.get("source", "Idiosyncratic Baseline"),
                 "poly_source": poly_source,
                 "score_breakdown": breakdown,
@@ -862,8 +917,16 @@ def sync_espn_league(
     user_team_name = None
     user_opp_name = None
 
-    # First check user_team_hint if provided in secrets/config
-    if user_team_hint:
+    # Priority 1: Match SWID against team.owners
+    if swid:
+        clean_target_swid = str(swid).strip().strip("{}").lower()
+        for t in teams_data:
+            if clean_target_swid in t.get("owner_swids", []):
+                user_team_name = t["team_name"]
+                break
+
+    # Priority 2: user_team_hint if provided in secrets/config
+    if not user_team_name and user_team_hint:
         hint_lower = str(user_team_hint).lower().strip()
         for t in teams_data:
             t_str = f"{t['team_name']} {t.get('owner', '')}".lower()
@@ -871,15 +934,15 @@ def sync_espn_league(
                 user_team_name = t["team_name"]
                 break
 
+    # Priority 3: heuristic check ("eatin")
     if not user_team_name:
         for t in teams_data:
             tname = t["team_name"].lower()
-            if "eatin" in tname and "td" in tname:
+            if "eatin" in tname:
                 user_team_name = t["team_name"]
                 break
-            elif "eatin" in tname:
-                user_team_name = t["team_name"]
 
+    # Priority 4: default to first team
     if not user_team_name and teams_data:
         user_team_name = teams_data[0]["team_name"]
 
@@ -1000,8 +1063,10 @@ def build_matchup_from_espn_teams(
     return {
         "team_a_name": team_a_dict["team_name"],
         "team_a_roster": filter_skill_starters(team_a_dict),
+        "team_a_bench": team_a_dict.get("bench", []),
         "team_b_name": team_b_dict["team_name"],
         "team_b_roster": filter_skill_starters(team_b_dict),
+        "team_b_bench": team_b_dict.get("bench", []),
         "waiver_pool": waiver_pool[:100]
     }
 

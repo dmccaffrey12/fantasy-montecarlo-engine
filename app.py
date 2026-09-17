@@ -195,12 +195,18 @@ if target_league_id and (
             teams = sync_result.get("teams", [])
             user_t = sync_result.get("user_team_name")
             user_opp = sync_result.get("user_opp_name")
+            league_title = f"🏆 {sync_result.get('league_name', 'ESPN League')}"
+            st.session_state["active_data_source"] = league_title
             if user_t:
                 st.session_state.selected_team_a = user_t
+                st.session_state["team_a_select"] = user_t
                 st.session_state.selected_team_b = user_opp or (teams[1]["team_name"] if len(teams) > 1 else teams[0]["team_name"])
+                st.session_state["team_b_select"] = st.session_state.selected_team_b
             elif len(teams) >= 2:
                 st.session_state.selected_team_a = teams[0]["team_name"]
+                st.session_state["team_a_select"] = teams[0]["team_name"]
                 st.session_state.selected_team_b = teams[1]["team_name"]
+                st.session_state["team_b_select"] = teams[1]["team_name"]
             st.rerun()
         else:
             st.session_state.espn_league = None
@@ -217,10 +223,21 @@ if has_espn:
     mode_options.append(league_label)
 mode_options.append("🏈 Curated Demo Matchup (Bills vs Lions)")
 
+# Ensure session state defaults to synced league if available
+if has_espn:
+    curr_choice = st.session_state.get("active_data_source")
+    if curr_choice not in mode_options or curr_choice == "🏈 Curated Demo Matchup (Bills vs Lions)":
+        st.session_state["active_data_source"] = league_label
+
+default_mode_idx = 0
+if "active_data_source" in st.session_state and st.session_state["active_data_source"] in mode_options:
+    default_mode_idx = mode_options.index(st.session_state["active_data_source"])
+
 active_mode_selection = st.sidebar.radio(
     "Data Source",
     mode_options,
-    index=0
+    index=default_mode_idx,
+    key="active_data_source"
 )
 
 # ESPN Sync Management in Sidebar
@@ -261,12 +278,18 @@ with st.sidebar.expander("⚙️ ESPN Connection Settings", expanded=not has_esp
                     teams = sync_res.get("teams", [])
                     user_t = sync_res.get("user_team_name")
                     user_opp = sync_res.get("user_opp_name")
+                    league_title = f"🏆 {sync_res.get('league_name', 'ESPN League')}"
+                    st.session_state["active_data_source"] = league_title
                     if user_t:
                         st.session_state.selected_team_a = user_t
+                        st.session_state["team_a_select"] = user_t
                         st.session_state.selected_team_b = user_opp or (teams[1]["team_name"] if len(teams) > 1 else teams[0]["team_name"])
+                        st.session_state["team_b_select"] = st.session_state.selected_team_b
                     elif len(teams) >= 2:
                         st.session_state.selected_team_a = teams[0]["team_name"]
+                        st.session_state["team_a_select"] = teams[0]["team_name"]
                         st.session_state.selected_team_b = teams[1]["team_name"]
+                        st.session_state["team_b_select"] = teams[1]["team_name"]
                     st.success(f"Connected: {sync_res.get('league_name')} ({len(teams)} teams)")
                     st.rerun()
                 else:
@@ -322,7 +345,9 @@ if is_espn_active:
     with m_type_col1:
         # Team A (User Team)
         default_a_idx = 0
-        if st.session_state.selected_team_a in team_names:
+        if st.session_state.get("team_a_select") in team_names:
+            default_a_idx = team_names.index(st.session_state["team_a_select"])
+        elif st.session_state.get("selected_team_a") in team_names:
             default_a_idx = team_names.index(st.session_state.selected_team_a)
         else:
             for idx, t in enumerate(team_names):
@@ -342,7 +367,9 @@ if is_espn_active:
         # Team B (Opponent Team)
         available_b_options = [t for t in team_names if t != selected_a] or team_names
         default_b_idx = 0
-        if st.session_state.selected_team_b in available_b_options:
+        if st.session_state.get("team_b_select") in available_b_options:
+            default_b_idx = available_b_options.index(st.session_state["team_b_select"])
+        elif st.session_state.get("selected_team_b") in available_b_options:
             default_b_idx = available_b_options.index(st.session_state.selected_team_b)
         else:
             for idx, t in enumerate(available_b_options):
@@ -1117,11 +1144,12 @@ with tab_vorp:
         mode_param = "stash" if is_stash_selected else "streamer"
 
     with w_col2:
+        default_team_faab = int(team_a_dict.get("remaining_faab", 100)) if is_espn_active else 100
         remaining_faab = st.number_input(
             "💰 Remaining Team FAAB ($)",
             min_value=0,
             max_value=1000,
-            value=100,
+            value=default_team_faab,
             step=5,
             help="Total unspent FAAB budget used to dynamically size percentage-based waiver claims."
         )
@@ -1282,8 +1310,20 @@ with tab_vorp:
     try:
         df_scanner = scheme_db.detect_floor_surges_and_buy_lows()
         if not df_scanner.empty:
-            team_a_player_names = {p["name"] for p in (team_a_dict.get("roster", team_a_roster) if is_espn_active else team_a_roster)}
-            df_scanner["Roster Status"] = df_scanner["Player"].apply(lambda name: f"👑 {team_a_name}" if name in team_a_player_names else "Available / League")
+            player_owner_map = {}
+            if is_espn_active and st.session_state.get("espn_league"):
+                for t in st.session_state.espn_league.get("teams", []):
+                    t_title = t.get("team_name", "")
+                    tag = f"👑 {t_title} (You)" if t_title == team_a_name else f"🏈 {t_title}"
+                    for p in t.get("roster", []):
+                        player_owner_map[p.get("name", "")] = tag
+
+            def resolve_roster_status(name):
+                if name in player_owner_map:
+                    return player_owner_map[name]
+                return "⚡ Available Free Agent" if is_espn_active else "Available / League"
+
+            df_scanner["Roster Status"] = df_scanner["Player"].apply(resolve_roster_status)
 
             cols = ["Roster Status", "Player", "Team", "Pos", "Trade Signal", "Action", "Latest Tgt%", "Tgt% Delta", "Latest YPRR", "YPRR Delta", "aDOT", "Trade & Strategy Rationale"]
             display_cols = [c for c in cols if c in df_scanner.columns]
