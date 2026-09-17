@@ -240,7 +240,7 @@ active_mode_selection = st.sidebar.radio(
     key="active_data_source"
 )
 
-APP_BUILD_VERSION = "2026.09.17-v2.1"
+APP_BUILD_VERSION = "2026.09.17-v2.2"
 st.sidebar.caption(f"⚡ Engine Build: `{APP_BUILD_VERSION}`")
 
 # ESPN Sync Management in Sidebar
@@ -1657,7 +1657,7 @@ with tab_scheme:
     scheme_impact_rows = []
     for p in team_a_roster + team_a_bench:
         p_team = p.get("team", "NFL")
-        opp_def = "CLE" if p_team in ["CIN", "BAL", "PIT"] else ("CAR" if p_team in ["ATL", "TB", "NO"] else ("NYG" if p_team in ["DAL", "PHI", "WAS"] else ("DET" if p_team in ["GB", "CHI", "MIN"] else "KC")))
+        opp_def = p.get("opponent") or p.get("opponent_team") or getattr(data_ingest, "CURRENT_NFL_SCHEDULE", {}).get(str(p_team).upper(), "") or "DEF"
         modified_p = data_ingest.apply_defensive_scheme_modifiers(p, opponent_team=opp_def)
         sch = data_ingest.get_defensive_scheme(opp_def)
 

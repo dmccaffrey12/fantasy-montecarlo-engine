@@ -55,9 +55,11 @@ DEFAULT_DEFENSIVE_SCHEMES: Dict[str, Dict[str, float]] = {
     "JAX": {"quick_pressure_rate": 0.160, "mof_epa_allowed": 0.55, "rush_sr_allowed": 0.455},
     "TEN": {"quick_pressure_rate": 0.170, "mof_epa_allowed": 0.45, "rush_sr_allowed": 0.405},
     "WAS": {"quick_pressure_rate": 0.155, "mof_epa_allowed": 0.52, "rush_sr_allowed": 0.468},
+    "WSH": {"quick_pressure_rate": 0.155, "mof_epa_allowed": 0.52, "rush_sr_allowed": 0.468},
     "NYG": {"quick_pressure_rate": 0.185, "mof_epa_allowed": 0.47, "rush_sr_allowed": 0.475},
     "NE":  {"quick_pressure_rate": 0.162, "mof_epa_allowed": 0.43, "rush_sr_allowed": 0.438},
     "CAR": {"quick_pressure_rate": 0.130, "mof_epa_allowed": 0.58, "rush_sr_allowed": 0.485},
+    "JAC": {"quick_pressure_rate": 0.160, "mof_epa_allowed": 0.55, "rush_sr_allowed": 0.455},
 }
 
 

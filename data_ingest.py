@@ -23,6 +23,27 @@ ODDS_API_BASE_URL = "https://api.the-odds-api.com/v4/sports/americanfootball_nfl
 POLYMARKET_BASE_URL = "https://gamma-api.polymarket.com"
 SLEEPER_PLAYERS_URL = "https://api.sleeper.app/v1/players/nfl"
 
+# Baseline 32-Team NFL Weekly Matchup Mapping (Dynamic fallbacks)
+DEFAULT_NFL_SCHEDULE: Dict[str, str] = {
+    "ARI": "SEA", "SEA": "ARI",
+    "ATL": "CAR", "CAR": "ATL",
+    "BAL": "NO",  "NO": "BAL",
+    "BUF": "DET", "DET": "BUF",
+    "CHI": "MIN", "MIN": "CHI",
+    "CIN": "HOU", "HOU": "CIN",
+    "CLE": "TB",  "TB": "CLE",
+    "DAL": "WSH", "WSH": "DAL", "WAS": "DAL",
+    "DEN": "JAX", "JAX": "DEN", "JAC": "DEN",
+    "GB":  "NYJ", "NYJ": "GB",
+    "IND": "KC",  "KC": "IND",
+    "LAC": "LV",  "LV": "LAC",
+    "LAR": "NYG", "NYG": "LAR",
+    "MIA": "SF",  "SF": "MIA",
+    "NE":  "PIT", "PIT": "NE",
+    "PHI": "TEN", "TEN": "PHI",
+}
+CURRENT_NFL_SCHEDULE: Dict[str, str] = dict(DEFAULT_NFL_SCHEDULE)
+
 
 def get_odds_api_key() -> str:
     """
@@ -715,6 +736,31 @@ def sync_espn_league(
     # Ingest consensus Vegas player props cache across all scheduled games
     props_cache = build_all_player_props_cache()
 
+    # Dynamically discover 32-team NFL Week schedule across all team rosters
+    discovered_schedule = {}
+    for t_scan in getattr(league, "teams", []):
+        for p_scan in getattr(t_scan, "roster", []):
+            sched = getattr(p_scan, "schedule", {})
+            w_str = str(current_week)
+            if isinstance(sched, dict) and w_str in sched and isinstance(sched[w_str], dict):
+                opp = sched[w_str].get("team")
+                p_team = getattr(p_scan, "proTeam", None)
+                if p_team and opp:
+                    p_clean = str(p_team).upper()
+                    opp_clean = str(opp).upper()
+                    discovered_schedule[p_clean] = opp_clean
+                    discovered_schedule[opp_clean] = p_clean
+                    if p_clean == "WSH":
+                        discovered_schedule["WAS"] = opp_clean
+                    elif p_clean == "WAS":
+                        discovered_schedule["WSH"] = opp_clean
+                    if opp_clean == "WSH":
+                        discovered_schedule["WAS"] = p_clean
+                    elif opp_clean == "WAS":
+                        discovered_schedule["WSH"] = p_clean
+    if discovered_schedule:
+        CURRENT_NFL_SCHEDULE.update(discovered_schedule)
+
     teams_data = []
     team_map = {}
     team_id_map = {}
@@ -759,11 +805,23 @@ def sync_espn_league(
                 return_breakdown=True
             )
 
+            # Resolve actual NFL opponent for the current week
+            p_pro_team = getattr(p, "proTeam", "NFL")
+            opp_team = ""
+            if hasattr(p, "schedule") and p.schedule:
+                w_str = str(current_week)
+                if w_str in p.schedule and isinstance(p.schedule[w_str], dict):
+                    opp_team = str(p.schedule[w_str].get("team", "")).upper()
+            if not opp_team and p_pro_team:
+                opp_team = CURRENT_NFL_SCHEDULE.get(str(p_pro_team).upper(), "")
+
             p_info = {
                 "name": p.name,
                 "position": p.position,
                 "slot": slot_name,
-                "team": getattr(p, "proTeam", "NFL"),
+                "team": p_pro_team,
+                "opponent": opp_team,
+                "opponent_team": opp_team,
                 "mu": mu,
                 "sigma": sigma,
                 "p_active": p_act,
@@ -895,10 +953,21 @@ def sync_espn_league(
             is_dst = fa.position in ["D/ST", "DEF"]
             is_kicker = fa.position in ["K"]
 
+            fa_team = getattr(fa, "proTeam", "FA")
+            fa_opp = ""
+            if hasattr(fa, "schedule") and fa.schedule:
+                w_str = str(current_week)
+                if w_str in fa.schedule and isinstance(fa.schedule[w_str], dict):
+                    fa_opp = str(fa.schedule[w_str].get("team", "")).upper()
+            if not fa_opp and fa_team:
+                fa_opp = CURRENT_NFL_SCHEDULE.get(str(fa_team).upper(), "")
+
             free_agents_data.append({
                 "name": fa.name,
                 "position": fa.position,
-                "team": getattr(fa, "proTeam", "FA"),
+                "team": fa_team,
+                "opponent": fa_opp,
+                "opponent_team": fa_opp,
                 "mu": mu,
                 "sigma": sigma,
                 "p_active": p_act,
@@ -1134,11 +1203,14 @@ def get_default_matchup_and_waivers(
             scoring_cfg=scoring_cfg,
             return_breakdown=True
         )
+        opp = CURRENT_NFL_SCHEDULE.get(str(team).upper(), "")
         return {
             "name": name,
             "position": pos,
             "slot": slot,
             "team": team,
+            "opponent": opp,
+            "opponent_team": opp,
             "mu": mu,
             "sigma": sigma,
             "p_active": p_act,
@@ -1241,9 +1313,11 @@ NFL_DEFENSIVE_SCHEMES: Dict[str, Dict[str, float]] = {
     "JAX": {"quick_pressure_rate": 0.160, "mof_epa_allowed": 0.55, "rush_sr_allowed": 0.455},
     "TEN": {"quick_pressure_rate": 0.170, "mof_epa_allowed": 0.45, "rush_sr_allowed": 0.405},
     "WAS": {"quick_pressure_rate": 0.155, "mof_epa_allowed": 0.52, "rush_sr_allowed": 0.468},
+    "WSH": {"quick_pressure_rate": 0.155, "mof_epa_allowed": 0.52, "rush_sr_allowed": 0.468},
     "NYG": {"quick_pressure_rate": 0.185, "mof_epa_allowed": 0.47, "rush_sr_allowed": 0.475},
     "NE":  {"quick_pressure_rate": 0.162, "mof_epa_allowed": 0.43, "rush_sr_allowed": 0.438},
     "CAR": {"quick_pressure_rate": 0.130, "mof_epa_allowed": 0.58, "rush_sr_allowed": 0.485},
+    "JAC": {"quick_pressure_rate": 0.160, "mof_epa_allowed": 0.55, "rush_sr_allowed": 0.455},
 }
 
 

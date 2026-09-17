@@ -218,13 +218,13 @@ def evaluate_start_sit_decision(
     # 0. Defensive Opponent Identification & Scheme Modifiers
     opp_team_a = opponent_team or cand_a_eval.get("opponent_team") or cand_a_eval.get("opponent")
     if not opp_team_a and cand_a_eval.get("team"):
-        p_team = cand_a_eval.get("team")
-        opp_team_a = "CLE" if p_team in ["CIN", "BAL", "PIT"] else ("CAR" if p_team in ["ATL", "TB", "NO"] else ("NYG" if p_team in ["DAL", "PHI", "WAS"] else ("DET" if p_team in ["GB", "CHI", "MIN"] else "KC")))
+        p_team = str(cand_a_eval.get("team", "")).upper()
+        opp_team_a = getattr(data_ingest, "CURRENT_NFL_SCHEDULE", {}).get(p_team, "")
 
     opp_team_b = opponent_team or cand_b_eval.get("opponent_team") or cand_b_eval.get("opponent")
     if not opp_team_b and cand_b_eval.get("team"):
-        p_team = cand_b_eval.get("team")
-        opp_team_b = "CLE" if p_team in ["CIN", "BAL", "PIT"] else ("CAR" if p_team in ["ATL", "TB", "NO"] else ("NYG" if p_team in ["DAL", "PHI", "WAS"] else ("DET" if p_team in ["GB", "CHI", "MIN"] else "KC")))
+        p_team = str(cand_b_eval.get("team", "")).upper()
+        opp_team_b = getattr(data_ingest, "CURRENT_NFL_SCHEDULE", {}).get(p_team, "")
 
     # Apply defensive scheme & funnel modifiers if opponent team is identified and not already modified
     if opp_team_a and "scheme_notes" not in cand_a_eval:
@@ -262,8 +262,8 @@ def evaluate_start_sit_decision(
     align_a = data_ingest.get_receiver_alignment(cand_a_eval.get("name", ""), cand_a_eval.get("position", "WR"))
     align_b = data_ingest.get_receiver_alignment(cand_b_eval.get("name", ""), cand_b_eval.get("position", "WR"))
 
-    funnel_a = scheme_db.get_defensive_funnel_profile(opp_team_a or "CAR")
-    funnel_b = scheme_db.get_defensive_funnel_profile(opp_team_b or "CAR")
+    funnel_a = scheme_db.get_defensive_funnel_profile(opp_team_a or "DEF")
+    funnel_b = scheme_db.get_defensive_funnel_profile(opp_team_b or "DEF")
 
     # Generate Actionable Funnel Advantage Note
     notes = []
