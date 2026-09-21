@@ -287,7 +287,12 @@ def calculate_player_mu_and_sigma(
     espn_proj: float = 12.0,
     scoring_config: Optional[LeagueScoringConfig] = None,
     polymarket_prob: float = 1.0,
-    is_inactive: bool = False
+    is_inactive: bool = False,
+    player_name: Optional[str] = None,
+    alignment_tag: Optional[str] = None,
+    adot: Optional[float] = None,
+    slot_snap_pct: Optional[float] = None,
+    wide_snap_pct: Optional[float] = None
 ) -> Tuple[float, float, float, Dict[str, Any]]:
     """
     Synthesize distribution parameters (mu, sigma, p_active) and a detailed breakdown
@@ -433,7 +438,50 @@ def calculate_player_mu_and_sigma(
         ev_long_tds = calculate_long_rush_rec_td_ev(td_prob, is_rec=True, cfg=cfg)
 
         mu = pts_recs + pts_rec_yds + pts_rush_yds + pts_tds + ev_milestones + ev_long_tds
-        sigma = max(2.5, mu * 0.45 + (ev_long_tds * 0.4))
+
+        # Dynamic Archetype & aDOT Volatility Scaling (Coefficient of Variation CV = sigma / mu)
+        # Slot/Possession receivers exhibit high floor but tightly capped ceiling (CV ~ 0.32 - 0.35).
+        # Boundary/Deep threats exhibit low floor but explosive multi-TD and chunk-play ceiling (CV ~ 0.52 - 0.62).
+        if is_te:
+            cv = 0.40
+            vol_class = "Interior / Seam Target"
+        elif adot is not None and adot > 0:
+            # Continuous aDOT scaling:
+            # Underneath/Slot (aDOT ~6.0) -> CV ~ 0.30 - 0.32 (compressed variance, capped ceiling)
+            # Intermediate/Hybrid (aDOT ~10.0) -> CV ~ 0.50 (balanced upside)
+            # Deep/Boundary (aDOT ~13.0+) -> CV ~ 0.65 (explosive right-tail volatility)
+            cv = max(0.30, min(0.65, 0.30 + 0.05 * (float(adot) - 6.0)))
+            if cv <= 0.38:
+                vol_class = "High Floor / Capped Ceiling (Slot/Possession)"
+            elif cv >= 0.50:
+                vol_class = "Explosive Upside (Boundary/Deep)"
+            else:
+                vol_class = "Balanced Hybrid"
+        elif alignment_tag:
+            tag_clean = str(alignment_tag).lower()
+            if "slot" in tag_clean:
+                cv = 0.32
+                vol_class = "High Floor / Capped Ceiling (Slot/Possession)"
+            elif "boundary" in tag_clean:
+                cv = 0.58
+                vol_class = "Explosive Upside (Boundary/Deep)"
+            elif "hybrid" in tag_clean:
+                cv = 0.48
+                vol_class = "Balanced Hybrid"
+            else:
+                cv = 0.45
+                vol_class = "Standard Volume"
+        elif slot_snap_pct is not None and slot_snap_pct >= 0.60:
+            cv = 0.33
+            vol_class = "High Floor / Capped Ceiling (Slot/Possession)"
+        elif wide_snap_pct is not None and wide_snap_pct >= 0.60:
+            cv = 0.56
+            vol_class = "Explosive Upside (Boundary/Deep)"
+        else:
+            cv = 0.45
+            vol_class = "Standard Volume"
+
+        sigma = max(2.5, mu * cv + (ev_long_tds * 0.5))
 
         breakdown.update({
             "receptions": round(recs, 1),
@@ -445,7 +493,10 @@ def calculate_player_mu_and_sigma(
             "pts_rush_yds": round(pts_rush_yds, 2),
             "pts_tds": round(pts_tds, 2),
             "ev_milestones": round(ev_milestones, 2),
-            "ev_long_tds": round(ev_long_tds, 2)
+            "ev_long_tds": round(ev_long_tds, 2),
+            "cv": round(cv, 3),
+            "volatility_class": vol_class,
+            "alignment_tag": alignment_tag or ("Slot Primary" if is_te else ("Slot Primary" if cv <= 0.38 else ("Boundary Primary" if cv >= 0.50 else "Hybrid")))
         })
 
     elif pos in ["DEF", "D/ST"]:

@@ -433,129 +433,13 @@ def find_contested_lineup_slots(
     team_a_win_rate: float,
     threshold: float = 2.5
 ) -> List[Dict[str, Any]]:
-    """
-    Surface Contested Lineup Slots: any active bench asset within 2.5 projected points of a starter,
-    or higher (bench_mu >= starter_mu - 2.5).
-    Pairs each contested starter with the challenger, calculating Win% Leverage, Floor/Ceiling delta,
-    and assigning a dynamic contextual badge ('Safe Floor Play' vs 'Underdog Ceiling Swing').
-    """
-    contested = []
-    seen_pairs = set()
-
-    for starter in starters:
-        s_pos = starter.get("position", "").upper()
-        s_slot = starter.get("slot", s_pos).upper()
-        s_mu = float(starter.get("mu", 0.0))
-        s_sig = float(starter.get("sigma", 0.0))
-        s_name = starter.get("name", "")
-
-        # Compute starter Floor (P10) and Ceiling (P90)
-        s_p10 = round(max(0.0, s_mu - 1.28 * s_sig), 1)
-        s_p90 = round(max(0.0, s_mu + 1.28 * s_sig), 1)
-
-        # Find eligible bench assets
-        for b in bench:
-            b_name = b.get("name", "")
-            if b_name == s_name or b.get("is_inactive") or float(b.get("p_active", 1.0)) <= 0:
-                continue
-            b_pos = b.get("position", "").upper()
-            b_mu = float(b.get("mu", 0.0))
-            b_sig = float(b.get("sigma", 0.0))
-
-            # Eligibility check
-            is_eligible = False
-            if "QB" in s_slot or s_pos == "QB":
-                is_eligible = (b_pos == "QB")
-            elif "TE" in s_slot and s_slot == "TE":
-                is_eligible = (b_pos == "TE")
-            elif "FLEX" in s_slot or "WR/TE" in s_slot or "RB/WR/TE" in s_slot:
-                is_eligible = (b_pos in ["RB", "WR", "TE"])
-            elif "RB" in s_slot or s_pos == "RB":
-                is_eligible = (b_pos == "RB")
-            elif "WR" in s_slot or s_pos == "WR":
-                is_eligible = (b_pos == "WR")
-
-            if not is_eligible:
-                continue
-
-            # Within 2.5 points or higher
-            if b_mu >= (s_mu - threshold):
-                pair_key = (s_name, b_name)
-                if pair_key in seen_pairs:
-                    continue
-                seen_pairs.add(pair_key)
-
-                b_p10 = round(max(0.0, b_mu - 1.28 * b_sig), 1)
-                b_p90 = round(max(0.0, b_mu + 1.28 * b_sig), 1)
-
-                delta_mu = round(b_mu - s_mu, 1)
-                delta_floor = round(b_p10 - s_p10, 1)
-                delta_ceiling = round(b_p90 - s_p90, 1)
-
-                # Estimate win% leverage (~1.8% per net projected point)
-                win_leverage = round(delta_mu * 0.018, 3)
-
-                # Contextual badge assignment
-                # Underdog regime (win_rate <= 48%): chasing upside & ceiling
-                if team_a_win_rate <= 0.48:
-                    if delta_ceiling > 0:
-                        badge = "⚡ Underdog Ceiling Swing"
-                        badge_color = "#f59e0b"
-                        badge_bg = "rgba(245, 158, 11, 0.18)"
-                        rationale = f"Trailing projection ({team_a_win_rate*100:.1f}% win rate). {b_name} elevates 90th percentile ceiling (+{delta_ceiling:+.1f} pts) to unlock upset win equity."
-                    else:
-                        badge = "🛡️ Safe Floor Play"
-                        badge_color = "#10b981"
-                        badge_bg = "rgba(16, 185, 129, 0.18)"
-                        rationale = f"Starter {s_name} holds the superior floor (P10: {s_p10:.1f} vs {b_p10:.1f} pts)."
-                # Favorite regime (win_rate >= 52%): protecting floor & minimizing variance
-                elif team_a_win_rate >= 0.52:
-                    if delta_floor >= 0:
-                        badge = "🛡️ Safe Floor Play"
-                        badge_color = "#10b981"
-                        badge_bg = "rgba(16, 185, 129, 0.18)"
-                        rationale = f"Projected favorite ({team_a_win_rate*100:.1f}% win rate). {b_name} raises lineup floor (+{delta_floor:+.1f} P10) to protect win equity."
-                    else:
-                        badge = "🛡️ Safe Floor Play"
-                        badge_color = "#10b981"
-                        badge_bg = "rgba(16, 185, 129, 0.18)"
-                        rationale = f"Projected favorite ({team_a_win_rate*100:.1f}% win rate). Starter {s_name} insulates lead with higher floor (P10: {s_p10:.1f} vs {b_p10:.1f} pts)."
-                else:
-                    if delta_mu > 0:
-                        badge = "🎯 Optimal Win% Pick"
-                        badge_color = "#38bdf8"
-                        badge_bg = "rgba(56, 189, 248, 0.18)"
-                        rationale = f"Toss-up matchup. Subbing in {b_name} gains +{delta_mu:+.1f} expected points."
-                    else:
-                        badge = "🛡️ Safe Floor Play"
-                        badge_color = "#10b981"
-                        badge_bg = "rgba(16, 185, 129, 0.18)"
-                        rationale = f"Toss-up matchup. Starter {s_name} projects for {s_mu:.1f} pts with higher floor."
-
-                contested.append({
-                    "slot": s_slot,
-                    "starter": starter,
-                    "challenger": b,
-                    "starter_name": s_name,
-                    "challenger_name": b_name,
-                    "starter_mu": s_mu,
-                    "challenger_mu": b_mu,
-                    "starter_p10": s_p10,
-                    "challenger_p10": b_p10,
-                    "starter_p90": s_p90,
-                    "challenger_p90": b_p90,
-                    "delta_mu": delta_mu,
-                    "delta_floor": delta_floor,
-                    "delta_ceiling": delta_ceiling,
-                    "win_leverage": win_leverage,
-                    "badge": badge,
-                    "badge_color": badge_color,
-                    "badge_bg": badge_bg,
-                    "rationale": rationale
-                })
-
-    contested.sort(key=lambda x: abs(x["delta_mu"]))
-    return contested
+    """Surface Contested Lineup Slots via simulation engine."""
+    return simulation.find_contested_lineup_slots(
+        starters=starters,
+        bench=bench,
+        team_a_win_rate=team_a_win_rate,
+        threshold=threshold
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -951,6 +835,9 @@ with tab_startsit:
     badge_color_a = "#10b981" if funnel_a.get("is_inside_funnel") else ("#f59e0b" if funnel_a.get("is_outside_funnel") else "#64748b")
     badge_color_b = "#10b981" if funnel_b.get("is_inside_funnel") else ("#f59e0b" if funnel_b.get("is_outside_funnel") else "#64748b")
 
+    vol_a = cand_a.get("volatility_class") or cand_a.get("score_breakdown", {}).get("volatility_class", "Standard Volume")
+    vol_b = cand_b.get("volatility_class") or cand_b.get("score_breakdown", {}).get("volatility_class", "Standard Volume")
+
     st.markdown(f"""
     <div style="background: rgba(15, 23, 42, 0.85); border: 1px solid #3b82f6; border-radius: 10px; padding: 14px 18px; margin-bottom: 16px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
@@ -961,12 +848,14 @@ with tab_startsit:
             <div style="background: #1e293b; padding: 10px 14px; border-radius: 6px; border-left: 3px solid #38bdf8;">
                 <div style="font-weight: 700; color: #f8fafc; font-size: 0.95rem;">{cand_a_name} <span style="font-size: 0.8rem; color: #94a3b8; font-weight: normal;">({cand_a.get('position', 'WR')})</span></div>
                 <div style="font-size: 0.82rem; color: #cbd5e1; margin-top: 2px;">Alignment: <b style="color: #38bdf8;">{align_a.get('alignment_tag', 'WR')}</b> (Slot: {align_a.get('slot_snap_pct', 0)*100:.0f}% | Wide: {align_a.get('wide_snap_pct', 0)*100:.0f}%)</div>
+                <div style="font-size: 0.80rem; color: #94a3b8; margin-top: 2px;">Archetype Volatility: <b style="color: #38bdf8;">{vol_a}</b></div>
                 <div style="font-size: 0.82rem; color: #e2e8f0; margin-top: 4px;">Opponent: <b>{funnel_a.get('team', 'DEF')}</b> <span style="font-size: 0.75rem; background: {badge_color_a}22; color: {badge_color_a}; border: 1px solid {badge_color_a}; padding: 1px 6px; border-radius: 3px;">{funnel_a.get('funnel_classification', 'Balanced')}</span></div>
                 <div style="font-size: 0.78rem; color: #94a3b8; margin-top: 2px;">Opp MOF EPA: <b style="color: #f1f5f9;">{funnel_a.get('mof_epa_allowed', 0):.2f}</b> | Opp Quick Pres: <b style="color: #f1f5f9;">{funnel_a.get('quick_pressure_rate', 0)*100:.1f}%</b></div>
             </div>
             <div style="background: #1e293b; padding: 10px 14px; border-radius: 6px; border-left: 3px solid #c084fc;">
                 <div style="font-weight: 700; color: #f8fafc; font-size: 0.95rem;">{cand_b_name} <span style="font-size: 0.8rem; color: #94a3b8; font-weight: normal;">({cand_b.get('position', 'WR')})</span></div>
                 <div style="font-size: 0.82rem; color: #cbd5e1; margin-top: 2px;">Alignment: <b style="color: #c084fc;">{align_b.get('alignment_tag', 'WR')}</b> (Slot: {align_b.get('slot_snap_pct', 0)*100:.0f}% | Wide: {align_b.get('wide_snap_pct', 0)*100:.0f}%)</div>
+                <div style="font-size: 0.80rem; color: #94a3b8; margin-top: 2px;">Archetype Volatility: <b style="color: #c084fc;">{vol_b}</b></div>
                 <div style="font-size: 0.82rem; color: #e2e8f0; margin-top: 4px;">Opponent: <b>{funnel_b.get('team', 'DEF')}</b> <span style="font-size: 0.75rem; background: {badge_color_b}22; color: {badge_color_b}; border: 1px solid {badge_color_b}; padding: 1px 6px; border-radius: 3px;">{funnel_b.get('funnel_classification', 'Balanced')}</span></div>
                 <div style="font-size: 0.78rem; color: #94a3b8; margin-top: 2px;">Opp MOF EPA: <b style="color: #f1f5f9;">{funnel_b.get('mof_epa_allowed', 0):.2f}</b> | Opp Quick Pres: <b style="color: #f1f5f9;">{funnel_b.get('quick_pressure_rate', 0)*100:.1f}%</b></div>
             </div>

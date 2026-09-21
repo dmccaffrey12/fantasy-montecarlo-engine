@@ -633,11 +633,17 @@ def calculate_projection_params(
     polymarket_prob: float = 1.0,
     is_inactive: bool = False,
     scoring_cfg: Optional[scoring_config.LeagueScoringConfig] = None,
-    return_breakdown: bool = False
+    return_breakdown: bool = False,
+    player_name: Optional[str] = None,
+    alignment_tag: Optional[str] = None,
+    adot: Optional[float] = None,
+    slot_snap_pct: Optional[float] = None,
+    wide_snap_pct: Optional[float] = None
 ) -> Any:
     """
     Synthesize distribution parameters (mu, sigma, availability_p)
-    from Vegas player prop markets, historical averages, and idiosyncratic scoring rules.
+    from Vegas player prop markets, historical averages, receiver alignment archetypes,
+    and idiosyncratic scoring rules.
     If player is inactive (IR/OUT) or has zero availability, parameters are strictly 0.0.
     """
     cfg = scoring_cfg or scoring_config.DEFAULT_SCORING
@@ -669,13 +675,42 @@ def calculate_projection_params(
             rec_200_bonus=cfg.rec_200_bonus
         )
 
+    align_tag = alignment_tag
+    slot_pct = slot_snap_pct
+    wide_pct = wide_snap_pct
+    player_adot = adot
+
+    pos_upper = (position or "").upper().strip()
+    if player_name and pos_upper in ["WR", "TE"]:
+        align = get_receiver_alignment(player_name, pos_upper)
+        if not align_tag:
+            align_tag = align.get("alignment_tag")
+        if slot_pct is None:
+            slot_pct = align.get("slot_snap_pct")
+        if wide_pct is None:
+            wide_pct = align.get("wide_snap_pct")
+
+        if player_adot is None:
+            try:
+                import scheme_db
+                hist = scheme_db.get_player_usage_history(player_name)
+                if not hist.empty and "adot" in hist.columns:
+                    player_adot = float(hist["adot"].iloc[-1])
+            except Exception:
+                pass
+
     mu, sigma, p_active, breakdown = scoring_config.calculate_player_mu_and_sigma(
         position=position,
         props=props,
         espn_proj=default_proj,
         scoring_config=cfg,
         polymarket_prob=polymarket_prob,
-        is_inactive=is_inactive
+        is_inactive=is_inactive,
+        player_name=player_name,
+        alignment_tag=align_tag,
+        adot=player_adot,
+        slot_snap_pct=slot_pct,
+        wide_snap_pct=wide_pct
     )
 
     if return_breakdown:
@@ -802,7 +837,8 @@ def sync_espn_league(
                 polymarket_prob=p_act_poly,
                 is_inactive=is_inactive,
                 scoring_cfg=scoring_cfg,
-                return_breakdown=True
+                return_breakdown=True,
+                player_name=p.name
             )
 
             # Resolve actual NFL opponent for the current week
@@ -832,7 +868,10 @@ def sync_espn_league(
                 "prop_source": breakdown.get("source", "Idiosyncratic Baseline"),
                 "poly_source": poly_source,
                 "score_breakdown": breakdown,
-                "props": matched_props
+                "props": matched_props,
+                "alignment_tag": breakdown.get("alignment_tag", "Neutral"),
+                "volatility_class": breakdown.get("volatility_class", "Standard Volume"),
+                "cv": breakdown.get("cv", 0.45)
             }
             full_roster.append(p_info)
 
@@ -947,7 +986,8 @@ def sync_espn_league(
                 polymarket_prob=p_act_poly,
                 is_inactive=is_inactive,
                 scoring_cfg=scoring_cfg,
-                return_breakdown=True
+                return_breakdown=True,
+                player_name=fa.name
             )
 
             is_dst = fa.position in ["D/ST", "DEF"]
@@ -979,7 +1019,10 @@ def sync_espn_league(
                 "prop_source": breakdown.get("source", "Idiosyncratic Baseline"),
                 "poly_source": poly_source,
                 "score_breakdown": breakdown,
-                "props": matched_props
+                "props": matched_props,
+                "alignment_tag": breakdown.get("alignment_tag", "Neutral"),
+                "volatility_class": breakdown.get("volatility_class", "Standard Volume"),
+                "cv": breakdown.get("cv", 0.45)
             })
 
     # Auto-detect User Team
@@ -1201,7 +1244,8 @@ def get_default_matchup_and_waivers(
             polymarket_prob=p_act_poly,
             is_inactive=False,
             scoring_cfg=scoring_cfg,
-            return_breakdown=True
+            return_breakdown=True,
+            player_name=name
         )
         opp = CURRENT_NFL_SCHEDULE.get(str(team).upper(), "")
         return {
@@ -1219,7 +1263,10 @@ def get_default_matchup_and_waivers(
             "prop_source": breakdown.get("source", "Idiosyncratic Baseline"),
             "poly_source": poly_source,
             "score_breakdown": breakdown,
-            "props": matched_props
+            "props": matched_props,
+            "alignment_tag": breakdown.get("alignment_tag", "Neutral"),
+            "volatility_class": breakdown.get("volatility_class", "Standard Volume"),
+            "cv": breakdown.get("cv", 0.45)
         }
 
     raw_team_a = [

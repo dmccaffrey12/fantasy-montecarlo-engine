@@ -120,6 +120,8 @@ def summarize_distribution(samples: np.ndarray) -> Dict[str, float]:
         "p25": float(np.percentile(samples, 25)),
         "p75": float(np.percentile(samples, 75)),
         "p90": float(np.percentile(samples, 90)),
+        "p95": float(np.percentile(samples, 95)),
+        "p_boom_20": float(np.mean(samples >= 20.0)),
         "min": float(np.min(samples)),
         "max": float(np.max(samples)),
     }
@@ -352,13 +354,35 @@ def evaluate_start_sit_decision(
 
     elif baseline_win_rate < 0.40:
         tactical_mode = "UNDERDOG"
-        tactical_objective = "Maximize P90 Ceiling (Chase Upset)"
-        if summary_a["p90"] >= summary_b["p90"]:
+        tactical_objective = "Maximize Explosive Ceiling (Chase Upset)"
+
+        tag_a = cand_a_eval.get("alignment_tag") or align_a.get("alignment_tag", "")
+        tag_b = cand_b_eval.get("alignment_tag") or align_b.get("alignment_tag", "")
+        p90_a = summary_a.get("p90", 0.0)
+        p90_b = summary_b.get("p90", 0.0)
+        p95_a = summary_a.get("p95", p90_a)
+        p95_b = summary_b.get("p95", p90_b)
+
+        # Score upper-tail ceiling strength: blend of P90 and P95 explosive tail
+        ceiling_score_a = p90_a * 0.4 + p95_a * 0.6
+        ceiling_score_b = p90_b * 0.4 + p95_b * 0.6
+
+        if ceiling_score_a >= ceiling_score_b:
             recommended = candidate_a["name"]
-            rationale = f"As an underdog ({baseline_win_rate*100:.1f}% win prob), chase explosive upside. Start {candidate_a['name']} with higher P90 ceiling ({summary_a['p90']:.1f} vs {summary_b['p90']:.1f})."
+            arch_note = f" ({tag_a})" if tag_a else ""
+            rationale = (
+                f"As an underdog ({baseline_win_rate*100:.1f}% win prob), chase explosive upside. "
+                f"Start {candidate_a['name']}{arch_note} with higher explosive ceiling "
+                f"(P90: {p90_a:.1f}, P95: {p95_a:.1f} vs {p90_b:.1f}/{p95_b:.1f})."
+            )
         else:
             recommended = candidate_b["name"]
-            rationale = f"As an underdog ({baseline_win_rate*100:.1f}% win prob), chase explosive upside. Start {candidate_b['name']} with higher P90 ceiling ({summary_b['p90']:.1f} vs {summary_a['p90']:.1f})."
+            arch_note = f" ({tag_b})" if tag_b else ""
+            rationale = (
+                f"As an underdog ({baseline_win_rate*100:.1f}% win prob), chase explosive upside. "
+                f"Start {candidate_b['name']}{arch_note} with higher explosive ceiling "
+                f"(P90: {p90_b:.1f}, P95: {p95_b:.1f} vs {p90_a:.1f}/{p95_a:.1f})."
+            )
 
     else:
         tactical_mode = "TOSS-UP"
@@ -516,3 +540,143 @@ def find_roster_optimizations(
         "recommended_swaps": recommended_swaps,
         "audit_table": df_audit
     }
+
+
+def find_contested_lineup_slots(
+    starters: List[Dict[str, Any]],
+    bench: List[Dict[str, Any]],
+    team_a_win_rate: float,
+    threshold: float = 2.5
+) -> List[Dict[str, Any]]:
+    """
+    Surface Contested Lineup Slots: any active bench asset within 2.5 projected points of a starter,
+    or higher (bench_mu >= starter_mu - 2.5).
+    Pairs each contested starter with the challenger, calculating Win% Leverage, Floor/Ceiling delta,
+    and assigning a dynamic contextual badge ('Safe Floor Play' vs 'Underdog Ceiling Swing').
+    """
+    contested = []
+    seen_pairs = set()
+
+    for starter in starters:
+        s_pos = starter.get("position", "").upper()
+        s_slot = starter.get("slot", s_pos).upper()
+        s_mu = float(starter.get("mu", 0.0))
+        s_sig = float(starter.get("sigma", 0.0))
+        s_name = starter.get("name", "")
+
+        # Compute starter Floor (P10) and Ceiling (P90)
+        s_p10 = round(max(0.0, s_mu - 1.28 * s_sig), 1)
+        s_p90 = round(max(0.0, s_mu + 1.28 * s_sig), 1)
+
+        # Find eligible bench assets
+        for b in bench:
+            b_name = b.get("name", "")
+            if b_name == s_name or b.get("is_inactive") or float(b.get("p_active", 1.0)) <= 0:
+                continue
+            b_pos = b.get("position", "").upper()
+            b_mu = float(b.get("mu", 0.0))
+            b_sig = float(b.get("sigma", 0.0))
+
+            # Eligibility check
+            is_eligible = False
+            if "QB" in s_slot or s_pos == "QB":
+                is_eligible = (b_pos == "QB")
+            elif "TE" in s_slot and s_slot == "TE":
+                is_eligible = (b_pos == "TE")
+            elif "FLEX" in s_slot or "WR/TE" in s_slot or "RB/WR/TE" in s_slot:
+                is_eligible = (b_pos in ["RB", "WR", "TE"])
+            elif "RB" in s_slot or s_pos == "RB":
+                is_eligible = (b_pos == "RB")
+            elif "WR" in s_slot or s_pos == "WR":
+                is_eligible = (b_pos == "WR")
+
+            if not is_eligible:
+                continue
+
+            # Within 2.5 points or higher
+            if b_mu >= (s_mu - threshold):
+                pair_key = (s_name, b_name)
+                if pair_key in seen_pairs:
+                    continue
+                seen_pairs.add(pair_key)
+
+                b_p10 = round(max(0.0, b_mu - 1.28 * b_sig), 1)
+                b_p90 = round(max(0.0, b_mu + 1.28 * b_sig), 1)
+
+                delta_mu = round(b_mu - s_mu, 1)
+                delta_floor = round(b_p10 - s_p10, 1)
+                delta_ceiling = round(b_p90 - s_p90, 1)
+
+                # Estimate win% leverage (~1.8% per net projected point)
+                win_leverage = round(delta_mu * 0.018, 3)
+
+                s_arch = starter.get("alignment_tag") or starter.get("score_breakdown", {}).get("alignment_tag", "")
+                b_arch = b.get("alignment_tag") or b.get("score_breakdown", {}).get("alignment_tag", "")
+
+                # Contextual badge assignment
+                # Underdog regime (win_rate <= 48%): chasing upside & ceiling
+                if team_a_win_rate <= 0.48:
+                    if delta_ceiling > 0.5:
+                        badge = "⚡ Underdog Ceiling Swing"
+                        badge_color = "#f59e0b"
+                        badge_bg = "rgba(245, 158, 11, 0.18)"
+                        rationale = f"Trailing projection ({team_a_win_rate*100:.1f}% win rate). Bench {b_name} elevates 90th percentile ceiling ({delta_ceiling:+.1f} pts) to unlock upset win equity."
+                    elif delta_floor > 0.5:
+                        badge = "🛡️ High-Floor Bench Alternative"
+                        badge_color = "#38bdf8"
+                        badge_bg = "rgba(56, 189, 248, 0.18)"
+                        rationale = f"Trailing projection ({team_a_win_rate*100:.1f}% win rate). Starter {s_name} holds superior upside ceiling ({s_p90:.1f} vs {b_p90:.1f}). Bench {b_name} is a high-floor alternative (P10: {b_p10:.1f} vs {s_p10:.1f}). Keep {s_name} for upset equity."
+                    else:
+                        badge = "⭐ Preferred Ceiling Starter"
+                        badge_color = "#10b981"
+                        badge_bg = "rgba(16, 185, 129, 0.18)"
+                        arch_text = f" ({s_arch})" if s_arch else ""
+                        rationale = f"Trailing projection ({team_a_win_rate*100:.1f}% win rate). Starter {s_name}{arch_text} provides superior explosive ceiling ({s_p90:.1f} vs {b_p90:.1f} pts). Keep in starting lineup."
+                # Favorite regime (win_rate >= 52%): protecting floor & minimizing variance
+                elif team_a_win_rate >= 0.52:
+                    if delta_floor > 0.5:
+                        badge = "🛡️ Safe Floor Upgrade"
+                        badge_color = "#10b981"
+                        badge_bg = "rgba(16, 185, 129, 0.18)"
+                        rationale = f"Projected favorite ({team_a_win_rate*100:.1f}% win rate). Bench {b_name} raises lineup floor ({delta_floor:+.1f} P10) to protect win equity."
+                    else:
+                        badge = "🛡️ Safe Floor Starter"
+                        badge_color = "#10b981"
+                        badge_bg = "rgba(16, 185, 129, 0.18)"
+                        rationale = f"Projected favorite ({team_a_win_rate*100:.1f}% win rate). Starter {s_name} insulates lead with higher floor (P10: {s_p10:.1f} vs {b_p10:.1f} pts)."
+                else:
+                    if delta_mu > 0.5:
+                        badge = "🎯 Optimal Win% Pick"
+                        badge_color = "#38bdf8"
+                        badge_bg = "rgba(56, 189, 248, 0.18)"
+                        rationale = f"Toss-up matchup. Subbing in {b_name} gains {delta_mu:+.1f} expected points."
+                    else:
+                        badge = "🛡️ Safe Starter Pick"
+                        badge_color = "#10b981"
+                        badge_bg = "rgba(16, 185, 129, 0.18)"
+                        rationale = f"Toss-up matchup. Starter {s_name} projects for {s_mu:.1f} pts with stable floor."
+
+                contested.append({
+                    "slot": s_slot,
+                    "starter": starter,
+                    "challenger": b,
+                    "starter_name": s_name,
+                    "challenger_name": b_name,
+                    "starter_mu": s_mu,
+                    "challenger_mu": b_mu,
+                    "starter_p10": s_p10,
+                    "challenger_p10": b_p10,
+                    "starter_p90": s_p90,
+                    "challenger_p90": b_p90,
+                    "delta_mu": delta_mu,
+                    "delta_floor": delta_floor,
+                    "delta_ceiling": delta_ceiling,
+                    "win_leverage": win_leverage,
+                    "badge": badge,
+                    "badge_color": badge_color,
+                    "badge_bg": badge_bg,
+                    "rationale": rationale
+                })
+
+    contested.sort(key=lambda x: abs(x["delta_mu"]))
+    return contested

@@ -682,6 +682,66 @@ def test_espn_credentials_and_waiver_isolation():
     print("  [PASS] Empty ESPN free agent response produces empty waiver list without demo pollution.")
 
 
+def test_archetype_volatility_and_underdog_accuracy():
+    print("\n=== Testing 10: Receiver Archetype Volatility & Start/Sit Underdog Accuracy ===")
+
+    # Test 10.1: Parameter synthesis for Slot Primary vs Boundary Primary vs Hybrid
+    mu_doug, sig_doug, p_act, bk_doug = scoring_config.calculate_player_mu_and_sigma(
+        "WR",
+        props={"receptions": 4.8, "rec_yds": 52.5, "rush_yds": 2.0, "anytime_td_prob": 0.20},
+        player_name="DeMario Douglas",
+        alignment_tag="Slot Primary",
+        adot=6.5
+    )
+    assert bk_doug["cv"] <= 0.35, f"Expected Slot WR CV <= 0.35, got {bk_doug['cv']}"
+    assert "Slot" in bk_doug["volatility_class"]
+
+    mu_coker, sig_coker, p_act, bk_coker = scoring_config.calculate_player_mu_and_sigma(
+        "WR",
+        props={"receptions": 3.8, "rec_yds": 46.5, "rush_yds": 0.0, "anytime_td_prob": 0.20},
+        player_name="Jalen Coker",
+        alignment_tag="Hybrid",
+        adot=10.4
+    )
+    assert bk_coker["cv"] >= 0.48, f"Expected Coker CV >= 0.48, got {bk_coker['cv']}"
+
+    # Verify Douglas has lower CV than Coker
+    assert bk_doug["cv"] < bk_coker["cv"], f"Expected Douglas CV < Coker CV, got {bk_doug['cv']} vs {bk_coker['cv']}"
+    print(f"  [PASS] Archetype CV Separation: DeMario Douglas CV={bk_doug['cv']} ({bk_doug['volatility_class']}) vs Jalen Coker CV={bk_coker['cv']} ({bk_coker['volatility_class']}).")
+
+    # Test 10.2: Monte Carlo simulation tail distribution
+    sim_doug = simulation.sample_wr_te(mu_doug, sig_doug, n=20000)
+    sim_coker = simulation.sample_wr_te(mu_coker, sig_coker, n=20000)
+
+    summary_doug = simulation.summarize_distribution(sim_doug)
+    summary_coker = simulation.summarize_distribution(sim_coker)
+
+    # Douglas should hold superior P10 floor
+    assert summary_doug["p10"] > summary_coker["p10"], f"Expected Douglas P10 > Coker P10, got {summary_doug['p10']} vs {summary_coker['p10']}"
+    # Coker should exhibit higher boom potential (max ceiling and boom probability >= 20 pts)
+    assert summary_coker["p_boom_20"] >= summary_doug["p_boom_20"]
+    assert summary_coker["max"] > summary_doug["max"]
+    print(f"  [PASS] Distribution Tail Profiles: Douglas Floor (P10={summary_doug['p10']:.1f}) protects lead; Coker Max Ceiling ({summary_coker['max']:.1f} vs {summary_doug['max']:.1f}) and Boom P(>=20) ({summary_coker['p_boom_20']*100:.1f}% vs {summary_doug['p_boom_20']*100:.1f}%) unlock upside.")
+
+    # Test 10.3: Contested Lineup Slot Underdog Logic
+    starter_coker = {"name": "Jalen Coker", "position": "WR", "slot": "WR/TE", "mu": mu_coker, "sigma": sig_coker, "alignment_tag": "Hybrid"}
+    bench_douglas = {"name": "DeMario Douglas", "position": "WR", "slot": "BE", "mu": mu_doug, "sigma": sig_doug, "alignment_tag": "Slot Primary"}
+
+    contested = simulation.find_contested_lineup_slots(
+        starters=[starter_coker],
+        bench=[bench_douglas],
+        team_a_win_rate=0.35,  # Underdog
+        threshold=2.5
+    )
+    assert len(contested) == 1
+    card = contested[0]
+    # Douglas must NOT be branded an Underdog Ceiling Swing when Coker is the starter!
+    assert card["badge"] != "⚡ Underdog Ceiling Swing", f"Douglas should NOT be labeled Underdog Ceiling Swing, got: {card['badge']}"
+    assert "High-Floor Bench Alternative" in card["badge"] or "Preferred Ceiling Starter" in card["badge"]
+    clean_badge = card['badge'].encode('ascii', errors='ignore').decode('ascii').strip()
+    print(f"  [PASS] Contested Underdog Slot: Correctly identified {card['starter_name']} vs {card['challenger_name']} -> Badge: '{clean_badge}'.")
+
+
 if __name__ == "__main__":
     print("==================================================")
     print("RUNNING FANTASY MONTE CARLO ENGINE TEST SUITE")
@@ -695,6 +755,7 @@ if __name__ == "__main__":
     test_injury_and_ir_handling()
     test_idiosyncratic_scoring()
     test_espn_credentials_and_waiver_isolation()
+    test_archetype_volatility_and_underdog_accuracy()
     print("\n==================================================")
     print("ALL TESTS PASSED SUCCESSFULLY! (100% HEALTHY)")
     print("==================================================")
