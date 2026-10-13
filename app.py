@@ -129,6 +129,37 @@ if st.sidebar.button("🔄 Clear Cache & Re-Sync League", use_container_width=Tr
     st.session_state.selected_team_b = None
     st.rerun()
 
+st.sidebar.markdown("### 📊 Primary Projection Anchor")
+uploaded_athletic_xlsx = st.sidebar.file_uploader(
+    "Upload Weekly Athletic Projections (.xlsx)",
+    type=["xlsx"],
+    help="Drop in The Athletic's Wednesday release for waivers or Sunday morning update for start/sit triage."
+)
+if uploaded_athletic_xlsx is not None:
+    file_sig = f"{uploaded_athletic_xlsx.name}_{uploaded_athletic_xlsx.size}"
+    if st.session_state.get("athletic_file_sig") != file_sig:
+        data_ingest.set_uploaded_athletic_projections(uploaded_athletic_xlsx, uploaded_athletic_xlsx.name)
+        st.session_state["athletic_file_sig"] = file_sig
+        st.session_state.espn_league = None
+        st.session_state.espn_last_attempt = None
+        st.rerun()
+else:
+    if st.session_state.get("athletic_file_sig") is not None:
+        data_ingest.set_uploaded_athletic_projections(None)
+        st.session_state["athletic_file_sig"] = None
+        st.session_state.espn_league = None
+        st.session_state.espn_last_attempt = None
+        st.rerun()
+
+ath_summary = data_ingest.get_athletic_projection_summary()
+if ath_summary.get("total_entities", 0) > 0:
+    c_dict = ath_summary["counts"]
+    st.sidebar.caption(
+        f"✅ **Anchor:** `{ath_summary['filename']}`  \n"
+        f"**{ath_summary['skill_total']} Skill** ({c_dict['QB']} QB · {c_dict['RB']} RB · {c_dict['WR']} WR · {c_dict['TE']} TE) + **{ath_summary['dst_total']} D/ST**  \n"
+        f"⚖️ *50% Vegas Implied / 50% Athletic Custom Mu*"
+    )
+
 st.sidebar.markdown("### ⚙️ League Scoring Engine")
 st.sidebar.success("🏆 **Active: Idiosyncratic League Rules**")
 with st.sidebar.expander("📋 View League Scoring Settings", expanded=False):
@@ -170,7 +201,7 @@ target_year = espn_creds.get("year", 2024)
 current_synced_id = st.session_state.espn_league.get("league_id") if st.session_state.espn_league else None
 current_synced_year = st.session_state.espn_league.get("year") if st.session_state.espn_league else None
 
-attempt_key = (target_league_id, target_year, scoring_format)
+attempt_key = (target_league_id, target_year, scoring_format, st.session_state.get("athletic_file_sig"))
 
 if target_league_id and (
     st.session_state.espn_league is None or
@@ -179,7 +210,6 @@ if target_league_id and (
 ) and st.session_state.espn_last_attempt != attempt_key:
     st.session_state.espn_last_attempt = attempt_key
     with st.spinner(f"Connecting to ESPN Fantasy League ({target_league_id}, Year {target_year})..."):
-        st.cache_data.clear()
         sync_result = data_ingest.sync_espn_league(
             league_id=int(target_league_id),
             year=int(target_year),
@@ -240,7 +270,7 @@ active_mode_selection = st.sidebar.radio(
     key="active_data_source"
 )
 
-APP_BUILD_VERSION = "2026.09.17-v2.2"
+APP_BUILD_VERSION = "2026.10.13-v3.0"
 st.sidebar.caption(f"⚡ Engine Build: `{APP_BUILD_VERSION}`")
 
 # ESPN Sync Management in Sidebar
@@ -427,21 +457,6 @@ team_a_bench = [
 ]
 
 
-def find_contested_lineup_slots(
-    starters: List[Dict[str, Any]],
-    bench: List[Dict[str, Any]],
-    team_a_win_rate: float,
-    threshold: float = 2.5
-) -> List[Dict[str, Any]]:
-    """Surface Contested Lineup Slots via simulation engine."""
-    return simulation.find_contested_lineup_slots(
-        starters=starters,
-        bench=bench,
-        team_a_win_rate=team_a_win_rate,
-        threshold=threshold
-    )
-
-
 # ---------------------------------------------------------------------------
 # MAIN INTERFACE TABS
 # ---------------------------------------------------------------------------
@@ -449,7 +464,7 @@ tab_matchup, tab_startsit, tab_vorp, tab_feeds, tab_scheme = st.tabs([
     "⚡ Sunday Morning Command Center",
     "⚖️ Start / Sit Comparative Engine",
     "📋 Tuesday Waiver & FAAB Claim Sheet",
-    "📡 Vegas Odds & Polymarket Feed",
+    "🔮 Next-Horizon Strategy & Market Feed",
     "🔬 Scheme Lab & Newsletter Upload"
 ])
 
@@ -458,8 +473,8 @@ tab_matchup, tab_startsit, tab_vorp, tab_feeds, tab_scheme = st.tabs([
 # TAB 1: SUNDAY MORNING COMMAND CENTER
 # ===========================================================================
 with tab_matchup:
-    # Run 10,000-run simulation
-    with st.spinner(f"Running {n_iterations:,} Monte Carlo simulations for {team_a_name} vs {team_b_name}..."):
+    # Run 10,000-run correlated Cholesky Gaussian Copula simulation
+    with st.spinner(f"Running {n_iterations:,} Correlated Monte Carlo simulations for {team_a_name} vs {team_b_name}..."):
         matchup_result = simulation.simulate_matchup(
             team_a_roster,
             team_b_roster,
@@ -487,18 +502,18 @@ with tab_matchup:
     with m_col2:
         st.markdown(f"""
         <div class="metric-card">
-            <div class="metric-title">{team_a_name} Proj. Points</div>
-            <div class="metric-value blue-val">{a_summary['mean']:.1f}</div>
-            <div class="metric-sub">80% Conf: [{a_summary['p10']:.1f} - {a_summary['p90']:.1f}] · Med: {a_summary['median']:.1f}</div>
+            <div class="metric-title">{team_a_name} Projected (Med)</div>
+            <div class="metric-value blue-val">{a_summary['median']:.1f}</div>
+            <div class="metric-sub">Floor (P10): {a_summary['p10']:.1f} · Ceiling (P90): {a_summary['p90']:.1f}</div>
         </div>
         """, unsafe_allow_html=True)
 
     with m_col3:
         st.markdown(f"""
         <div class="metric-card">
-            <div class="metric-title">{team_b_name} Proj. Points</div>
-            <div class="metric-value amber-val">{b_summary['mean']:.1f}</div>
-            <div class="metric-sub">80% Conf: [{b_summary['p10']:.1f} - {b_summary['p90']:.1f}] · Med: {b_summary['median']:.1f}</div>
+            <div class="metric-title">{team_b_name} Projected (Med)</div>
+            <div class="metric-value amber-val">{b_summary['median']:.1f}</div>
+            <div class="metric-sub">Floor (P10): {b_summary['p10']:.1f} · Ceiling (P90): {b_summary['p90']:.1f}</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -507,13 +522,11 @@ with tab_matchup:
         <div class="metric-card">
             <div class="metric-title">Expected Margin of Victory</div>
             <div class="metric-value purple-val">{m_summary['mean']:+0.1f}</div>
-            <div class="metric-sub">Median Margin: {m_summary['median']:+0.1f} · Std: ±{m_summary['std']:.1f}</div>
+            <div class="metric-sub">Median Margin: {m_summary['median']:+0.1f} · Volatility: ±{m_summary['std']:.1f}</div>
         </div>
         """, unsafe_allow_html=True)
 
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    # 1. Centered Win% Gauge + Clean Margin of Victory Distribution
+    # 1. Centered Win% Gauge + High-Contrast Margin of Victory Distribution
     col_gauge, col_margin = st.columns([1, 1.85])
 
     with col_gauge:
@@ -545,13 +558,13 @@ with tab_matchup:
             template="plotly_dark",
             paper_bgcolor="rgba(0,0,0,0)",
             plot_bgcolor="rgba(0,0,0,0)",
-            height=280,
+            height=265,
             margin=dict(l=20, r=20, t=35, b=10)
         )
         st.plotly_chart(fig_gauge, use_container_width=True)
 
     with col_margin:
-        st.subheader("Margin of Victory Distribution")
+        st.subheader("Margin of Victory Distribution (Correlated Stack Matrix)")
         margins = matchup_result["margins"]
         fig_margin = go.Figure()
         losses = margins[margins < 0]
@@ -571,7 +584,7 @@ with tab_matchup:
             nbinsx=40
         ))
         fig_margin.add_vline(x=0, line_width=3, line_color="#ffffff", line_dash="solid", annotation_text="TIE LINE (0)", annotation_position="top")
-        fig_margin.add_vline(x=m_summary["mean"], line_width=2, line_color="#c084fc", line_dash="dash", annotation_text=f"Mean ({m_summary['mean']:+0.1f})")
+        fig_margin.add_vline(x=m_summary["median"], line_width=2, line_color="#c084fc", line_dash="dash", annotation_text=f"Med ({m_summary['median']:+0.1f})")
 
         fig_margin.update_layout(
             barmode="overlay",
@@ -579,9 +592,9 @@ with tab_matchup:
             paper_bgcolor="rgba(0,0,0,0)",
             plot_bgcolor="rgba(30,41,59,0.5)",
             xaxis_title=f"Margin of Victory ({team_a_name} vs {team_b_name})",
-            yaxis_title="Simulated Frequency (10,000 Runs)",
+            yaxis_title="Simulated Frequency",
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-            height=280,
+            height=265,
             margin=dict(l=20, r=20, t=30, b=20)
         )
         st.plotly_chart(fig_margin, use_container_width=True)
@@ -589,9 +602,9 @@ with tab_matchup:
     # 2. Contested Lineup Slots & Pre-Paired Decision Cards
     st.markdown("---")
     st.markdown("### ⚔️ Contested Lineup Slots & Sunday Decision Cards")
-    st.caption("Automatically surfaced borderline starter decisions: any bench asset within 2.5 projected points of a starter, or higher. Pre-paired with net Win% leverage, Floor/Ceiling delta, and contextual badges ('Safe Floor Play' vs 'Underdog Ceiling Swing').")
+    st.caption("Automatically surfaced borderline starter decisions: any bench asset projecting within 2.5 points of a starter (or higher), pre-paired with net Win% leverage, exact positional percentiles, Vegas Implied Team Totals, and QB Stack tags.")
 
-    contested_slots = find_contested_lineup_slots(team_a_roster, team_a_bench, p_win_a, threshold=2.5)
+    contested_slots = simulation.find_contested_lineup_slots(team_a_roster, team_a_bench, p_win_a, threshold=2.5)
 
     if contested_slots:
         card_cols = st.columns(min(len(contested_slots), 2))
@@ -603,39 +616,51 @@ with tab_matchup:
                 delta_ceiling_sign = "+" if item["delta_ceiling"] >= 0 else ""
                 win_lev_sign = "+" if item["win_leverage"] >= 0 else ""
 
+                vegas_strip = (
+                    f"<b>{item['challenger_name']}</b> ({item.get('challenger_vegas_tag', 'NFL')})"
+                    f" &nbsp;vs&nbsp; <b>{item['starter_name']}</b> ({item.get('starter_vegas_tag', 'NFL')})"
+                )
+                stack_tags = " &nbsp; ".join(
+                    [t for t in [item.get("challenger_stack", ""), item.get("starter_stack", "")] if t]
+                )
+
                 card_html = f"""
-                <div style="background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 16px 20px; margin-bottom: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
-                        <span style="font-weight: 800; font-size: 1.05rem; color: #f8fafc;">
+                <div style="background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 14px 18px; margin-bottom: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
+                        <span style="font-weight: 800; font-size: 1.02rem; color: #f8fafc;">
                             Slot: <span style="color: #38bdf8;">{item['slot']}</span> &nbsp;·&nbsp; {item['starter_name']} vs {item['challenger_name']}
                         </span>
-                        <span style="background: {item['badge_bg']}; color: {item['badge_color']}; border: 1px solid {item['badge_color']}; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 800;">
+                        <span style="background: {item['badge_bg']}; color: {item['badge_color']}; border: 1px solid {item['badge_color']}; padding: 3px 11px; border-radius: 20px; font-size: 0.78rem; font-weight: 800;">
                             {item['badge']}
                         </span>
                     </div>
-                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 12px;">
-                        <div style="background: #0f172a; padding: 10px 12px; border-radius: 8px; text-align: center; border: 1px solid #334155;">
-                            <div style="font-size: 0.70rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Projected (Med)</div>
-                            <div style="font-size: 1.15rem; font-weight: 800; color: #f8fafc; margin-top: 2px;">{item['challenger_mu']:.1f} vs {item['starter_mu']:.1f}</div>
-                            <div style="font-size: 0.75rem; color: {'#10b981' if item['delta_mu'] >= 0 else '#ef4444'}; font-weight: 700;">{delta_sign}{item['delta_mu']:.1f} pts</div>
+                    <div style="font-size: 0.76rem; color: #94a3b8; margin-bottom: 10px; display: flex; justify-content: space-between; flex-wrap: wrap;">
+                        <span>📡 {vegas_strip}</span>
+                        <span style="color: #38bdf8; font-weight: 700;">{stack_tags}</span>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 10px;">
+                        <div style="background: #0f172a; padding: 8px 10px; border-radius: 8px; text-align: center; border: 1px solid #334155;">
+                            <div style="font-size: 0.68rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Projected (Med)</div>
+                            <div style="font-size: 1.10rem; font-weight: 800; color: #f8fafc; margin-top: 2px;">{item['challenger_mu']:.1f} vs {item['starter_mu']:.1f}</div>
+                            <div style="font-size: 0.73rem; color: {'#10b981' if item['delta_mu'] >= 0 else '#ef4444'}; font-weight: 700;">{delta_sign}{item['delta_mu']:.1f} pts</div>
                         </div>
-                        <div style="background: #0f172a; padding: 10px 12px; border-radius: 8px; text-align: center; border: 1px solid #334155;">
-                            <div style="font-size: 0.70rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Floor (P10)</div>
-                            <div style="font-size: 1.15rem; font-weight: 800; color: #f8fafc; margin-top: 2px;">{item['challenger_p10']:.1f} vs {item['starter_p10']:.1f}</div>
-                            <div style="font-size: 0.75rem; color: {'#10b981' if item['delta_floor'] >= 0 else '#ef4444'}; font-weight: 700;">{delta_floor_sign}{item['delta_floor']:.1f} floor</div>
+                        <div style="background: #0f172a; padding: 8px 10px; border-radius: 8px; text-align: center; border: 1px solid #334155;">
+                            <div style="font-size: 0.68rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Floor (P10)</div>
+                            <div style="font-size: 1.10rem; font-weight: 800; color: #f8fafc; margin-top: 2px;">{item['challenger_p10']:.1f} vs {item['starter_p10']:.1f}</div>
+                            <div style="font-size: 0.73rem; color: {'#10b981' if item['delta_floor'] >= 0 else '#ef4444'}; font-weight: 700;">{delta_floor_sign}{item['delta_floor']:.1f} floor</div>
                         </div>
-                        <div style="background: #0f172a; padding: 10px 12px; border-radius: 8px; text-align: center; border: 1px solid #334155;">
-                            <div style="font-size: 0.70rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Ceiling (P90)</div>
-                            <div style="font-size: 1.15rem; font-weight: 800; color: #f8fafc; margin-top: 2px;">{item['challenger_p90']:.1f} vs {item['starter_p90']:.1f}</div>
-                            <div style="font-size: 0.75rem; color: {'#10b981' if item['delta_ceiling'] >= 0 else '#ef4444'}; font-weight: 700;">{delta_ceiling_sign}{item['delta_ceiling']:.1f} ceiling</div>
+                        <div style="background: #0f172a; padding: 8px 10px; border-radius: 8px; text-align: center; border: 1px solid #334155;">
+                            <div style="font-size: 0.68rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Ceiling (P90)</div>
+                            <div style="font-size: 1.10rem; font-weight: 800; color: #f8fafc; margin-top: 2px;">{item['challenger_p90']:.1f} vs {item['starter_p90']:.1f}</div>
+                            <div style="font-size: 0.73rem; color: {'#10b981' if item['delta_ceiling'] >= 0 else '#ef4444'}; font-weight: 700;">{delta_ceiling_sign}{item['delta_ceiling']:.1f} ceiling</div>
                         </div>
-                        <div style="background: #0f172a; padding: 10px 12px; border-radius: 8px; text-align: center; border: 1px solid #334155;">
-                            <div style="font-size: 0.70rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Win% Leverage</div>
-                            <div style="font-size: 1.15rem; font-weight: 800; color: {'#10b981' if item['win_leverage'] >= 0 else '#f59e0b'}; margin-top: 2px;">{win_lev_sign}{item['win_leverage']*100:.1f}%</div>
-                            <div style="font-size: 0.75rem; color: #94a3b8;">Team Net Impact</div>
+                        <div style="background: #0f172a; padding: 8px 10px; border-radius: 8px; text-align: center; border: 1px solid #334155;">
+                            <div style="font-size: 0.68rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Win% Leverage</div>
+                            <div style="font-size: 1.10rem; font-weight: 800; color: {'#10b981' if item['win_leverage'] >= 0 else '#f59e0b'}; margin-top: 2px;">{win_lev_sign}{item['win_leverage']*100:.1f}%</div>
+                            <div style="font-size: 0.73rem; color: #94a3b8;">Team Net Impact</div>
                         </div>
                     </div>
-                    <div style="font-size: 0.82rem; color: #cbd5e1; background: rgba(15, 23, 42, 0.75); padding: 10px 14px; border-radius: 6px; border-left: 3px solid {item['badge_color']};">
+                    <div style="font-size: 0.80rem; color: #cbd5e1; background: rgba(15, 23, 42, 0.75); padding: 8px 12px; border-radius: 6px; border-left: 3px solid {item['badge_color']};">
                         💡 <b>Sunday Rationale:</b> {item['rationale']}
                     </div>
                 </div>
@@ -644,81 +669,21 @@ with tab_matchup:
     else:
         st.success(f"✅ **No Contested Slots:** All starters for **{team_a_name}** hold at least a +2.5 projected point cushion over your bench depth.")
 
-    # 3. Collapsed "Advanced Model Diagnostics" Expander
+    # 3. Starting Rosters & Correlated Stack Matrix Breakdown
     st.markdown("---")
-    with st.expander("🔬 Advanced Model Diagnostics (KDE Density Curves, Cumulative Exceedance CDF & Defensive Scheme Breakdown)", expanded=False):
-        col_chart1, col_chart2 = st.columns(2)
-        scores_a = matchup_result["team_a_scores"]
-        scores_b = matchup_result["team_b_scores"]
-
-        with col_chart1:
-            st.subheader("Probability Density Curves (KDE)")
-            x_grid = np.linspace(min(scores_a.min(), scores_b.min()) - 10, max(scores_a.max(), scores_b.max()) + 10, 300)
-            kde_a = gaussian_kde(scores_a)(x_grid)
-            kde_b = gaussian_kde(scores_b)(x_grid)
-
-            fig_kde = go.Figure()
-            fig_kde.add_trace(go.Scatter(
-                x=x_grid, y=kde_a,
-                mode="lines",
-                name=team_a_name,
-                line=dict(color="#10b981", width=3),
-                fill="tozeroy",
-                fillcolor="rgba(16, 185, 129, 0.2)"
-            ))
-            fig_kde.add_trace(go.Scatter(
-                x=x_grid, y=kde_b,
-                mode="lines",
-                name=team_b_name,
-                line=dict(color="#f59e0b", width=3),
-                fill="tozeroy",
-                fillcolor="rgba(245, 158, 11, 0.2)"
-            ))
-            fig_kde.add_vline(x=a_summary["median"], line_width=2, line_dash="dash", line_color="#10b981", annotation_text=f"A Med {a_summary['median']:.1f}")
-            fig_kde.add_vline(x=b_summary["median"], line_width=2, line_dash="dash", line_color="#f59e0b", annotation_text=f"B Med {b_summary['median']:.1f}")
-
-            fig_kde.update_layout(
-                template="plotly_dark",
-                paper_bgcolor="rgba(0,0,0,0)",
-                plot_bgcolor="rgba(30,41,59,0.5)",
-                xaxis_title="Weekly Fantasy Points",
-                yaxis_title="Probability Density",
-                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-                margin=dict(l=20, r=20, t=30, b=20)
+    with st.expander("📋 Complete Starting Rosters & Correlated Stack Matrix (Projected Med / Floor P10 / Ceiling P90)", expanded=True):
+        detected_corrs = matchup_result.get("stacks", [])
+        if detected_corrs:
+            corr_badges = " &nbsp;·&nbsp; ".join([
+                f"<b>{c['player_1']} ↔ {c['player_2']}</b> ({c['stack_type']}, ρ={c['rho']:+.2f})"
+                for c in detected_corrs[:6]
+            ])
+            st.markdown(
+                f"<div style='background:#0f172a;border:1px solid #334155;padding:8px 14px;border-radius:8px;margin-bottom:12px;font-size:0.82rem;color:#cbd5e1;'>"
+                f"🔗 <b>Active Gaussian Copula Covariance Pairs:</b> {corr_badges}</div>",
+                unsafe_allow_html=True
             )
-            st.plotly_chart(fig_kde, use_container_width=True)
 
-        with col_chart2:
-            st.subheader("Cumulative Win / Score Exceedance Curves (1 - CDF)")
-            x_thresholds = np.linspace(min(scores_a.min(), scores_b.min()), max(scores_a.max(), scores_b.max()), 200)
-            p_exceed_a = [np.mean(scores_a >= t) * 100 for t in x_thresholds]
-            p_exceed_b = [np.mean(scores_b >= t) * 100 for t in x_thresholds]
-
-            fig_cdf = go.Figure()
-            fig_cdf.add_trace(go.Scatter(
-                x=x_thresholds, y=p_exceed_a,
-                mode="lines",
-                name=f"{team_a_name} P(Score >= X)",
-                line=dict(color="#10b981", width=3)
-            ))
-            fig_cdf.add_trace(go.Scatter(
-                x=x_thresholds, y=p_exceed_b,
-                mode="lines",
-                name=f"{team_b_name} P(Score >= X)",
-                line=dict(color="#f59e0b", width=3)
-            ))
-            fig_cdf.update_layout(
-                template="plotly_dark",
-                paper_bgcolor="rgba(0,0,0,0)",
-                plot_bgcolor="rgba(30,41,59,0.5)",
-                xaxis_title="Score Threshold (Points)",
-                yaxis_title="Probability of Scoring at least X (%)",
-                margin=dict(l=20, r=20, t=20, b=20)
-            )
-            st.plotly_chart(fig_cdf, use_container_width=True)
-
-        # Full Active Lineup Breakdown with Standardized Distribution Columns
-        st.subheader(f"📋 Complete Starting Rosters with Floor / Median / Ceiling")
         col_la, col_lb = st.columns(2)
         with col_la:
             st.markdown(f"**{team_a_name} Starters**")
@@ -746,9 +711,7 @@ with tab_matchup:
 # ===========================================================================
 with tab_startsit:
     st.subheader(f"Start / Sit Comparative Decision Engine ({team_a_name})")
-    st.markdown("Compare two players on your roster or against waiver wire targets to evaluate outscore probability and team win-rate leverage.")
-
-    col_ss1, col_ss2 = st.columns(2)
+    st.caption("Select any auto-detected Contested Lineup Slot below for instant 1-click comparison, or choose a custom player pair.")
 
     # Candidate 1 options (all starters + bench on Team A if ESPN connected)
     all_team_a_players = team_a_roster
@@ -772,12 +735,31 @@ with tab_startsit:
             return f"⚠️ {name} ({pos}) [Q]"
         return f"{name} ({pos})"
 
-    map_a = {p["name"]: format_player_display_label(p) for p in all_team_a_players}
+    # Quick-Select Contested Lineup Slot Bar (Zero Manual Configuration)
+    quick_pair_options = ["🔧 Custom Player Comparison"]
+    quick_pair_map: Dict[str, Tuple[str, str]] = {}
+    for item in contested_slots:
+        label = f"⚡ {item['slot']}: {item['starter_name']} vs {item['challenger_name']} ({item['delta_mu']:+.1f} pts)"
+        quick_pair_options.append(label)
+        quick_pair_map[label] = (item["starter_name"], item["challenger_name"])
 
+    selected_quick_pair = st.radio(
+        "Quick-Triage Contested Decisions",
+        quick_pair_options,
+        index=1 if len(quick_pair_options) > 1 else 0,
+        horizontal=True
+    )
+
+    col_ss1, col_ss2 = st.columns(2)
+    map_a = {p["name"]: format_player_display_label(p) for p in all_team_a_players}
     cand_a_options = [p["name"] for p in all_team_a_players]
-    cand_a_idx = min(len(cand_a_options) - 1, 6)
-    if "Jalen Coker" in cand_a_options:
-        cand_a_idx = cand_a_options.index("Jalen Coker")
+
+    if selected_quick_pair in quick_pair_map and quick_pair_map[selected_quick_pair][0] in cand_a_options:
+        cand_a_idx = cand_a_options.index(quick_pair_map[selected_quick_pair][0])
+    else:
+        cand_a_idx = min(len(cand_a_options) - 1, 6)
+        if "Jalen Coker" in cand_a_options:
+            cand_a_idx = cand_a_options.index("Jalen Coker")
 
     with col_ss1:
         cand_a_name = st.selectbox(
@@ -793,11 +775,14 @@ with tab_startsit:
     challenger_names = [p["name"] for p in challenger_candidates]
     map_b = {p["name"]: format_player_display_label(p) for p in challenger_candidates}
 
-    cand_b_idx = 0
-    if "Tony Pollard" in challenger_names:
-        cand_b_idx = challenger_names.index("Tony Pollard")
-    elif "DeMario Douglas" in challenger_names:
-        cand_b_idx = challenger_names.index("DeMario Douglas")
+    if selected_quick_pair in quick_pair_map and quick_pair_map[selected_quick_pair][1] in challenger_names:
+        cand_b_idx = challenger_names.index(quick_pair_map[selected_quick_pair][1])
+    else:
+        cand_b_idx = 0
+        if "Tony Pollard" in challenger_names:
+            cand_b_idx = challenger_names.index("Tony Pollard")
+        elif "DeMario Douglas" in challenger_names:
+            cand_b_idx = challenger_names.index("DeMario Douglas")
 
     with col_ss2:
         cand_b_name = st.selectbox(
@@ -839,28 +824,24 @@ with tab_startsit:
     vol_b = cand_b.get("volatility_class") or cand_b.get("score_breakdown", {}).get("volatility_class", "Standard Volume")
 
     st.markdown(f"""
-    <div style="background: rgba(15, 23, 42, 0.85); border: 1px solid #3b82f6; border-radius: 10px; padding: 14px 18px; margin-bottom: 16px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <span style="font-weight: 800; color: #60a5fa; font-size: 1.0rem;">🎯 SCHEME MATCHUP & DEFENSIVE FUNNEL BREAKDOWN</span>
+    <div style="background: rgba(15, 23, 42, 0.85); border: 1px solid #3b82f6; border-radius: 10px; padding: 12px 16px; margin-bottom: 14px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <span style="font-weight: 800; color: #60a5fa; font-size: 0.95rem;">🎯 SCHEME MATCHUP & DEFENSIVE FUNNEL BREAKDOWN</span>
             <span style="font-size: 0.75rem; background: #1e3a8a; color: #93c5fd; padding: 2px 8px; border-radius: 4px; font-weight: 600;">SumerSports Synergy</span>
         </div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 10px;">
-            <div style="background: #1e293b; padding: 10px 14px; border-radius: 6px; border-left: 3px solid #38bdf8;">
-                <div style="font-weight: 700; color: #f8fafc; font-size: 0.95rem;">{cand_a_name} <span style="font-size: 0.8rem; color: #94a3b8; font-weight: normal;">({cand_a.get('position', 'WR')})</span></div>
-                <div style="font-size: 0.82rem; color: #cbd5e1; margin-top: 2px;">Alignment: <b style="color: #38bdf8;">{align_a.get('alignment_tag', 'WR')}</b> (Slot: {align_a.get('slot_snap_pct', 0)*100:.0f}% | Wide: {align_a.get('wide_snap_pct', 0)*100:.0f}%)</div>
-                <div style="font-size: 0.80rem; color: #94a3b8; margin-top: 2px;">Archetype Volatility: <b style="color: #38bdf8;">{vol_a}</b></div>
-                <div style="font-size: 0.82rem; color: #e2e8f0; margin-top: 4px;">Opponent: <b>{funnel_a.get('team', 'DEF')}</b> <span style="font-size: 0.75rem; background: {badge_color_a}22; color: {badge_color_a}; border: 1px solid {badge_color_a}; padding: 1px 6px; border-radius: 3px;">{funnel_a.get('funnel_classification', 'Balanced')}</span></div>
-                <div style="font-size: 0.78rem; color: #94a3b8; margin-top: 2px;">Opp MOF EPA: <b style="color: #f1f5f9;">{funnel_a.get('mof_epa_allowed', 0):.2f}</b> | Opp Quick Pres: <b style="color: #f1f5f9;">{funnel_a.get('quick_pressure_rate', 0)*100:.1f}%</b></div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 8px;">
+            <div style="background: #1e293b; padding: 8px 12px; border-radius: 6px; border-left: 3px solid #38bdf8;">
+                <div style="font-weight: 700; color: #f8fafc; font-size: 0.92rem;">{cand_a_name} <span style="font-size: 0.8rem; color: #94a3b8; font-weight: normal;">({cand_a.get('position', 'WR')})</span></div>
+                <div style="font-size: 0.80rem; color: #cbd5e1; margin-top: 2px;">Alignment: <b style="color: #38bdf8;">{align_a.get('alignment_tag', 'WR')}</b> (Slot: {align_a.get('slot_snap_pct', 0)*100:.0f}% | Wide: {align_a.get('wide_snap_pct', 0)*100:.0f}%) · Archetype: <b style="color: #38bdf8;">{vol_a}</b></div>
+                <div style="font-size: 0.80rem; color: #e2e8f0; margin-top: 3px;">Opp: <b>{funnel_a.get('team', 'DEF')}</b> <span style="font-size: 0.74rem; background: {badge_color_a}22; color: {badge_color_a}; border: 1px solid {badge_color_a}; padding: 1px 6px; border-radius: 3px;">{funnel_a.get('funnel_classification', 'Balanced')}</span> · MOF EPA: <b>{funnel_a.get('mof_epa_allowed', 0):.2f}</b> · Quick Pres: <b>{funnel_a.get('quick_pressure_rate', 0)*100:.1f}%</b></div>
             </div>
-            <div style="background: #1e293b; padding: 10px 14px; border-radius: 6px; border-left: 3px solid #c084fc;">
-                <div style="font-weight: 700; color: #f8fafc; font-size: 0.95rem;">{cand_b_name} <span style="font-size: 0.8rem; color: #94a3b8; font-weight: normal;">({cand_b.get('position', 'WR')})</span></div>
-                <div style="font-size: 0.82rem; color: #cbd5e1; margin-top: 2px;">Alignment: <b style="color: #c084fc;">{align_b.get('alignment_tag', 'WR')}</b> (Slot: {align_b.get('slot_snap_pct', 0)*100:.0f}% | Wide: {align_b.get('wide_snap_pct', 0)*100:.0f}%)</div>
-                <div style="font-size: 0.80rem; color: #94a3b8; margin-top: 2px;">Archetype Volatility: <b style="color: #c084fc;">{vol_b}</b></div>
-                <div style="font-size: 0.82rem; color: #e2e8f0; margin-top: 4px;">Opponent: <b>{funnel_b.get('team', 'DEF')}</b> <span style="font-size: 0.75rem; background: {badge_color_b}22; color: {badge_color_b}; border: 1px solid {badge_color_b}; padding: 1px 6px; border-radius: 3px;">{funnel_b.get('funnel_classification', 'Balanced')}</span></div>
-                <div style="font-size: 0.78rem; color: #94a3b8; margin-top: 2px;">Opp MOF EPA: <b style="color: #f1f5f9;">{funnel_b.get('mof_epa_allowed', 0):.2f}</b> | Opp Quick Pres: <b style="color: #f1f5f9;">{funnel_b.get('quick_pressure_rate', 0)*100:.1f}%</b></div>
+            <div style="background: #1e293b; padding: 8px 12px; border-radius: 6px; border-left: 3px solid #c084fc;">
+                <div style="font-weight: 700; color: #f8fafc; font-size: 0.92rem;">{cand_b_name} <span style="font-size: 0.8rem; color: #94a3b8; font-weight: normal;">({cand_b.get('position', 'WR')})</span></div>
+                <div style="font-size: 0.80rem; color: #cbd5e1; margin-top: 2px;">Alignment: <b style="color: #c084fc;">{align_b.get('alignment_tag', 'WR')}</b> (Slot: {align_b.get('slot_snap_pct', 0)*100:.0f}% | Wide: {align_b.get('wide_snap_pct', 0)*100:.0f}%) · Archetype: <b style="color: #c084fc;">{vol_b}</b></div>
+                <div style="font-size: 0.80rem; color: #e2e8f0; margin-top: 3px;">Opp: <b>{funnel_b.get('team', 'DEF')}</b> <span style="font-size: 0.74rem; background: {badge_color_b}22; color: {badge_color_b}; border: 1px solid {badge_color_b}; padding: 1px 6px; border-radius: 3px;">{funnel_b.get('funnel_classification', 'Balanced')}</span> · MOF EPA: <b>{funnel_b.get('mof_epa_allowed', 0):.2f}</b> · Quick Pres: <b>{funnel_b.get('quick_pressure_rate', 0)*100:.1f}%</b></div>
             </div>
         </div>
-        <div style="font-size: 0.85rem; color: #f1f5f9; background: #0f172a; padding: 8px 12px; border-radius: 6px; border: 1px solid #334155;">
+        <div style="font-size: 0.82rem; color: #f1f5f9; background: #0f172a; padding: 7px 11px; border-radius: 6px; border: 1px solid #334155;">
             💡 <b>Scheme Calibration Recommendation:</b> {funnel_note}
         </div>
     </div>
@@ -878,9 +859,9 @@ with tab_startsit:
     tac_icon = "🚨" if "INACTIVE" in tac_mode else ("🛡️" if tac_mode == "FAVORITE" else ("⚡" if tac_mode == "UNDERDOG" else "⚖️"))
 
     st.markdown(f"""
-    <div style="background: {tac_bg}; border: 1px solid #334155; border-radius: 10px; padding: 12px 18px; margin-bottom: 16px;">
-        <span style="font-weight: 800; font-size: 1.05rem;">{tac_icon} {tac_mode} REGIME: {tac_obj}</span><br>
-        <span style="color: #cbd5e1; font-size: 0.85rem;">{ss_result.get('tactical_rationale', '')}</span>
+    <div style="background: {tac_bg}; border: 1px solid #334155; border-radius: 10px; padding: 10px 16px; margin-bottom: 14px;">
+        <span style="font-weight: 800; font-size: 1.0rem;">{tac_icon} {tac_mode} REGIME: {tac_obj}</span><br>
+        <span style="color: #cbd5e1; font-size: 0.84rem;">{ss_result.get('tactical_rationale', '')}</span>
     </div>
     """, unsafe_allow_html=True)
 
@@ -916,97 +897,73 @@ with tab_startsit:
         </div>
         """, unsafe_allow_html=True)
 
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    # Side-by-side distribution plots
-    col_v1, col_v2 = st.columns(2)
-    with col_v1:
-        st.subheader("Outcome Probability Densities")
-        sim_a = ss_result["sim_a"]
-        sim_b = ss_result["sim_b"]
-
-        x_span = np.linspace(0, max(sim_a.max(), sim_b.max()) + 5, 200)
-        kde_cand_a = gaussian_kde(sim_a)(x_span)
-        kde_cand_b = gaussian_kde(sim_b)(x_span)
-
-        fig_cand = go.Figure()
-        fig_cand.add_trace(go.Scatter(
-            x=x_span, y=kde_cand_a,
-            mode="lines",
-            name=f"{cand_a_name} ({cand_a.get('position')})",
-            line=dict(color="#38bdf8", width=3),
-            fill="tozeroy",
-            fillcolor="rgba(56, 189, 248, 0.2)"
-        ))
-        fig_cand.add_trace(go.Scatter(
-            x=x_span, y=kde_cand_b,
-            mode="lines",
-            name=f"{cand_b_name} ({cand_b.get('position')})",
-            line=dict(color="#c084fc", width=3),
-            fill="tozeroy",
-            fillcolor="rgba(192, 132, 252, 0.2)"
-        ))
-        fig_cand.update_layout(
-            template="plotly_dark",
-            paper_bgcolor="rgba(0,0,0,0)",
-            plot_bgcolor="rgba(30,41,59,0.5)",
-            xaxis_title="Fantasy Points",
-            yaxis_title="Density",
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-            margin=dict(l=20, r=20, t=30, b=20)
-        )
-        st.plotly_chart(fig_cand, use_container_width=True)
-
-    with col_v2:
-        st.subheader("Floor, Median & Ceiling Percentiles")
-        fig_box = go.Figure()
-        fig_box.add_trace(go.Box(
-            y=sim_a,
-            name=cand_a_name,
-            marker_color="#38bdf8",
-            boxpoints=False
-        ))
-        fig_box.add_trace(go.Box(
-            y=sim_b,
-            name=cand_b_name,
-            marker_color="#c084fc",
-            boxpoints=False
-        ))
-        fig_box.update_layout(
-            template="plotly_dark",
-            paper_bgcolor="rgba(0,0,0,0)",
-            plot_bgcolor="rgba(30,41,59,0.5)",
-            yaxis_title="Projected Points Distribution",
-            margin=dict(l=20, r=20, t=30, b=20)
-        )
-        st.plotly_chart(fig_box, use_container_width=True)
-
+    # Consolidated Outcome Probability Density & Percentile Horizon Plot
+    sim_a = ss_result["sim_a"]
+    sim_b = ss_result["sim_b"]
     sum_a = ss_result["summary_a"]
     sum_b = ss_result["summary_b"]
-    p15_a = sum_a.get("p15", sum_a["p10"])
-    p15_b = sum_b.get("p15", sum_b["p10"])
-    st.info(
-        f"**Tactical Objective ({tac_mode})**: "
-        f"**{cand_a_name}** — P15 Floor: **{p15_a:.1f}** | Median: **{sum_a['median']:.1f}** | P90 Ceiling: **{sum_a['p90']:.1f}**\n\n"
-        f"**{cand_b_name}** — P15 Floor: **{p15_b:.1f}** | Median: **{sum_b['median']:.1f}** | P90 Ceiling: **{sum_b['p90']:.1f}**\n\n"
-        f"👉 **{ss_result.get('tactical_rationale')}**"
+
+    x_span = np.linspace(0, max(sim_a.max(), sim_b.max()) + 5, 220)
+    kde_cand_a = gaussian_kde(sim_a)(x_span) if np.std(sim_a) > 1e-4 else np.zeros_like(x_span)
+    kde_cand_b = gaussian_kde(sim_b)(x_span) if np.std(sim_b) > 1e-4 else np.zeros_like(x_span)
+
+    fig_cand = go.Figure()
+    fig_cand.add_trace(go.Scatter(
+        x=x_span, y=kde_cand_a,
+        mode="lines",
+        name=f"{cand_a_name} (Floor P10: {sum_a['p10']:.1f} · Med: {sum_a['median']:.1f} · Ceiling P90: {sum_a['p90']:.1f})",
+        line=dict(color="#38bdf8", width=3),
+        fill="tozeroy",
+        fillcolor="rgba(56, 189, 248, 0.2)"
+    ))
+    fig_cand.add_trace(go.Scatter(
+        x=x_span, y=kde_cand_b,
+        mode="lines",
+        name=f"{cand_b_name} (Floor P10: {sum_b['p10']:.1f} · Med: {sum_b['median']:.1f} · Ceiling P90: {sum_b['p90']:.1f})",
+        line=dict(color="#c084fc", width=3),
+        fill="tozeroy",
+        fillcolor="rgba(192, 132, 252, 0.2)"
+    ))
+    fig_cand.add_vline(x=sum_a["median"], line_width=2, line_dash="dash", line_color="#38bdf8", annotation_text=f"{cand_a_name} Med ({sum_a['median']:.1f})")
+    fig_cand.add_vline(x=sum_b["median"], line_width=2, line_dash="dash", line_color="#c084fc", annotation_text=f"{cand_b_name} Med ({sum_b['median']:.1f})", annotation_position="bottom right")
+    fig_cand.add_vline(x=sum_a["p90"], line_width=1, line_dash="dot", line_color="#38bdf8", annotation_text=f"A P90 ({sum_a['p90']:.1f})")
+    fig_cand.add_vline(x=sum_b["p90"], line_width=1, line_dash="dot", line_color="#c084fc", annotation_text=f"B P90 ({sum_b['p90']:.1f})")
+
+    fig_cand.update_layout(
+        title="Consolidated Outcome Density & Floor / Median / Ceiling Horizon",
+        template="plotly_dark",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(30,41,59,0.5)",
+        xaxis_title="Weekly Fantasy Points",
+        yaxis_title="Probability Density",
+        height=300,
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        margin=dict(l=20, r=20, t=40, b=20)
     )
+    st.plotly_chart(fig_cand, use_container_width=True)
 
     # Comprehensive Start/Sit Leverage Audit Table for Team A
     st.markdown("---")
     st.subheader(f"📋 Comprehensive Start/Sit Leverage Audit for {team_a_name}")
-    st.caption("Every possible bench-to-starter substitution evaluated across Monte Carlo iterations to show exactly how each move impacts your team's win probability.")
+    st.caption("Vectorized evaluation of every possible bench-to-starter substitution across all 10,000 correlated Monte Carlo iterations.")
     if team_a_bench:
-        with st.spinner("Computing full start/sit leverage audit across all bench assets..."):
-            opt_result = simulation.find_roster_optimizations(
-                team_a_roster,
-                team_a_bench,
-                team_b_roster,
-                n_simulations=min(3000, n_iterations)
-            )
+        opt_result = simulation.find_roster_optimizations(
+            team_a_roster,
+            team_a_bench,
+            team_b_roster,
+            n_simulations=n_iterations
+        )
         if not opt_result["audit_table"].empty:
+            audit_cols = [
+                c for c in [
+                    "Bench Player", "Pos", "Starter Compared", "Slot",
+                    "Bench Med", "Bench Floor (P10)", "Bench Ceiling (P90)",
+                    "Starter Med", "Starter Floor (P10)", "Starter Ceiling (P90)",
+                    "Pt Delta", "Win% Leverage", "Status", "Recommendation"
+                ] if c in opt_result["audit_table"].columns
+            ]
             st.dataframe(
-                opt_result["audit_table"][["Bench Player", "Pos", "Starter Compared", "Slot", "Bench Proj", "Starter Proj", "Pt Delta", "Win% Leverage", "Status", "Recommendation"]],
+                opt_result["audit_table"][audit_cols],
                 use_container_width=True,
                 hide_index=True
             )
@@ -1107,6 +1064,7 @@ with tab_vorp:
             p_badge_border = "#10b981" if idx == 0 else ("#38bdf8" if idx == 1 else "#475569")
             gain_label = f"Net Ceiling +{row['Net P90 Gain']:.1f} pts" if is_stash_selected else f"Net Gain +{row['Net Proj Gain']:.1f} pts"
             gain_val = f"+{row['Net P90 Gain']:.1f}" if is_stash_selected else f"+{row['Net Proj Gain']:.1f}"
+            win_lev_str = row.get("Win% Leverage", f"{float(row['Net Proj Gain'])*1.6:+.1f}%")
 
             st.markdown(f"""
             <div style="background: #1e293b; border: 1px solid {p_badge_border}; border-radius: 10px; padding: 14px 18px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
@@ -1123,6 +1081,12 @@ with tab_vorp:
                 </div>
                 <div style="display: flex; gap: 16px; align-items: center;">
                     <div style="text-align: right;">
+                        <div style="font-size: 0.70rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Win% Leverage</div>
+                        <div style="font-weight: 800; color: #38bdf8; font-size: 1.15rem;">
+                            {win_lev_str}
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
                         <div style="font-size: 0.70rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">{gain_label.split()[0]} {gain_label.split()[1]}</div>
                         <div style="font-weight: 800; color: #10b981; font-size: 1.15rem;">
                             {gain_val} pts
@@ -1137,7 +1101,7 @@ with tab_vorp:
             """, unsafe_allow_html=True)
 
         with st.expander("📋 View Detailed Upgrade Audit Table", expanded=False):
-            disp_cols = [c for c in ["Priority", "Target Waiver Add", "Pos", "Cut Candidate", "Cut Pos", "Projected (Med)", "Floor (P10)", "Ceiling (P90)", "Net Proj Gain", "Net P90 Gain", "Suggested FAAB", "Upgrade Rationale"] if c in df_upgrades.columns]
+            disp_cols = [c for c in ["Priority", "Target Waiver Add", "Pos", "Cut Candidate", "Cut Pos", "Projected (Med)", "Floor (P10)", "Ceiling (P90)", "Win% Leverage", "Net Proj Gain", "Net P90 Gain", "Suggested FAAB", "Upgrade Rationale"] if c in df_upgrades.columns]
             st.dataframe(df_upgrades[disp_cols], use_container_width=True, hide_index=True)
     else:
         st.info(f"Your bench on {team_a_name} is currently stronger than the available waiver wire pool at key positions.")
@@ -1231,62 +1195,106 @@ with tab_vorp:
         st.warning(f"Could not load usage scanner: {exc}")
 
 
-
 # ===========================================================================
-# TAB 4: VEGAS ODDS & POLYMARKET FEED
+# TAB 4: NEXT-HORIZON STRATEGY & MARKET FEED
 # ===========================================================================
 with tab_feeds:
-    st.subheader("Vegas Betting Markets & Polymarket Crowd Probabilities")
+    st.subheader(f"🔮 Next-Horizon Quantitative Strategy & Market Feed ({team_a_name})")
 
-    # Section 1: The Odds API Game Lines
-    st.markdown("#### 🏈 NFL Spreads, Totals & Implied Team Totals")
-    with st.spinner("Fetching NFL game lines from The Odds API..."):
-        raw_odds = data_ingest.fetch_nfl_odds(api_key=odds_api_key)
-        if raw_odds:
-            parsed_games = data_ingest.parse_nfl_games(raw_odds)
-            df_games = pd.DataFrame(parsed_games)
-            st.dataframe(
-                df_games[["away_team", "home_team", "spread", "total", "away_implied", "home_implied", "commence_time"]],
-                use_container_width=True,
-                hide_index=True
-            )
-        else:
-            st.info("Live Vegas Odds not loaded. Check API Key or enjoy curated game data.")
+    # Section 1: Game-Theoretic Matchup Inversion Solver (Pillar 5.1)
+    st.markdown("#### ♟️ 1. Game-Theoretic Matchup Inversion Engine")
+    st.caption("Analyzes your opponent's starting roster volatility and expected margin to compute the exact marginal sensitivity of Win Probability to lineup variance (∂P(Win)/∂σ_M).")
+
+    inv_result = simulation.analyze_matchup_inversion(
+        team_a_roster=team_a_roster,
+        team_a_bench=team_a_bench,
+        team_b_roster=team_b_roster,
+        matchup_result=matchup_result
+    )
+
+    inv_col1, inv_col2, inv_col3, inv_col4 = st.columns(4)
+    with inv_col1:
+        st.markdown(f"""
+        <div class="metric-card">
+            <div class="metric-title">Variance Sensitivity</div>
+            <div class="metric-value {'amber-val' if inv_result['dp_dsigma_pct'] > 0 else 'green-val'}" style="font-size:1.35rem;">{inv_result['dp_dsigma_pct']:+.2f}% / pt</div>
+            <div class="metric-sub">∂P(Win)/∂σ_M</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with inv_col2:
+        st.markdown(f"""
+        <div class="metric-card">
+            <div class="metric-title">Opponent Volatility Profile</div>
+            <div class="metric-value purple-val" style="font-size:1.15rem;">{inv_result['opp_profile']}</div>
+            <div class="metric-sub">Opp Skew Ratio: {inv_result['opp_skew_ratio']:.2f} (σ_B={inv_result['sigma_b']:.1f})</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with inv_col3:
+        st.markdown(f"""
+        <div class="metric-card">
+            <div class="metric-title">Margin Volatility (σ_M)</div>
+            <div class="metric-value blue-val" style="font-size:1.5rem;">±{inv_result['sigma_margin']:.1f} pts</div>
+            <div class="metric-sub">Expected Spread: {inv_result['spread']:+.1f} pts</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with inv_col4:
+        st.markdown(f"""
+        <div class="metric-card">
+            <div class="metric-title">Own Lineup Volatility (σ_A)</div>
+            <div class="metric-value green-val" style="font-size:1.5rem;">±{inv_result['sigma_a']:.1f} pts</div>
+            <div class="metric-sub">Correlated Copula Draw</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown(f"""
+    <div style="background: #0f172a; border: 1px solid #38bdf8; border-radius: 10px; padding: 12px 16px; margin: 12px 0;">
+        <div style="font-weight: 800; color: #38bdf8; font-size: 0.95rem; margin-bottom: 4px;">{inv_result['strategy_headline']}</div>
+        <div style="font-size: 0.85rem; color: #e2e8f0; margin-bottom: 6px;">{inv_result['strategy_summary']}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    if inv_result.get("tactical_moves"):
+        for move_str in inv_result["tactical_moves"]:
+            st.markdown(f"- {move_str}")
 
     st.markdown("---")
 
-    # Section 2: Polymarket Gamma API Inspector
-    st.markdown("#### 🔮 Polymarket Gamma API Crowd Risk Inspector")
-    st.caption("Query live crowd probability on player status, injury availability, and game props from Polymarket's Gamma API.")
+    # Section 2: Multi-Week Playoff & First-Round Bye Leverage Matrix (Pillar 5.2)
+    st.markdown("#### 🏆 2. Multi-Week Playoff & First-Round Bye Leverage Matrix")
+    st.caption("Simulates remaining regular-season schedule paths across the entire league to quantify how top waiver and bench upgrades shift your probability of clinching a Playoff berth and a First-Round Bye (Marginal Bye Leverage ΔP(Bye)).")
 
-    poly_col1, poly_col2 = st.columns([2, 1])
-    with poly_col1:
-        custom_slug = st.text_input(
-            "Polymarket Event Slug",
-            value="nfl-will-the-bills-beat-the-lions",
-            help="Example: nfl-will-the-bills-beat-the-lions, or any active slug from gamma-api.polymarket.com/events"
-        )
-    with poly_col2:
-        st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
-        query_poly = st.button("Query Polymarket Gamma API", use_container_width=True)
+    league_teams_for_sim = st.session_state.espn_league.get("teams", []) if is_espn_active else []
+    curr_wk = int(st.session_state.espn_league.get("current_week", 6)) if is_espn_active else 6
+    candidate_pool_for_bye = (waiver_pool[:8] if waiver_pool else []) + (team_a_bench[:4] if team_a_bench else [])
 
-    if query_poly or custom_slug:
-        with st.spinner("Connecting to Polymarket Gamma API..."):
-            poly_result = data_ingest.fetch_polymarket_event(custom_slug)
-            if poly_result:
-                st.success(f"Connected: {poly_result.get('title')}")
-                p_col1, p_col2 = st.columns(2)
-                with p_col1:
-                    st.metric("Crowd Implied Probability", f"{poly_result['active_probability'] * 100:.1f}%")
-                with p_col2:
-                    st.metric("Market Volume ($)", f"${poly_result.get('volume', 0):,.2f}")
-            else:
-                st.info(f"No active market found for slug '{custom_slug}'. Showing simulated crowd risk model (95% active probability).")
+    playoff_matrix = simulation.simulate_playoff_leverage_matrix(
+        team_a_name=team_a_name,
+        team_a_roster=team_a_roster,
+        waiver_candidates=candidate_pool_for_bye,
+        current_week=curr_wk,
+        total_reg_weeks=14,
+        n_season_sims=2000,
+        league_teams=league_teams_for_sim
+    )
 
-    # Section 3: Consensus Player Props
+    pm_col1, pm_col2, pm_col3, pm_col4 = st.columns(4)
+    with pm_col1:
+        st.metric("Baseline Playoff Odds P(Top 6)", f"{playoff_matrix['base_p_playoffs']*100:.1f}%")
+    with pm_col2:
+        st.metric("Baseline 1st-Round Bye Odds P(Top 2)", f"{playoff_matrix['base_p_bye']*100:.1f}%")
+    with pm_col3:
+        st.metric("Expected Regular Season Wins", f"{playoff_matrix['expected_wins']:.1f} Wins")
+    with pm_col4:
+        st.metric("Remaining Schedule Horizon", f"{playoff_matrix['remaining_weeks']} Weeks")
+
+    if not playoff_matrix["leverage_table"].empty:
+        st.dataframe(playoff_matrix["leverage_table"], use_container_width=True, hide_index=True)
+
     st.markdown("---")
-    st.markdown("#### 🎯 Ingested Vegas Consensus Player Props & Idiosyncratic Projections")
-    st.caption("Live consensus player prop lines from The Odds API with expected fantasy points (μ) computed directly using your league's idiosyncratic scoring rules (6pt Pass TD, 0.1 comp, stacking milestone/long TD bonuses).")
+
+    # Section 3: Active Roster & Vegas Consensus Player Props (Zero Raw μ/σ Syntax)
+    st.markdown("#### 🎯 3. Vegas Consensus Player Props & Actionable Percentile Projections")
+    st.caption("Consensus median player prop lines across bookmakers translated through your league's exact idiosyncratic scoring rules into `Projected (Med)`, `Floor (P10)`, and `Ceiling (P90)`.")
 
     all_props_cache = data_ingest.build_all_player_props_cache(api_key=odds_api_key)
     prop_table_rows = []
@@ -1306,6 +1314,7 @@ with tab_feeds:
             props=p_props,
             scoring_config=active_scoring_cfg
         )
+        pcts = simulation.get_analytical_percentiles(pos, mu, sigma, p_act)
 
         prop_table_rows.append({
             "Player": p_title,
@@ -1314,205 +1323,409 @@ with tab_feeds:
             "Completions": f"{p_props.get('pass_completions', '-'):.1f}" if "pass_completions" in p_props else "-",
             "Rush Yds O/U": f"{p_props.get('rush_yds', '-'):.1f}" if "rush_yds" in p_props else "-",
             "Receptions O/U": f"{p_props.get('receptions', '-'):.1f}" if "receptions" in p_props else "-",
-            "Anytime TD%": f"{p_props.get('anytime_td_prob', 0)*100:.1f}%" if "anytime_td_prob" in p_props else "-",
-            "Idiosyncratic Proj (μ)": f"{mu:.2f} pts",
-            "Std Dev (σ)": f"±{sigma:.2f}"
+            "De-Vigged TD%": f"{p_props.get('anytime_td_prob', 0)*100:.1f}%" if "anytime_td_prob" in p_props else "-",
+            "Projected (Med)": round(pcts["median"], 1),
+            "Floor (P10)": round(pcts["p10"], 1),
+            "Ceiling (P90)": round(pcts["p90"], 1)
         })
 
     if prop_table_rows:
         st.dataframe(pd.DataFrame(prop_table_rows), use_container_width=True, hide_index=True)
 
-    # Section 4: 32-Team Defensive Scheme Profiles
-    st.markdown("---")
-    st.markdown("#### 🛡️ NFL 32-Team Defensive Scheme Profiles")
-    st.caption("Quick Pressure Rate % (<2.5s), Middle of Field (MOF) EPA Allowed, and Rush Success Rate Allowed driving parameter adjustments.")
-    scheme_rows = [
-        {
-            "Team": team_code,
-            "Quick Pressure %": f"{metrics['quick_pressure_rate']*100:.1f}%",
-            "MOF EPA Allowed": f"{metrics['mof_epa_allowed']:.2f}",
-            "Rush SR Allowed": f"{metrics['rush_sr_allowed']*100:.1f}%",
-            "Matchup Impact": (
-                "High Pressure (QB checkdown shift)" if metrics['quick_pressure_rate'] > 0.20
-                else ("High MOF EPA (TE/Slot boost 1.15x)" if metrics['mof_epa_allowed'] > 0.50
-                else ("High Rush SR (RB floor tightened)" if metrics['rush_sr_allowed'] > 0.45 else "Neutral"))
+    with st.expander("🏈 View NFL Game Lines, Polymarket Crowd Risk Inspector & 32-Team Defensive Schemes", expanded=False):
+        raw_odds = data_ingest.fetch_nfl_odds(api_key=odds_api_key)
+        if raw_odds:
+            parsed_games = data_ingest.parse_nfl_games(raw_odds)
+            df_games = pd.DataFrame(parsed_games)
+            st.dataframe(
+                df_games[["away_team", "home_team", "spread", "total", "away_implied", "home_implied", "commence_time"]],
+                use_container_width=True,
+                hide_index=True
             )
-        }
-        for team_code, metrics in data_ingest.NFL_DEFENSIVE_SCHEMES.items()
-    ]
-    st.dataframe(pd.DataFrame(scheme_rows), use_container_width=True, hide_index=True)
+
+        poly_col1, poly_col2 = st.columns([2, 1])
+        with poly_col1:
+            custom_slug = st.text_input(
+                "Polymarket Event Slug",
+                value="nfl-will-the-bills-beat-the-lions",
+                help="Example: nfl-will-the-bills-beat-the-lions"
+            )
+        with poly_col2:
+            st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
+            query_poly = st.button("Query Polymarket Gamma API", use_container_width=True)
+
+        if query_poly or custom_slug:
+            poly_result = data_ingest.fetch_polymarket_event(custom_slug)
+            if poly_result:
+                p_col1, p_col2 = st.columns(2)
+                with p_col1:
+                    st.metric("Crowd Implied Probability", f"{poly_result['active_probability'] * 100:.1f}%")
+                with p_col2:
+                    st.metric("Market Volume ($)", f"${poly_result.get('volume', 0):,.2f}")
+
+        scheme_rows = [
+            {
+                "Team": team_code,
+                "Quick Pressure %": f"{metrics['quick_pressure_rate']*100:.1f}%",
+                "MOF EPA Allowed": f"{metrics['mof_epa_allowed']:.2f}",
+                "Rush SR Allowed": f"{metrics['rush_sr_allowed']*100:.1f}%",
+                "Matchup Impact": (
+                    "High Pressure (QB checkdown shift)" if metrics['quick_pressure_rate'] > 0.20
+                    else ("High MOF EPA (TE/Slot boost 1.15x)" if metrics['mof_epa_allowed'] > 0.50
+                    else ("High Rush SR (RB floor tightened)" if metrics['rush_sr_allowed'] > 0.45 else "Neutral"))
+                )
+            }
+            for team_code, metrics in data_ingest.NFL_DEFENSIVE_SCHEMES.items()
+        ]
+        st.dataframe(pd.DataFrame(scheme_rows), use_container_width=True, hide_index=True)
 
 
 # ===========================================================================
-# TAB 5: SCHEME LAB & NEWSLETTER UPLOAD
+# TAB 5: SCHEME LAB & DUAL NEWSLETTER INGESTION (PREVIEWS + REVIEWS)
 # ===========================================================================
 with tab_scheme:
-    st.markdown("### 🔬 SumerSports Scheme Lab & Newsletter Ingestion")
+    st.markdown("### 🔬 SumerSports Scheme Lab: Dual Newsletter Ingestion & Longitudinal Deep Dive")
     st.markdown(
-        "Upload SumerSports *Stats & Scheme* weekly PDF reviews to extract team defensive schemes "
-        "(Quick Pressure %, MOF EPA allowed, Rush Success Rate allowed) and player usage metrics "
-        "(Target Share %, YPRR, aDOT). Ingested metrics update the 3-week rolling moving averages "
-        "and dynamically modulate Monte Carlo simulation parameters."
+        "Ingest **Weekly Matchup Previews** (`data/scheme_previews.parquet`) and **Weekly Game Reviews** "
+        "(`data/scheme_reviews.parquet`) to track **Expectation vs. Reality Deltas**, synthesize longitudinal "
+        "**Team Narratives** (`data/team_narratives.json`), and trigger structural simulation regime tags."
     )
 
-    col_up1, col_up2 = st.columns([3, 1])
-    with col_up1:
-        uploaded_pdf = st.file_uploader(
-            "Upload SumerSports PDF Review",
-            type=["pdf"],
-            help="Select a weekly Stats & Scheme PDF review. The parser will extract team defensive schemes and player usage metrics."
+    # -----------------------------------------------------------------------
+    # 1. BATCH BACKFILL & INDIVIDUAL DRAG-AND-DROP UPLOADER
+    # -----------------------------------------------------------------------
+    ing_col_batch, ing_col_single = st.columns([1.15, 1.85])
+
+    with ing_col_batch:
+        st.markdown("#### 📂 Batch Backfill (`newsletters/`)")
+        st.caption(
+            "Scans `newsletters/` for `week*_preview.pdf` and `week*_review.pdf` in chronological order "
+            "(Week 1 ➔ Present), idempotently upserts both Parquet tables, and rebuilds `team_narratives.json`."
         )
-    with col_up2:
-        tag_week = st.number_input("Target NFL Week", min_value=1, max_value=22, value=3, step=1)
-        load_sample = st.button("📄 Load Sample Week 3 PDF", help="Load the bundled sample SumerSports Week 3 review for demonstration.")
+        if st.button("🚀 Batch Process Newsletters Folder", type="primary", use_container_width=True, key="batch_ingest_btn"):
+            prog_bar = st.progress(10, text="Scanning newsletters/ directory for preview & review PDFs...")
+            batch_res = scheme_db.batch_ingest_newsletters(folder_path="newsletters", auto_seed_if_empty=True)
+            prog_bar.progress(75, text="Rebuilding longitudinal team_narratives.json ledger...")
+            prog_bar.progress(100, text="Batch backfill complete!")
+            st.session_state["last_batch_result"] = batch_res
+            st.cache_data.clear()
 
-    pdf_source = None
-    if uploaded_pdf is not None:
-        pdf_source = uploaded_pdf
-    elif load_sample or st.session_state.get("sample_pdf_active", False):
-        if load_sample:
-            st.session_state["sample_pdf_active"] = True
-        sample_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sample_sumersports_week3.pdf")
-        if not os.path.exists(sample_path):
-            pdf_parser.create_sample_sumersports_pdf(sample_path, week=int(tag_week))
-        pdf_source = sample_path
+        if st.session_state.get("last_batch_result"):
+            b_res = st.session_state["last_batch_result"]
+            st.success(
+                f"Processed **{b_res['files_processed']} PDFs** "
+                f"({b_res['previews_upserted']} Previews, {b_res['reviews_upserted']} Reviews) · "
+                f"**{b_res['narratives_count']} Teams** updated in `team_narratives.json`."
+            )
+            if not b_res["summary_df"].empty:
+                st.dataframe(b_res["summary_df"], use_container_width=True, hide_index=True)
 
-    if pdf_source is not None:
-        with st.spinner("Extracting scheme & usage tables via pdfplumber..."):
-            parsed = pdf_parser.parse_sumersports_newsletter(pdf_source, default_week=int(tag_week))
+    with ing_col_single:
+        st.markdown("#### 📄 Individual Weekly Newsletter Uploader")
+        up_c1, up_c2, up_c3 = st.columns([1.5, 1.2, 0.8])
+        with up_c1:
+            uploaded_pdf = st.file_uploader(
+                "Upload SumerSports PDF (Preview or Review)",
+                type=["pdf"],
+                help="Drag and drop a Weekly Matchup Preview or Weekly Stats & Scheme Review PDF."
+            )
+        with up_c2:
+            doc_type_toggle = st.radio(
+                "Document Type",
+                ["Auto-Detect", "Weekly Preview", "Weekly Review"],
+                index=0,
+                horizontal=False,
+                key="scheme_doc_type_radio"
+            )
+        with up_c3:
+            tag_week = st.number_input("NFL Week", min_value=1, max_value=22, value=3, step=1)
+            load_sample_rev = st.button("📄 Sample Review", use_container_width=True, help="Load sample Week 3 Review PDF")
+            load_sample_prev = st.button("📘 Sample Preview", use_container_width=True, help="Load sample Week 3 Preview PDF")
 
-        if parsed.get("success"):
-            detected_week = parsed.get("week", tag_week)
-            team_df = parsed.get("team_metrics", pd.DataFrame())
-            player_df = parsed.get("player_metrics", pd.DataFrame())
+        pdf_source = None
+        forced_type = None if doc_type_toggle == "Auto-Detect" else doc_type_toggle
+        if uploaded_pdf is not None:
+            pdf_source = uploaded_pdf
+        elif load_sample_rev:
+            st.session_state["sample_pdf_mode"] = "REVIEW"
+        elif load_sample_prev:
+            st.session_state["sample_pdf_mode"] = "PREVIEW"
 
-            st.success(f"Successfully parsed PDF for Week {detected_week}: {len(team_df)} Team Schemes, {len(player_df)} Player Usages extracted.")
+        if pdf_source is None and st.session_state.get("sample_pdf_mode"):
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            if st.session_state["sample_pdf_mode"] == "PREVIEW":
+                sample_path = os.path.join(base_dir, "newsletters", f"week{int(tag_week)}_preview.pdf")
+                if not os.path.exists(sample_path):
+                    pdf_parser.create_sample_preview_pdf(sample_path, week=int(tag_week))
+                pdf_source = sample_path
+                forced_type = "Weekly Preview"
+            else:
+                sample_path = os.path.join(base_dir, "sample_sumersports_week3.pdf")
+                if not os.path.exists(sample_path):
+                    pdf_parser.create_sample_sumersports_pdf(sample_path, week=int(tag_week))
+                pdf_source = sample_path
+                forced_type = "Weekly Review"
 
-            col_btn1, col_btn2 = st.columns([2, 2])
-            with col_btn1:
-                if st.button("💾 Save / Overwrite Week in Scheme Database", type="primary", key="save_scheme_btn"):
-                    save_res = scheme_db.save_newsletter_metrics(team_df, player_df, week=detected_week)
-                    st.success(f"Successfully updated Week {detected_week} in persistent Parquet database ({save_res['team_rows']} teams, {save_res['player_rows']} players)!")
-                    st.cache_data.clear()
+        if pdf_source is not None:
+            with st.spinner("Detecting schema & extracting tables via pdfplumber..."):
+                parsed = pdf_parser.parse_sumersports_newsletter(
+                    pdf_source,
+                    default_week=int(tag_week),
+                    force_doc_type=forced_type
+                )
 
-            with col_btn2:
-                if st.button("🔄 Reset Baseline Scheme History", help="Re-seed initial 3-week baseline for all 32 teams"):
-                    scheme_db.init_default_scheme_history(force=True)
-                    st.info("Re-seeded initial 3-week baseline for all 32 teams.")
-                    st.cache_data.clear()
+            if parsed.get("success"):
+                detected_week = parsed.get("week", int(tag_week))
+                detected_doc_type = parsed.get("doc_type", "Weekly Review")
 
-            preview_tab_team, preview_tab_player = st.tabs(["🛡️ Parsed Team Scheme Metrics", "🏃 Parsed Player Usage Metrics"])
-            with preview_tab_team:
-                if not team_df.empty:
-                    st.dataframe(team_df, use_container_width=True, hide_index=True)
+                if detected_doc_type == "Weekly Preview":
+                    prev_df = parsed.get("preview_metrics", pd.DataFrame())
+                    ang_df = parsed.get("player_angles", pd.DataFrame())
+                    st.info(
+                        f"📘 **Detected: {detected_doc_type} (Week {detected_week})** — "
+                        f"{len(prev_df)} Team Coverage Shell Previews & {len(ang_df)} Player Matchup Angles extracted."
+                    )
+                    if st.button("💾 Save / Upsert Preview to scheme_previews.parquet", type="primary", key="save_prev_btn"):
+                        s_res = scheme_db.save_preview_metrics(prev_df, ang_df, week=detected_week)
+                        st.success(
+                            f"Upserted Week {detected_week} Preview into `data/scheme_previews.parquet` "
+                            f"({s_res['preview_rows']} teams, {s_res['angle_rows']} player angles) and updated `team_narratives.json`!"
+                        )
+                        st.cache_data.clear()
+
+                    p_tab1, p_tab2 = st.tabs(["📘 Preview Coverage Shells & Funnels", "🎯 Player Matchup Angles"])
+                    with p_tab1:
+                        st.dataframe(prev_df, use_container_width=True, hide_index=True)
+                    with p_tab2:
+                        st.dataframe(ang_df, use_container_width=True, hide_index=True)
                 else:
-                    st.info("No team scheme rows detected in this document.")
+                    team_df = parsed.get("team_metrics", pd.DataFrame())
+                    player_df = parsed.get("player_metrics", pd.DataFrame())
+                    st.success(
+                        f"📄 **Detected: {detected_doc_type} (Week {detected_week})** — "
+                        f"{len(team_df)} Realized Team Schemes & {len(player_df)} Player Usage rows extracted."
+                    )
+                    if st.button("💾 Save / Upsert Review to scheme_reviews.parquet", type="primary", key="save_rev_btn"):
+                        s_res = scheme_db.save_newsletter_metrics(team_df, player_df, week=detected_week)
+                        st.success(
+                            f"Upserted Week {detected_week} Review into `data/scheme_reviews.parquet` "
+                            f"({s_res['team_rows']} teams, {s_res['player_rows']} players) and updated `team_narratives.json`!"
+                        )
+                        st.cache_data.clear()
 
-            with preview_tab_player:
-                if not player_df.empty:
-                    st.dataframe(player_df, use_container_width=True, hide_index=True)
-                else:
-                    st.info("No player usage rows detected in this document.")
-        else:
-            st.error(f"Error parsing PDF: {parsed.get('error', 'Unknown parsing error')}")
+                    r_tab1, r_tab2 = st.tabs(["🛡️ Realized Team Scheme Metrics", "🏃 Realized Player Usage Metrics"])
+                    with r_tab1:
+                        st.dataframe(team_df, use_container_width=True, hide_index=True)
+                    with r_tab2:
+                        st.dataframe(player_df, use_container_width=True, hide_index=True)
+            else:
+                st.error(f"Error parsing PDF: {parsed.get('error', 'Unknown parsing error')}")
 
-    # Section: Scheme History & Trends
+    # -----------------------------------------------------------------------
+    # 2. LONGITUDINAL TEAM DEEP DIVE (WEEK 1 -> PRESENT)
+    # -----------------------------------------------------------------------
     st.markdown("---")
-    st.markdown("### 📊 Scheme Trends & Usage Evolution")
+    st.markdown("### 🧭 Longitudinal Team Deep Dive (Preview Hypotheses vs. Review Realities)")
 
-    hist_tab_defense, hist_tab_player = st.tabs(["🛡️ Team Defense Trajectory", "🏃 Player Usage Evolution"])
+    all_teams = scheme_db.get_all_teams_in_db()
+    default_team_idx = all_teams.index("CLE") if "CLE" in all_teams else 0
+    dd_col1, dd_col2 = st.columns([1, 3])
+    with dd_col1:
+        sel_team = st.selectbox("Select NFL Team for Deep Dive", all_teams, index=default_team_idx, key="deep_dive_team_select")
+        if st.button("🔄 Reset / Re-Seed 3-Wk Baseline", use_container_width=True, key="reseed_scheme_btn"):
+            scheme_db.init_default_scheme_history(force=True)
+            st.cache_data.clear()
+            st.rerun()
 
-    with hist_tab_defense:
-        all_teams = scheme_db.get_all_teams_in_db()
-        def_idx = all_teams.index("CLE") if "CLE" in all_teams else 0
-        sel_team = st.selectbox("Select NFL Defense", all_teams, index=def_idx)
+    deep_dive = scheme_db.get_team_longitudinal_deep_dive(sel_team)
+    exp_delta = deep_dive["expectation_delta"]
+    rolling_stats = deep_dive["rolling_3wk"]
+    regime_tags = deep_dive["regime_tags"]
 
-        rolling_stats = scheme_db.get_team_defense_rolling(sel_team, window=3)
-        trend_stats = scheme_db.get_scheme_trend(sel_team)
+    with dd_col2:
+        tag_badges_html = ""
+        tag_colors = {
+            "PASS_PROTECTION_COLLAPSE": ("#ef4444", "rgba(239, 68, 68, 0.18)"),
+            "SLOT_FUNNEL_HIGH": ("#10b981", "rgba(16, 185, 129, 0.18)"),
+            "RUN_GAME_BROKEN": ("#f59e0b", "rgba(245, 158, 11, 0.18)"),
+            "GARBAGE_TIME_ALPHA": ("#c084fc", "rgba(192, 132, 252, 0.18)"),
+        }
+        if regime_tags:
+            for rt in regime_tags:
+                fg, bg = tag_colors.get(rt, ("#38bdf8", "rgba(56, 189, 248, 0.18)"))
+                tag_badges_html += (
+                    f"<span style='background:{bg}; color:{fg}; border:1px solid {fg}; "
+                    f"padding:3px 10px; border-radius:999px; font-size:0.76rem; font-weight:800; margin-right:8px;'>"
+                    f"⚡ {rt}</span>"
+                )
+        else:
+            tag_badges_html = (
+                "<span style='background:rgba(148,163,184,0.15); color:#cbd5e1; padding:3px 10px; "
+                "border-radius:999px; font-size:0.76rem; font-weight:700;'>✅ STABLE REGIME (ON EXPECTATION)</span>"
+            )
 
-        t_col1, t_col2, t_col3, t_col4 = st.columns(4)
-        with t_col1:
-            st.metric("3-Wk Quick Press %", f"{rolling_stats['quick_pressure_rate']*100:.1f}%", delta=f"{trend_stats['delta_quick_pressure']*100:+.1f}% vs Avg")
-        with t_col2:
-            st.metric("3-Wk MOF EPA Allowed", f"{rolling_stats['mof_epa_allowed']:.2f}", delta=f"{trend_stats['delta_mof_epa']:+.2f} vs Avg", delta_color="inverse")
-        with t_col3:
-            st.metric("3-Wk Rush SR Allowed", f"{rolling_stats['rush_sr_allowed']*100:.1f}%", delta=f"{trend_stats['delta_rush_sr']*100:+.1f}% vs Avg", delta_color="inverse")
-        with t_col4:
-            st.metric("Scheme Trend", trend_stats['trend_summary'])
+        st.markdown(f"""
+        <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border: 1px solid #334155; border-left: 5px solid #38bdf8; border-radius: 10px; padding: 12px 18px; margin-bottom: 10px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                <span style="color:#f8fafc; font-weight:800; font-size:1.05rem;">🏛️ {sel_team} Longitudinal Regime Profile</span>
+                <div>{tag_badges_html}</div>
+            </div>
+            <div style="color:#94a3b8; font-size:0.84rem; margin-top:6px;">
+                <b>Preseason Expectation:</b> {deep_dive['preseason_expectation']}
+            </div>
+            <div style="color:#cbd5e1; font-size:0.84rem; margin-top:4px;">
+                <b>Expectation vs. Reality Verdict:</b> {exp_delta.get('verdict', '')}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
-        # Plotly chart: Team Defense over Weeks
-        scheme_df = scheme_db.load_scheme_history()
-        team_scheme_hist = scheme_df[scheme_df["team"] == sel_team].sort_values(by="week")
-        if not team_scheme_hist.empty:
-            fig_def = go.Figure()
-            fig_def.add_trace(go.Scatter(
-                x=team_scheme_hist["week"],
-                y=team_scheme_hist["quick_pressure_rate"] * 100,
+    # Top 4 KPI Delta Cards
+    m_c1, m_c2, m_c3, m_c4 = st.columns(4)
+    with m_c1:
+        st.metric(
+            "Realized vs Previewed QP%",
+            f"{exp_delta['realized_qpr']*100:.1f}%",
+            delta=f"{exp_delta['qpr_delta']*100:+.1f}% vs Preview ({exp_delta['expected_qpr']*100:.1f}%)",
+            delta_color="inverse"
+        )
+    with m_c2:
+        st.metric(
+            "Realized vs Previewed MOF EPA",
+            f"{exp_delta['realized_mof_epa']:+.2f}",
+            delta=f"{exp_delta['mof_epa_delta']:+.2f} vs Preview ({exp_delta['expected_mof_epa']:+.2f})",
+            delta_color="inverse"
+        )
+    with m_c3:
+        st.metric(
+            "Bayesian Prior Decay Multiplier",
+            f"{exp_delta['prior_decay_multiplier']:.2f}x",
+            delta="Accelerated Decay" if exp_delta["prior_decay_multiplier"] < 1.0 else "Standard Prior Weight"
+        )
+    with m_c4:
+        st.metric(
+            "Opp Slot/TE Floor & Ceiling Mod",
+            f"{exp_delta['slot_te_mu_boost']:.2f}x Med",
+            delta=f"Floor {exp_delta['slot_te_floor_boost']:.2f}x · Ceiling {exp_delta['slot_te_ceiling_boost']:.2f}x"
+        )
+
+    # Week-by-Week Timeline Table (Preview Hypotheses vs Review Realities)
+    timeline_df = deep_dive["timeline_df"]
+    if not timeline_df.empty:
+        st.markdown(f"#### 📅 {sel_team} Week-by-Week Preview Hypotheses vs. Review Execution")
+        disp_tl = pd.DataFrame({
+            "Week": timeline_df["week"],
+            "Opp": timeline_df["opponent"],
+            "Preview Hypothesis (Shells & Funnel Focus)": timeline_df["preview_hypothesis"],
+            "Review Execution & Takeaway": timeline_df["review_execution"],
+            "Exp QP%": (timeline_df["expected_qpr"] * 100).round(1).astype(str) + "%",
+            "Real QP%": (timeline_df["realized_qpr"] * 100).round(1).astype(str) + "%",
+            "QP Δ": (timeline_df["qpr_delta"] * 100).map(lambda x: f"{x:+.1f}%"),
+            "Exp MOF EPA": timeline_df["expected_mof_epa"].map(lambda x: f"{x:+.2f}"),
+            "Real MOF EPA": timeline_df["realized_mof_epa"].map(lambda x: f"{x:+.2f}"),
+            "Pass OE%": timeline_df["pass_oe"].map(lambda x: f"{x:+.1f}%"),
+        })
+        st.dataframe(disp_tl, use_container_width=True, hide_index=True)
+
+        # Plotly Trend Curves (Week 1 -> Present)
+        ch_col1, ch_col2 = st.columns(2)
+        with ch_col1:
+            fig_pr = go.Figure()
+            fig_pr.add_trace(go.Scatter(
+                x=timeline_df["week"],
+                y=timeline_df["pressure_rate"] * 100,
                 mode="lines+markers",
-                name="Quick Pressure % (<2.5s)",
-                line=dict(color="#FF4B4B", width=3)
+                name="Total Pressure Rate %",
+                line=dict(color="#f59e0b", width=2, dash="dot")
             ))
-            fig_def.add_trace(go.Scatter(
-                x=team_scheme_hist["week"],
-                y=team_scheme_hist["rush_sr_allowed"] * 100,
+            fig_pr.add_trace(go.Scatter(
+                x=timeline_df["week"],
+                y=timeline_df["realized_qpr"] * 100,
                 mode="lines+markers",
-                name="Rush Success Rate Allowed %",
-                line=dict(color="#00C853", width=2, dash="dot")
+                name="Realized Quick Pressure % (<2.5s)",
+                line=dict(color="#ef4444", width=3)
             ))
-            fig_def.add_trace(go.Scatter(
-                x=team_scheme_hist["week"],
-                y=team_scheme_hist["mof_epa_allowed"],
+            fig_pr.add_trace(go.Scatter(
+                x=timeline_df["week"],
+                y=timeline_df["expected_qpr"] * 100,
                 mode="lines+markers",
-                name="MOF EPA Allowed (Right Axis)",
-                yaxis="y2",
-                line=dict(color="#FFA726", width=2, dash="dash")
+                name="Previewed Expected QP %",
+                line=dict(color="#38bdf8", width=2, dash="dash")
             ))
-            fig_def.update_layout(
-                title=f"{sel_team} Defensive Scheme Trajectory Across Weeks",
-                xaxis=dict(title="NFL Week Number", dtick=1),
-                yaxis=dict(title="Rate Percentage (%)"),
-                yaxis2=dict(title="EPA / Play", overlaying="y", side="right"),
+            fig_pr.update_layout(
+                title=f"{sel_team} Pressure Rate & Quick Pressure (Realized vs. Previewed)",
+                xaxis=dict(title="NFL Week", dtick=1),
+                yaxis=dict(title="Pressure Rate (%)"),
                 template="plotly_dark",
-                height=380,
-                margin=dict(l=40, r=40, t=50, b=40),
+                height=340,
+                margin=dict(l=35, r=25, t=45, b=35),
                 legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
             )
-            st.plotly_chart(fig_def, use_container_width=True)
-        else:
-            st.info(f"No historical records found for {sel_team}.")
+            st.plotly_chart(fig_pr, use_container_width=True)
 
-    with hist_tab_player:
-        all_players = scheme_db.get_all_players_in_db()
-        if not all_players:
-            all_players = ["CeeDee Lamb", "Demario Douglas", "Jalen Coker", "Justin Jefferson"]
+        with ch_col2:
+            fig_mof = go.Figure()
+            fig_mof.add_trace(go.Scatter(
+                x=timeline_df["week"],
+                y=timeline_df["realized_mof_epa"],
+                mode="lines+markers",
+                name="Realized MOF EPA Allowed",
+                line=dict(color="#10b981", width=3)
+            ))
+            fig_mof.add_trace(go.Scatter(
+                x=timeline_df["week"],
+                y=timeline_df["expected_mof_epa"],
+                mode="lines+markers",
+                name="Previewed MOF EPA",
+                line=dict(color="#94a3b8", width=2, dash="dash")
+            ))
+            fig_mof.add_trace(go.Bar(
+                x=timeline_df["week"],
+                y=timeline_df["pass_oe"],
+                name="Pass Over Expected (POE %)",
+                yaxis="y2",
+                marker_color="rgba(192, 132, 252, 0.35)"
+            ))
+            fig_mof.update_layout(
+                title=f"{sel_team} MOF EPA (Realized vs. Previewed) & Pass OE %",
+                xaxis=dict(title="NFL Week", dtick=1),
+                yaxis=dict(title="MOF EPA / Play"),
+                yaxis2=dict(title="Pass OE (%)", overlaying="y", side="right"),
+                template="plotly_dark",
+                height=340,
+                margin=dict(l=35, r=35, t=45, b=35),
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+            )
+            st.plotly_chart(fig_mof, use_container_width=True)
 
-        p_idx = all_players.index("Demario Douglas") if "Demario Douglas" in all_players else 0
+    # Primary WR/TE Target Share Trajectory (Week 1 -> Present)
+    st.markdown("#### 🏃 Primary Skill Player Target Share & Usage Evolution (Week 1 ➔ Present)")
+    team_players_df = deep_dive["player_usage_df"]
+    all_players = scheme_db.get_all_players_in_db()
+    p_col_sel, p_col_chart = st.columns([1, 2.5])
+    with p_col_sel:
+        team_specific_players = sorted(team_players_df["player_name"].unique().tolist()) if not team_players_df.empty else []
+        default_p_list = team_specific_players if team_specific_players else (all_players or ["CeeDee Lamb", "Demario Douglas"])
         sel_player = st.selectbox(
-            "Select Player for Usage Trajectory",
-            all_players,
-            index=p_idx
+            f"Select Player ({sel_team} or League-Wide)",
+            default_p_list + [p for p in all_players if p not in default_p_list],
+            index=0,
+            key="deep_dive_player_select"
         )
-
         p_hist = scheme_db.get_player_usage_history(sel_player)
         if not p_hist.empty:
-            pk1, pk2, pk3 = st.columns(3)
-            with pk1:
-                latest_tgt = p_hist.iloc[-1]["target_share"] * 100
-                st.metric("Latest Target Share", f"{latest_tgt:.1f}%")
-            with pk2:
-                latest_yprr = p_hist.iloc[-1]["yprr"]
-                st.metric("Latest YPRR", f"{latest_yprr:.2f}")
-            with pk3:
-                latest_adot = p_hist.iloc[-1]["adot"]
-                st.metric("Latest aDOT", f"{latest_adot:.1f} yds")
+            st.metric("Latest Target Share", f"{p_hist.iloc[-1]['target_share']*100:.1f}%")
+            st.metric("Latest YPRR", f"{p_hist.iloc[-1]['yprr']:.2f}")
+            st.metric("Latest aDOT", f"{p_hist.iloc[-1]['adot']:.1f} yds")
 
+    with p_col_chart:
+        if not p_hist.empty:
             fig_p = go.Figure()
             fig_p.add_trace(go.Scatter(
                 x=p_hist["week"],
                 y=p_hist["target_share"] * 100,
                 mode="lines+markers",
                 name="Target Share %",
-                line=dict(color="#29B6F6", width=3)
+                line=dict(color="#38bdf8", width=3)
             ))
             fig_p.add_trace(go.Scatter(
                 x=p_hist["week"],
@@ -1520,23 +1733,22 @@ with tab_scheme:
                 mode="lines+markers",
                 name="Yards Per Route Run (YPRR)",
                 yaxis="y2",
-                line=dict(color="#66BB6A", width=2, dash="dash")
+                line=dict(color="#10b981", width=2, dash="dash")
             ))
             fig_p.update_layout(
-                title=f"{sel_player} Usage & Efficiency Evolution",
+                title=f"{sel_player} Longitudinal Target Share % & YPRR Trajectory",
                 xaxis=dict(title="NFL Week Number", dtick=1),
                 yaxis=dict(title="Target Share (%)"),
                 yaxis2=dict(title="YPRR", overlaying="y", side="right"),
                 template="plotly_dark",
-                height=380,
-                margin=dict(l=40, r=40, t=50, b=40),
+                height=310,
+                margin=dict(l=35, r=35, t=45, b=35),
                 legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
             )
             st.plotly_chart(fig_p, use_container_width=True)
-
-            st.dataframe(p_hist, use_container_width=True, hide_index=True)
         else:
-            st.info(f"No historical records found for {sel_player}.")
+            st.info(f"No historical usage records found for {sel_player}.")
+
 
     # Weekly Scheme Matchup Impact on Team A
     st.markdown("---")
@@ -1546,21 +1758,27 @@ with tab_scheme:
     scheme_impact_rows = []
     for p in team_a_roster + team_a_bench:
         p_team = p.get("team", "NFL")
+        p_pos = p.get("position", "WR")
         opp_def = p.get("opponent") or p.get("opponent_team") or getattr(data_ingest, "CURRENT_NFL_SCHEDULE", {}).get(str(p_team).upper(), "") or "DEF"
         modified_p = data_ingest.apply_defensive_scheme_modifiers(p, opponent_team=opp_def)
         sch = data_ingest.get_defensive_scheme(opp_def)
 
+        base_pcts = simulation.get_analytical_percentiles(p_pos, float(p.get("mu", 10.0)), float(p.get("sigma", 4.0)), float(p.get("p_active", 1.0)))
+        adj_pcts = simulation.get_analytical_percentiles(p_pos, float(modified_p.get("mu", 10.0)), float(modified_p.get("sigma", 4.0)), float(modified_p.get("p_active", 1.0)))
+
         scheme_impact_rows.append({
             "Player": p.get("name"),
-            "Pos": p.get("position"),
+            "Pos": p_pos,
             "Slot": p.get("slot", "BE"),
             "NFL Team": p_team,
             "Opp Defense": opp_def,
             "Opp Quick Press%": f"{sch['quick_pressure_rate']*100:.1f}%",
             "Opp MOF EPA": f"{sch['mof_epa_allowed']:.2f}",
             "Opp Rush SR%": f"{sch['rush_sr_allowed']*100:.1f}%",
-            "Base Proj": p.get("mu", 10.0),
-            "Adjusted Proj": modified_p.get("mu", 10.0),
+            "Base (Med)": round(base_pcts["median"], 1),
+            "Projected (Med)": round(adj_pcts["median"], 1),
+            "Floor (P10)": round(adj_pcts["p10"], 1),
+            "Ceiling (P90)": round(adj_pcts["p90"], 1),
             "Scheme Impact Notes": modified_p.get("scheme_notes", "Neutral baseline matchup")
         })
 

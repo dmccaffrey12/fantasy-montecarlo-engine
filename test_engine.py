@@ -573,7 +573,7 @@ def test_idiosyncratic_scoring():
     team_a = matchup_data["team_a_roster"]
     assert len(team_a) == 9, "Should have 9 starters"
     assert team_a[0]["name"] == "Jared Goff"
-    assert team_a[0]["prop_source"] == "Vegas Consensus Props"
+    assert team_a[0]["prop_source"] in ["Vegas Consensus Props", "Hybrid (50% Vegas / 50% Athletic)"]
     assert team_a[0]["mu"] > 20.0, f"Goff projected {team_a[0]['mu']} pts (elevated under idiosyncratic scoring)"
     print(f"  [PASS] Default Matchup dynamically evaluated: {team_a[0]['name']} mu={team_a[0]['mu']} pts ({team_a[0]['prop_source']}).")
 
@@ -742,6 +742,190 @@ def test_archetype_volatility_and_underdog_accuracy():
     print(f"  [PASS] Contested Underdog Slot: Correctly identified {card['starter_name']} vs {card['challenger_name']} -> Badge: '{clean_badge}'.")
 
 
+def test_copula_and_next_horizon():
+    print("\n=== Testing 11: Gaussian Copula Covariance, Poisson Multi-TD, & Next-Horizon Modules ===")
+
+    # Test 11.1: Poisson Multi-TD Conversion & Right-Skewed Milestone CDFs
+    p_td = 0.50
+    lam_td = scoring_config.anytime_prob_to_expected_tds(p_td)
+    assert lam_td > p_td, f"Expected Poisson E[TD] > p_anytime for p=0.50, got {lam_td}"
+    rush_ev = scoring_config.calculate_rush_milestone_ev(85.0)
+    rec_ev = scoring_config.calculate_rec_milestone_ev(85.0)
+    assert rush_ev > 0.25 and rec_ev > 0.25
+    print(f"  [PASS] Poisson Multi-TD (p=50% -> E[TD]={lam_td:.3f}) & Gamma/Log-Normal Milestone CDFs (Rush EV=+{rush_ev:.2f}, Rec EV=+{rec_ev:.2f}).")
+
+    # Test 11.2: Cholesky Gaussian Copula Stack Correlation (QB + WR Positive, Offense vs Opp D/ST Negative)
+    corr_players = [
+        {"name": "Jared Goff", "position": "QB", "team": "DET", "opponent": "GB", "mu": 24.0, "sigma": 5.5, "p_active": 1.0},
+        {"name": "Amon-Ra St. Brown", "position": "WR", "team": "DET", "opponent": "GB", "mu": 18.0, "sigma": 6.5, "p_active": 1.0},
+        {"name": "Packers D/ST", "position": "D/ST", "team": "GB", "opponent": "DET", "mu": 7.0, "sigma": 4.0, "p_active": 1.0},
+    ]
+    _, mat, corrs = simulation.simulate_correlated_players(corr_players, n_simulations=20000)
+    emp_corr_stack = np.corrcoef(mat[0], mat[1])[0, 1]
+    emp_corr_dst = np.corrcoef(mat[0], mat[2])[0, 1]
+    assert emp_corr_stack > 0.25, f"Expected positive QB-WR stack correlation > 0.25, got {emp_corr_stack:.3f}"
+    assert emp_corr_dst < -0.20, f"Expected negative Offense vs Opp D/ST correlation < -0.20, got {emp_corr_dst:.3f}"
+    print(f"  [PASS] Cholesky Gaussian Copula verified: DET QB-WR empirical r={emp_corr_stack:+.3f}, DET QB vs GB D/ST r={emp_corr_dst:+.3f}.")
+
+    # Test 11.3: Full 9-Starter ESPN Matchup Preservation (OP 2nd QB + D/ST)
+    team_9_mock = {
+        "team_name": "Full 9-Starter Team",
+        "starters": [
+            {"name": "Jared Goff", "position": "QB", "slot": "QB", "mu": 24.0, "sigma": 5.0, "p_active": 1.0},
+            {"name": "Dak Prescott", "position": "QB", "slot": "OP", "mu": 23.0, "sigma": 5.0, "p_active": 1.0},
+            {"name": "Saquon Barkley", "position": "RB", "slot": "RB", "mu": 21.0, "sigma": 6.0, "p_active": 1.0},
+            {"name": "Breece Hall", "position": "RB", "slot": "RB", "mu": 17.0, "sigma": 5.5, "p_active": 1.0},
+            {"name": "Drake London", "position": "WR", "slot": "WR", "mu": 16.0, "sigma": 6.0, "p_active": 1.0},
+            {"name": "Jalen Coker", "position": "WR", "slot": "WR/TE", "mu": 11.0, "sigma": 5.0, "p_active": 1.0},
+            {"name": "Trey McBride", "position": "TE", "slot": "TE", "mu": 14.0, "sigma": 5.0, "p_active": 1.0},
+            {"name": "Tony Pollard", "position": "RB", "slot": "RB/WR/TE", "mu": 13.5, "sigma": 5.0, "p_active": 1.0},
+            {"name": "Vikings D/ST", "position": "D/ST", "slot": "D/ST", "mu": 8.0, "sigma": 4.0, "p_active": 1.0},
+        ],
+        "bench": []
+    }
+    built_9 = data_ingest.build_matchup_from_espn_teams(team_9_mock, team_9_mock, free_agents_list=[])
+    assert len(built_9["team_a_roster"]) == 9, f"Expected all 9 starters preserved (including OP & D/ST), got {len(built_9['team_a_roster'])}"
+    slots_preserved = [p["slot"] for p in built_9["team_a_roster"]]
+    assert "OP" in slots_preserved and "D/ST" in slots_preserved
+    print(f"  [PASS] ESPN 9-Starter Lineup Integrity: Preserved all 9 starters ({', '.join(slots_preserved)}).")
+
+    # Test 11.4: Game-Theoretic Matchup Inversion Solver
+    data = data_ingest.get_default_matchup_and_waivers()
+    inv = simulation.analyze_matchup_inversion(
+        team_a_roster=data["team_a_roster"],
+        team_a_bench=data["team_a_bench"],
+        team_b_roster=data["team_b_roster"]
+    )
+    assert "dp_dsigma_pct" in inv
+    assert "strategy_headline" in inv
+    assert "strategy_summary" in inv
+    assert "opp_profile" in inv
+    clean_hl = inv["strategy_headline"].encode("ascii", errors="ignore").decode("ascii").strip()
+    print(f"  [PASS] Game-Theoretic Matchup Inversion: Headline='{clean_hl}', dP(Win)/dSigma={inv['dp_dsigma_pct']:+.3f}%/pt.")
+
+    # Test 11.5: Multi-Week Playoff & First-Round Bye Leverage Matrix
+    pm = simulation.simulate_playoff_leverage_matrix(
+        team_a_name=data["team_a_name"],
+        team_a_roster=data["team_a_roster"],
+        waiver_candidates=data["waiver_pool"][:5],
+        current_week=6,
+        total_reg_weeks=14,
+        n_season_sims=1000,
+        league_teams=[]
+    )
+    assert "leverage_table" in pm and not pm["leverage_table"].empty
+    assert "1st-Rd Bye Odds Δ" in pm["leverage_table"].columns
+    top_bye_cand = pm["leverage_table"].iloc[0]
+    print(f"  [PASS] Playoff & Bye Leverage Matrix: Baseline P(Bye)={pm['base_p_bye']*100:.1f}%, Top Add '{top_bye_cand['Roster Addition']}' ({top_bye_cand['1st-Rd Bye Odds Δ']} Bye Leverage).")
+
+
+def test_athletic_excel_and_hybrid_blending():
+    print("\n=== Testing 12: The Athletic Multi-Block Excel Parser & 50/50 Hybrid Blending ===")
+
+    # Test 12.1: Multi-Block Excel Parsing (186 Skill Players + 30 D/STs)
+    summary = data_ingest.get_athletic_projection_summary()
+    counts = summary["counts"]
+    assert counts["QB"] == 30, f"Expected 30 QBs, got {counts['QB']}"
+    assert counts["RB"] == 60, f"Expected 60 RBs, got {counts['RB']}"
+    assert counts["WR"] == 71, f"Expected 71 WRs, got {counts['WR']}"
+    assert counts["TE"] == 25, f"Expected 25 TEs, got {counts['TE']}"
+    assert summary["skill_total"] == 186, f"Expected 186 skill players, got {summary['skill_total']}"
+    assert summary["dst_total"] == 30, f"Expected 30 DSTs, got {summary['dst_total']}"
+    print(f"  [PASS] Multi-Block Excel Parser: Extracted {summary['skill_total']} Skill Players (30 QB, 60 RB, 71 WR, 25 TE) + {summary['dst_total']} D/STs.")
+
+    # Test 12.2: Custom ESPN Multipliers on Raw Stat Columns (Ignoring Default 'Proj')
+    goff_ath = data_ingest.get_matched_athletic_projection("Jared Goff", position="QB")
+    assert goff_ath["athletic_proj"] == 21.1
+    # Custom Mu: 287.8*0.04 (11.512) + 2.5*6.0 (15.0) + 0.5*(-1.0) (-0.5) + 5.0*0.10 (0.5) = 26.51
+    assert abs(goff_ath["custom_mu"] - 26.51) < 0.05, f"Expected Goff custom_mu=26.51, got {goff_ath['custom_mu']}"
+    print(f"  [PASS] Custom Stat Multiplier Scoring: Jared Goff Default Proj=21.1 -> Custom League Mu={goff_ath['custom_mu']:.2f} pts.")
+
+    # Test 12.3: 50% Vegas Implied / 50% Athletic Custom Mu Hybrid Blending
+    props_cache = data_ingest.build_all_player_props_cache()
+    goff_props = data_ingest.get_matched_player_props("Jared Goff", props_cache, "QB")
+    mu_blend, sig_blend, _, bk_blend = data_ingest.calculate_projection_params(
+        position="QB",
+        props=goff_props,
+        player_name="Jared Goff",
+        return_breakdown=True
+    )
+    assert bk_blend["source"] == "Hybrid (50% Vegas / 50% Athletic)"
+    expected_blend = round(0.50 * bk_blend["vegas_mu"] + 0.50 * bk_blend["athletic_custom_mu"], 2)
+    assert abs(mu_blend - expected_blend) < 0.05, f"Expected 50/50 blend {expected_blend}, got {mu_blend}"
+    print(f"  [PASS] 50/50 Hybrid Blending: Goff Vegas({bk_blend['vegas_mu']}) + Athletic({bk_blend['athletic_custom_mu']}) -> Blended Mu={mu_blend:.2f}, Calibrated Sigma={sig_blend:.2f}.")
+
+    # Test 12.4: Universal Baseline for Players Without Vegas Props
+    mu_bowers, sig_bowers, _, bk_bowers = data_ingest.calculate_projection_params(
+        position="TE",
+        props=None,
+        player_name="Brock Bowers",
+        return_breakdown=True
+    )
+    assert bk_bowers["source"] == "The Athletic Custom Baseline"
+    assert abs(mu_bowers - (6.5 * 1.0 + 62.3 * 0.1 + 0.5 * 6.0)) < 0.05
+    print(f"  [PASS] Universal Athletic Baseline (No Vegas Props): Brock Bowers Mu={mu_bowers:.2f} pts, Sigma={sig_bowers:.2f} ({bk_bowers['source']}).")
+
+
+def test_dual_newsletter_and_longitudinal_narratives():
+    print("\n=== Testing 13: SumerSports Dual Newsletter Ingestion & Longitudinal Team Narratives ===")
+
+    # Test 13.1: Document Type Detection (Preview vs Review on Real Newsletters)
+    prev_path = os.path.join("newsletters", "week3_preview.pdf")
+    rev_path = os.path.join("newsletters", "week3_review.pdf")
+    if not os.path.exists(prev_path):
+        pdf_parser.create_sample_preview_pdf(prev_path, week=3)
+    if not os.path.exists(rev_path):
+        pdf_parser.create_sample_sumersports_pdf(rev_path, week=3)
+    det_prev = pdf_parser.detect_newsletter_type(prev_path)
+    det_rev = pdf_parser.detect_newsletter_type(rev_path)
+    assert det_prev["short_type"] == "PREVIEW", f"Expected PREVIEW, got {det_prev}"
+    assert det_rev["short_type"] == "REVIEW", f"Expected REVIEW, got {det_rev}"
+    print("  [PASS] Document Type Detection: Accurately classified Weekly Preview ('PREVIEW') and Weekly Review ('REVIEW') PDFs.")
+
+    # Test 13.2: Preview & Review PDF Parsing (Real Embedded Image + Narrative Extraction)
+    prev_parsed = pdf_parser.parse_preview_pdf(prev_path, week_num=3)
+    rev_parsed = pdf_parser.parse_review_pdf(rev_path, week_num=3)
+    assert not prev_parsed["preview_metrics"].empty
+    assert "man_coverage_rate" in prev_parsed["preview_metrics"].columns
+    assert "funnel_focus" in prev_parsed["preview_metrics"].columns
+    assert not rev_parsed["team_metrics"].empty
+    assert "pressure_rate" in rev_parsed["team_metrics"].columns
+    print(f"  [PASS] Dual PDF Parser: Extracted {len(prev_parsed['preview_metrics'])} Preview rows and {len(rev_parsed['team_metrics'])} Review rows ({len(rev_parsed['player_metrics'])} player rows).")
+
+    # Test 13.3: Chronological Batch Backfill & Dual Parquet + Narrative JSON Persistence
+    batch_res = scheme_db.batch_ingest_newsletters(folder_path="newsletters")
+    assert batch_res["files_processed"] >= 6, f"Expected at least 6 PDFs, got {batch_res['files_processed']}"
+    assert os.path.exists(scheme_db.REVIEWS_PARQUET), "scheme_reviews.parquet missing"
+    assert os.path.exists(scheme_db.PREVIEWS_PARQUET), "scheme_previews.parquet missing"
+    assert os.path.exists(scheme_db.TEAM_NARRATIVES_JSON), "team_narratives.json missing"
+    print(f"  [PASS] Batch Backfill Engine: Ingested {batch_res['files_processed']} PDFs chronologically ({batch_res['previews_upserted']} Previews, {batch_res['reviews_upserted']} Reviews) into Parquet & JSON repositories.")
+
+    # Test 13.4: Expectation vs. Reality Delta & Structural Regime Tagging
+    cle_delta = scheme_db.get_team_expectation_delta("CLE")
+    assert "PASS_PROTECTION_COLLAPSE" in cle_delta["regime_tags"], f"Expected PASS_PROTECTION_COLLAPSE for CLE, got {cle_delta['regime_tags']}"
+    assert cle_delta["prior_decay_multiplier"] < 1.0, "Expected accelerated Bayesian prior decay for CLE"
+
+    car_delta = scheme_db.get_team_expectation_delta("CAR")
+    assert "SLOT_FUNNEL_HIGH" in car_delta["regime_tags"], f"Expected SLOT_FUNNEL_HIGH for CAR, got {car_delta['regime_tags']}"
+    assert car_delta["slot_te_floor_boost"] > 1.0 and car_delta["slot_te_ceiling_boost"] > 1.0
+    print(f"  [PASS] Expectation vs. Reality Delta: CLE tags={cle_delta['regime_tags']} (Prior Decay={cle_delta['prior_decay_multiplier']}x), CAR tags={car_delta['regime_tags']} (Slot/TE Boost={car_delta['slot_te_ceiling_boost']}x).")
+
+    # Test 13.5: Longitudinal Team Deep Dive & Accelerated Bayesian Shrinkage Integration
+    cle_dive = scheme_db.get_team_longitudinal_deep_dive("CLE")
+    assert not cle_dive["timeline_df"].empty and len(cle_dive["timeline_df"]) >= 3
+    p_cle = {"name": "Amari Cooper", "position": "WR", "team": "CLE", "mu": 8.0, "sigma": 5.5}
+    p_std = {"name": "Amari Cooper", "position": "WR", "team": "KC", "mu": 8.0, "sigma": 5.5}
+    mu_cle, _, meta_cle = data_ingest.apply_bayesian_usage_shrinkage(
+        p_cle, snap_pct=0.80, target_share=0.22, week=3
+    )
+    mu_std, _, meta_std = data_ingest.apply_bayesian_usage_shrinkage(
+        p_std, snap_pct=0.80, target_share=0.22, week=3
+    )
+    assert meta_cle["prior_weight"] < meta_std["prior_weight"], "Expected CLE prior weight to decay faster than standard"
+    assert mu_cle < mu_std, f"Expected CLE WR projection ({mu_cle}) to decay faster toward low observed (8.0) than standard ({mu_std})"
+    print(f"  [PASS] Longitudinal Deep Dive & Bayesian Decay: CLE {len(cle_dive['timeline_df'])}-Week Timeline Built; CLE WR Prior Weight={meta_cle['prior_weight']} vs Standard={meta_std['prior_weight']} (Mu: {mu_cle:.2f} vs {mu_std:.2f}).")
+
+
 if __name__ == "__main__":
     print("==================================================")
     print("RUNNING FANTASY MONTE CARLO ENGINE TEST SUITE")
@@ -756,7 +940,12 @@ if __name__ == "__main__":
     test_idiosyncratic_scoring()
     test_espn_credentials_and_waiver_isolation()
     test_archetype_volatility_and_underdog_accuracy()
+    test_copula_and_next_horizon()
+    test_athletic_excel_and_hybrid_blending()
+    test_dual_newsletter_and_longitudinal_narratives()
     print("\n==================================================")
     print("ALL TESTS PASSED SUCCESSFULLY! (100% HEALTHY)")
     print("==================================================")
+
+
 

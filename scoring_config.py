@@ -63,7 +63,7 @@ Corroborated Rules from User League Settings:
 from dataclasses import dataclass, field
 from typing import Dict, Any, Optional, Tuple
 import math
-from scipy.stats import norm
+from scipy.stats import norm, gamma as sp_gamma, lognorm as sp_lognorm
 
 
 @dataclass
@@ -75,7 +75,7 @@ class LeagueScoringConfig:
     pass_td: float = 6.0                    # 6 pts per TD
     pass_td_40_bonus: float = 1.0           # 40+ yd TD bonus
     pass_td_50_bonus: float = 4.0           # 50+ yd TD bonus (stacks with 40+ -> +5)
-    pass_int: float = -1.0                  # -1 pt per INT
+    pass_int: float = -1.0                  # -1 pt per interception
     pass_2pt: float = 2.0                   # 2-pt conversion
     pass_300_bonus: float = 2.0             # 300-399 yd game
     pass_400_bonus: float = 3.0             # 400+ yd game (stacks with 300+ -> +5)
@@ -156,6 +156,21 @@ STANDARD_HALF_PPR_SCORING = LeagueScoringConfig(
 )
 
 
+# Known primary kick/punt return specialists (expected combined KR+PR yds/gm)
+RETURN_SPECIALIST_YARDS: Dict[str, float] = {
+    "deebo samuel": 18.0,
+    "deebo samuel sr": 18.0,
+    "rashid shaheed": 32.0,
+    "kavontae turpin": 38.0,
+    "marvin mims": 28.0,
+    "xavier gipson": 26.0,
+    "jayden reed": 14.0,
+    "wan'dale robinson": 10.0,
+    "wandale robinson": 10.0,
+    "demario douglas": 12.0,
+}
+
+
 def get_scoring_config_by_name(name: str) -> LeagueScoringConfig:
     """Retrieve the appropriate LeagueScoringConfig preset by format name."""
     if not name:
@@ -210,43 +225,64 @@ def get_yards_allowed_score(ya: float) -> float:
         return -7.0
 
 
-def calculate_pass_milestone_ev(pass_yds_mean: float, sigma: float, cfg: Optional[LeagueScoringConfig] = None) -> float:
+def anytime_prob_to_expected_tds(anytime_prob: float) -> float:
+    """
+    Convert de-vigged Anytime TD probability P(TD >= 1) to expected Poisson TD count:
+      lambda = E[TDs] = -ln(1 - P(TD >= 1))
+    Accounts for multi-TD upside games rather than capping at a single touchdown.
+    """
+    p = max(0.0, min(0.88, float(anytime_prob)))
+    if p <= 0.0:
+        return 0.0
+    return float(-math.log(1.0 - p))
+
+
+def calculate_pass_milestone_ev(pass_yds_mean: float, sigma: Optional[float] = None, cfg: Optional[LeagueScoringConfig] = None) -> float:
     """
     Calculate expected value of stacking 300+ and 400+ yard passing bonuses:
       E[Bonus] = 2.0 * P(Y >= 300) + 3.0 * P(Y >= 400)
     """
     cfg = cfg or DEFAULT_SCORING
-    if pass_yds_mean <= 0 or sigma <= 0:
+    if pass_yds_mean <= 0:
         return 0.0
-    # Stacking probabilities from Normal distribution
-    p_300 = 1.0 - norm.cdf(300.0, loc=pass_yds_mean, scale=sigma)
-    p_400 = 1.0 - norm.cdf(400.0, loc=pass_yds_mean, scale=sigma)
+    sig = float(sigma) if (sigma is not None and sigma > 0) else max(40.0, pass_yds_mean * 0.25)
+    p_300 = 1.0 - norm.cdf(300.0, loc=pass_yds_mean, scale=sig)
+    p_400 = 1.0 - norm.cdf(400.0, loc=pass_yds_mean, scale=sig)
     return float(cfg.pass_300_bonus * p_300 + cfg.pass_400_bonus * p_400)
 
 
-def calculate_rush_milestone_ev(rush_yds_mean: float, sigma: float, cfg: Optional[LeagueScoringConfig] = None) -> float:
+def calculate_rush_milestone_ev(rush_yds_mean: float, sigma: Optional[float] = None, cfg: Optional[LeagueScoringConfig] = None) -> float:
     """
-    Calculate expected value of stacking 100+ and 200+ yard rushing bonuses:
+    Calculate expected value of stacking 100+ and 200+ yard rushing bonuses
+    using a right-skewed Gamma yardage distribution: k = (mu/sigma)^2, theta = sigma^2 / mu.
       E[Bonus] = 1.0 * P(Y >= 100) + 2.0 * P(Y >= 200)
     """
     cfg = cfg or DEFAULT_SCORING
-    if rush_yds_mean <= 0 or sigma <= 0:
+    if rush_yds_mean <= 0:
         return 0.0
-    p_100 = 1.0 - norm.cdf(100.0, loc=rush_yds_mean, scale=sigma)
-    p_200 = 1.0 - norm.cdf(200.0, loc=rush_yds_mean, scale=sigma)
+    sig = float(sigma) if (sigma is not None and sigma > 0) else max(18.0, rush_yds_mean * 0.38)
+    k = max(0.25, (rush_yds_mean / sig) ** 2)
+    theta = (sig ** 2) / rush_yds_mean
+    p_100 = 1.0 - sp_gamma.cdf(100.0, a=k, scale=theta)
+    p_200 = 1.0 - sp_gamma.cdf(200.0, a=k, scale=theta)
     return float(cfg.rush_100_bonus * p_100 + cfg.rush_200_bonus * p_200)
 
 
-def calculate_rec_milestone_ev(rec_yds_mean: float, sigma: float, cfg: Optional[LeagueScoringConfig] = None) -> float:
+def calculate_rec_milestone_ev(rec_yds_mean: float, sigma: Optional[float] = None, cfg: Optional[LeagueScoringConfig] = None) -> float:
     """
-    Calculate expected value of stacking 100+ and 200+ yard receiving bonuses:
+    Calculate expected value of stacking 100+ and 200+ yard receiving bonuses
+    using a right-skewed Log-Normal yardage distribution:
       E[Bonus] = 1.0 * P(Y >= 100) + 2.0 * P(Y >= 200)
     """
     cfg = cfg or DEFAULT_SCORING
-    if rec_yds_mean <= 0 or sigma <= 0:
+    if rec_yds_mean <= 0:
         return 0.0
-    p_100 = 1.0 - norm.cdf(100.0, loc=rec_yds_mean, scale=sigma)
-    p_200 = 1.0 - norm.cdf(200.0, loc=rec_yds_mean, scale=sigma)
+    sig = float(sigma) if (sigma is not None and sigma > 0) else max(18.0, rec_yds_mean * 0.42)
+    var_ratio = (sig / rec_yds_mean) ** 2
+    s_log = math.sqrt(math.log(1.0 + var_ratio))
+    mu_log = math.log(rec_yds_mean) - 0.5 * (s_log ** 2)
+    p_100 = 1.0 - sp_lognorm.cdf(100.0, s=s_log, scale=math.exp(mu_log))
+    p_200 = 1.0 - sp_lognorm.cdf(200.0, s=s_log, scale=math.exp(mu_log))
     return float(cfg.rec_100_bonus * p_100 + cfg.rec_200_bonus * p_200)
 
 
@@ -307,6 +343,7 @@ def calculate_player_mu_and_sigma(
 
     pos = (position or "WR").upper().strip()
     props = props or {}
+    clean_pname = (player_name or "").lower().strip()
 
     # Extract props if present
     pass_yds = float(props.get("pass_yds", 0.0) or 0.0)
@@ -314,11 +351,12 @@ def calculate_player_mu_and_sigma(
     pass_tds = float(props.get("pass_tds", 0.0) or 0.0)
     pass_ints = float(props.get("pass_interceptions", 0.0) or 0.0)
     rush_yds = float(props.get("rush_yds", 0.0) or 0.0)
-    rush_td_prob = float(props.get("anytime_td_prob", 0.0) or 0.0)
+    anytime_td_prob = float(props.get("anytime_td_prob", 0.0) or 0.0)
     receptions = float(props.get("receptions", 0.0) or 0.0)
     rec_yds = float(props.get("rec_yds", 0.0) or 0.0)
+    ret_yds = float(props.get("ret_yds", RETURN_SPECIALIST_YARDS.get(clean_pname, 0.0)) or 0.0)
 
-    has_vegas_props = (pass_yds > 0 or rush_yds > 0 or receptions > 0 or rec_yds > 0 or rush_td_prob > 0)
+    has_vegas_props = (pass_yds > 0 or rush_yds > 0 or receptions > 0 or rec_yds > 0 or anytime_td_prob > 0)
     breakdown: Dict[str, Any] = {"source": "Vegas Consensus Props" if has_vegas_props else "Idiosyncratic Baseline"}
 
     if pos == "QB":
@@ -327,7 +365,7 @@ def calculate_player_mu_and_sigma(
             tds = pass_tds if pass_tds > 0 else max(0.8, round(pass_yds / 160.0, 2))
             ints = pass_ints if pass_ints > 0 else 0.70
             r_yds = rush_yds if rush_yds > 0 else 12.0
-            r_tds = rush_td_prob * 0.4 if rush_td_prob > 0 else 0.15
+            r_tds = anytime_prob_to_expected_tds(anytime_td_prob) if anytime_td_prob > 0 else 0.15
         else:
             # Calibrate from ESPN standard projection (standard QB: 250 yds, 1.6 TDs, 22 comps, 15 rush yds, 0.8 INTs)
             base = max(8.0, espn_proj)
@@ -346,13 +384,15 @@ def calculate_player_mu_and_sigma(
         pts_rush_yds = r_yds * cfg.rush_yd_multiplier
         pts_rush_tds = r_tds * cfg.rush_td
         pts_ints = ints * cfg.pass_int  # cfg.pass_int is -1.0
+        exp_fumbles_lost = 0.16
+        pts_fumbles = exp_fumbles_lost * cfg.fumble_lost
 
         # Milestone & Long TD stacking bonuses
         sigma_yds = max(30.0, pass_yds * 0.18)
         ev_milestones = calculate_pass_milestone_ev(pass_yds, sigma_yds, cfg)
         ev_long_tds = calculate_long_pass_td_ev(tds, cfg)
 
-        mu = pts_pass_yds + pts_comps + pts_pass_tds + pts_rush_yds + pts_rush_tds + pts_ints + ev_milestones + ev_long_tds
+        mu = pts_pass_yds + pts_comps + pts_pass_tds + pts_rush_yds + pts_rush_tds + pts_ints + pts_fumbles + ev_milestones + ev_long_tds
         sigma = max(3.5, mu * 0.25 + (ev_long_tds * 0.5))
 
         breakdown.update({
@@ -367,35 +407,41 @@ def calculate_player_mu_and_sigma(
             "pts_rush_yds": round(pts_rush_yds, 2),
             "pts_rush_tds": round(pts_rush_tds, 2),
             "pts_ints": round(pts_ints, 2),
+            "pts_fumbles": round(pts_fumbles, 2),
             "ev_milestones": round(ev_milestones, 2),
             "ev_long_tds": round(ev_long_tds, 2)
         })
 
     elif pos == "RB":
-        if has_vegas_props and (rush_yds > 0 or receptions > 0 or rush_td_prob > 0):
+        if has_vegas_props and (rush_yds > 0 or receptions > 0 or anytime_td_prob > 0):
             r_yds = rush_yds if rush_yds > 0 else 45.0
             recs = receptions if receptions > 0 else 2.2
             v_yds = rec_yds if rec_yds > 0 else (recs * 7.5)
-            td_prob = rush_td_prob if rush_td_prob > 0 else 0.40
+            td_prob = anytime_td_prob if anytime_td_prob > 0 else 0.40
+            exp_tds = anytime_prob_to_expected_tds(td_prob)
         else:
             base = max(4.0, espn_proj)
             scale = base / 13.0
             r_yds = round(58.0 * scale, 1)
             recs = round(2.8 * scale, 1)
             v_yds = round(21.0 * scale, 1)
-            td_prob = min(0.95, round(0.48 * scale, 2))
+            td_prob = min(0.85, round(0.42 * scale, 2))
+            exp_tds = anytime_prob_to_expected_tds(td_prob)
 
         pts_rush_yds = r_yds * cfg.rush_yd_multiplier
         pts_recs = recs * cfg.ppr
         pts_rec_yds = v_yds * cfg.rec_yd_multiplier
-        pts_tds = td_prob * cfg.rush_td
+        pts_tds = exp_tds * cfg.rush_td
+        pts_ret = ret_yds * cfg.kr_yd_multiplier
+        exp_fumbles_lost = max(0.03, (r_yds / 4.3 + recs) * 0.0055)
+        pts_fumbles = exp_fumbles_lost * cfg.fumble_lost
 
-        # Milestone & Long TD stacking bonuses
-        sigma_rush = max(18.0, r_yds * 0.35)
+        # Milestone & Long TD stacking bonuses (Gamma right-skewed yardage)
+        sigma_rush = max(18.0, r_yds * 0.38)
         ev_milestones = calculate_rush_milestone_ev(r_yds, sigma_rush, cfg)
-        ev_long_tds = calculate_long_rush_rec_td_ev(td_prob, is_rec=False, cfg=cfg)
+        ev_long_tds = calculate_long_rush_rec_td_ev(exp_tds, is_rec=False, cfg=cfg)
 
-        mu = pts_rush_yds + pts_recs + pts_rec_yds + pts_tds + ev_milestones + ev_long_tds
+        mu = pts_rush_yds + pts_recs + pts_rec_yds + pts_tds + pts_ret + pts_fumbles + ev_milestones + ev_long_tds
         sigma = max(2.5, mu * 0.38 + (ev_long_tds * 0.4))
 
         breakdown.update({
@@ -403,21 +449,25 @@ def calculate_player_mu_and_sigma(
             "receptions": round(recs, 1),
             "rec_yds": round(v_yds, 1),
             "td_prob": round(td_prob, 2),
+            "expected_tds": round(exp_tds, 2),
             "pts_rush_yds": round(pts_rush_yds, 2),
             "pts_recs": round(pts_recs, 2),
             "pts_rec_yds": round(pts_rec_yds, 2),
             "pts_tds": round(pts_tds, 2),
+            "pts_ret": round(pts_ret, 2),
+            "pts_fumbles": round(pts_fumbles, 2),
             "ev_milestones": round(ev_milestones, 2),
             "ev_long_tds": round(ev_long_tds, 2)
         })
 
     elif pos in ["WR", "TE"]:
         is_te = (pos == "TE")
-        if has_vegas_props and (receptions > 0 or rec_yds > 0 or rush_td_prob > 0):
+        if has_vegas_props and (receptions > 0 or rec_yds > 0 or anytime_td_prob > 0):
             recs = receptions if receptions > 0 else 4.2
             v_yds = rec_yds if rec_yds > 0 else (recs * (9.5 if is_te else 12.0))
             r_yds = rush_yds if rush_yds > 0 else 0.0
-            td_prob = rush_td_prob if rush_td_prob > 0 else (0.30 if is_te else 0.38)
+            td_prob = anytime_td_prob if anytime_td_prob > 0 else (0.28 if is_te else 0.34)
+            exp_tds = anytime_prob_to_expected_tds(td_prob)
         else:
             base = max(3.0, espn_proj)
             bench = 10.5 if is_te else 13.0
@@ -425,31 +475,29 @@ def calculate_player_mu_and_sigma(
             recs = round((3.8 if is_te else 4.5) * scale, 1)
             v_yds = round((42.0 if is_te else 58.0) * scale, 1)
             r_yds = round(2.0 * scale if not is_te else 0.0, 1)
-            td_prob = min(0.95, round((0.32 if is_te else 0.42) * scale, 2))
+            td_prob = min(0.85, round((0.28 if is_te else 0.36) * scale, 2))
+            exp_tds = anytime_prob_to_expected_tds(td_prob)
 
         pts_recs = recs * cfg.ppr
         pts_rec_yds = v_yds * cfg.rec_yd_multiplier
         pts_rush_yds = r_yds * cfg.rush_yd_multiplier
-        pts_tds = td_prob * cfg.rec_td
+        pts_tds = exp_tds * cfg.rec_td
+        pts_ret = ret_yds * cfg.kr_yd_multiplier
+        exp_fumbles_lost = max(0.02, recs * 0.004)
+        pts_fumbles = exp_fumbles_lost * cfg.fumble_lost
 
-        # Milestone & Long TD stacking bonuses
-        sigma_rec = max(18.0, v_yds * 0.40)
+        # Milestone & Long TD stacking bonuses (Log-Normal right-skewed yardage)
+        sigma_rec = max(18.0, v_yds * 0.42)
         ev_milestones = calculate_rec_milestone_ev(v_yds, sigma_rec, cfg)
-        ev_long_tds = calculate_long_rush_rec_td_ev(td_prob, is_rec=True, cfg=cfg)
+        ev_long_tds = calculate_long_rush_rec_td_ev(exp_tds, is_rec=True, cfg=cfg)
 
-        mu = pts_recs + pts_rec_yds + pts_rush_yds + pts_tds + ev_milestones + ev_long_tds
+        mu = pts_recs + pts_rec_yds + pts_rush_yds + pts_tds + pts_ret + pts_fumbles + ev_milestones + ev_long_tds
 
         # Dynamic Archetype & aDOT Volatility Scaling (Coefficient of Variation CV = sigma / mu)
-        # Slot/Possession receivers exhibit high floor but tightly capped ceiling (CV ~ 0.32 - 0.35).
-        # Boundary/Deep threats exhibit low floor but explosive multi-TD and chunk-play ceiling (CV ~ 0.52 - 0.62).
         if is_te:
             cv = 0.40
             vol_class = "Interior / Seam Target"
         elif adot is not None and adot > 0:
-            # Continuous aDOT scaling:
-            # Underneath/Slot (aDOT ~6.0) -> CV ~ 0.30 - 0.32 (compressed variance, capped ceiling)
-            # Intermediate/Hybrid (aDOT ~10.0) -> CV ~ 0.50 (balanced upside)
-            # Deep/Boundary (aDOT ~13.0+) -> CV ~ 0.65 (explosive right-tail volatility)
             cv = max(0.30, min(0.65, 0.30 + 0.05 * (float(adot) - 6.0)))
             if cv <= 0.38:
                 vol_class = "High Floor / Capped Ceiling (Slot/Possession)"
@@ -488,10 +536,13 @@ def calculate_player_mu_and_sigma(
             "rec_yds": round(v_yds, 1),
             "rush_yds": round(r_yds, 1),
             "td_prob": round(td_prob, 2),
+            "expected_tds": round(exp_tds, 2),
             "pts_recs": round(pts_recs, 2),
             "pts_rec_yds": round(pts_rec_yds, 2),
             "pts_rush_yds": round(pts_rush_yds, 2),
             "pts_tds": round(pts_tds, 2),
+            "pts_ret": round(pts_ret, 2),
+            "pts_fumbles": round(pts_fumbles, 2),
             "ev_milestones": round(ev_milestones, 2),
             "ev_long_tds": round(ev_long_tds, 2),
             "cv": round(cv, 3),
@@ -509,12 +560,14 @@ def calculate_player_mu_and_sigma(
         exp_sacks = float(props.get("sacks", 2.6))
         exp_turnovers = float(props.get("turnovers", 1.3))
         exp_forced_fumbles = float(props.get("forced_fumbles", 0.9))
+        exp_def_td = float(props.get("def_td", 0.14))
 
         pts_sacks = exp_sacks * cfg.dst_sack
         pts_turnovers = exp_turnovers * cfg.dst_int
         pts_ff = exp_forced_fumbles * cfg.dst_fumble_forced
+        pts_def_td = exp_def_td * cfg.dst_td
 
-        mu = max(1.0, pts_pa + pts_ya + pts_sacks + pts_turnovers + pts_ff)
+        mu = max(1.0, pts_pa + pts_ya + pts_sacks + pts_turnovers + pts_ff + pts_def_td)
         sigma = max(2.5, mu * 0.42)
 
         breakdown.update({
@@ -524,7 +577,8 @@ def calculate_player_mu_and_sigma(
             "pts_ya": pts_ya,
             "pts_sacks": round(pts_sacks, 1),
             "pts_turnovers": round(pts_turnovers, 1),
-            "pts_ff": round(pts_ff, 1)
+            "pts_ff": round(pts_ff, 1),
+            "pts_def_td": round(pts_def_td, 2)
         })
 
     else:
@@ -534,3 +588,175 @@ def calculate_player_mu_and_sigma(
 
     p_active = max(0.0, min(1.0, float(polymarket_prob)))
     return round(mu, 2), round(sigma, 2), round(p_active, 3), breakdown
+
+
+def score_athletic_stat_line(
+    position: str,
+    stats: Dict[str, Any],
+    scoring_config: Optional[LeagueScoringConfig] = None,
+    player_name: Optional[str] = None,
+    alignment_tag: Optional[str] = None,
+    adot: Optional[float] = None,
+    slot_snap_pct: Optional[float] = None,
+    wide_snap_pct: Optional[float] = None
+) -> Tuple[float, float, Dict[str, Any]]:
+    """
+    Evaluate raw stat columns from The Athletic's weekly projection sheet
+    (Pass YD, Pass TD, INT, Rush Att, Rush YD, Rush TD, REC, REC YD, REC TD)
+    strictly through the user's idiosyncratic ESPN league scoring multipliers.
+    Ignores the default 'Proj' column for skill players (QB, RB, WR, TE).
+    """
+    cfg = scoring_config or DEFAULT_SCORING
+    pos = (position or "WR").upper().strip()
+    clean_pname = (player_name or stats.get("name", "")).lower().strip()
+    ret_yds = float(stats.get("ret_yds", RETURN_SPECIALIST_YARDS.get(clean_pname, 0.0)) or 0.0)
+
+    breakdown: Dict[str, Any] = {
+        "source": "The Athletic Custom Baseline",
+        "athletic_default_proj": round(float(stats.get("athletic_proj", 0.0) or 0.0), 2),
+    }
+
+    if pos == "QB":
+        pass_yds = float(stats.get("pass_yds", 0.0) or 0.0)
+        pass_tds = float(stats.get("pass_tds", 0.0) or 0.0)
+        ints = float(stats.get("ints", 0.0) or 0.0)
+        rush_att = float(stats.get("rush_att", 0.0) or 0.0)
+        rush_yds = float(stats.get("rush_yds", 0.0) or 0.0)
+        rush_tds = float(stats.get("rush_tds", 0.0) or 0.0)
+
+        pts_pass_yds = pass_yds * cfg.pass_yd_multiplier
+        pts_pass_tds = pass_tds * cfg.pass_td
+        pts_ints = ints * cfg.pass_int
+        pts_rush_yds = rush_yds * cfg.rush_yd_multiplier
+        pts_rush_tds = rush_tds * cfg.rush_td
+
+        mu = pts_pass_yds + pts_pass_tds + pts_ints + pts_rush_yds + pts_rush_tds
+        ev_long_tds = calculate_long_pass_td_ev(pass_tds, cfg)
+        sigma = max(3.5, mu * 0.25 + (ev_long_tds * 0.5))
+
+        breakdown.update({
+            "pass_yds": round(pass_yds, 1),
+            "pass_tds": round(pass_tds, 2),
+            "ints": round(ints, 2),
+            "rush_att": round(rush_att, 1),
+            "rush_yds": round(rush_yds, 1),
+            "rush_tds": round(rush_tds, 2),
+            "pts_pass_yds": round(pts_pass_yds, 2),
+            "pts_pass_tds": round(pts_pass_tds, 2),
+            "pts_ints": round(pts_ints, 2),
+            "pts_rush_yds": round(pts_rush_yds, 2),
+            "pts_rush_tds": round(pts_rush_tds, 2),
+        })
+
+    elif pos == "RB":
+        rush_att = float(stats.get("rush_att", 0.0) or 0.0)
+        rush_yds = float(stats.get("rush_yds", 0.0) or 0.0)
+        rush_tds = float(stats.get("rush_tds", 0.0) or 0.0)
+        recs = float(stats.get("receptions", 0.0) or 0.0)
+        rec_yds = float(stats.get("rec_yds", 0.0) or 0.0)
+        rec_tds = float(stats.get("rec_tds", 0.0) or 0.0)
+        total_tds = rush_tds + rec_tds
+
+        pts_rush_yds = rush_yds * cfg.rush_yd_multiplier
+        pts_rush_tds = rush_tds * cfg.rush_td
+        pts_recs = recs * cfg.ppr
+        pts_rec_yds = rec_yds * cfg.rec_yd_multiplier
+        pts_rec_tds = rec_tds * cfg.rec_td
+
+        mu = pts_rush_yds + pts_rush_tds + pts_recs + pts_rec_yds + pts_rec_tds
+        ev_long_tds = calculate_long_rush_rec_td_ev(total_tds, is_rec=False, cfg=cfg)
+        sigma = max(2.5, mu * 0.38 + (ev_long_tds * 0.4))
+
+        breakdown.update({
+            "rush_att": round(rush_att, 1),
+            "rush_yds": round(rush_yds, 1),
+            "rush_tds": round(rush_tds, 2),
+            "receptions": round(recs, 1),
+            "rec_yds": round(rec_yds, 1),
+            "rec_tds": round(rec_tds, 2),
+            "expected_tds": round(total_tds, 2),
+            "pts_rush_yds": round(pts_rush_yds, 2),
+            "pts_recs": round(pts_recs, 2),
+            "pts_rec_yds": round(pts_rec_yds, 2),
+            "pts_tds": round(pts_rush_tds + pts_rec_tds, 2),
+        })
+
+    elif pos in ["WR", "TE"]:
+        is_te = (pos == "TE")
+        rush_yds = float(stats.get("rush_yds", 0.0) or 0.0)
+        rush_tds = float(stats.get("rush_tds", 0.0) or 0.0)
+        recs = float(stats.get("receptions", 0.0) or 0.0)
+        rec_yds = float(stats.get("rec_yds", 0.0) or 0.0)
+        rec_tds = float(stats.get("rec_tds", 0.0) or 0.0)
+        total_tds = rush_tds + rec_tds
+
+        pts_rush_yds = rush_yds * cfg.rush_yd_multiplier
+        pts_rush_tds = rush_tds * cfg.rush_td
+        pts_recs = recs * cfg.ppr
+        pts_rec_yds = rec_yds * cfg.rec_yd_multiplier
+        pts_rec_tds = rec_tds * cfg.rec_td
+
+        mu = pts_rush_yds + pts_rush_tds + pts_recs + pts_rec_yds + pts_rec_tds
+        ev_long_tds = calculate_long_rush_rec_td_ev(total_tds, is_rec=True, cfg=cfg)
+
+        if is_te:
+            cv = 0.40
+            vol_class = "Interior / Seam Target"
+        elif adot is not None and adot > 0:
+            cv = max(0.30, min(0.65, 0.30 + 0.05 * (float(adot) - 6.0)))
+            vol_class = "High Floor / Capped Ceiling (Slot/Possession)" if cv <= 0.38 else ("Explosive Upside (Boundary/Deep)" if cv >= 0.50 else "Balanced Hybrid")
+        elif alignment_tag:
+            tag_clean = str(alignment_tag).lower()
+            if "slot" in tag_clean:
+                cv = 0.32
+                vol_class = "High Floor / Capped Ceiling (Slot/Possession)"
+            elif "boundary" in tag_clean:
+                cv = 0.58
+                vol_class = "Explosive Upside (Boundary/Deep)"
+            elif "hybrid" in tag_clean:
+                cv = 0.48
+                vol_class = "Balanced Hybrid"
+            else:
+                cv = 0.45
+                vol_class = "Standard Volume"
+        elif slot_snap_pct is not None and slot_snap_pct >= 0.60:
+            cv = 0.33
+            vol_class = "High Floor / Capped Ceiling (Slot/Possession)"
+        elif wide_snap_pct is not None and wide_snap_pct >= 0.60:
+            cv = 0.56
+            vol_class = "Explosive Upside (Boundary/Deep)"
+        else:
+            cv = 0.45
+            vol_class = "Standard Volume"
+
+        sigma = max(2.5, mu * cv + (ev_long_tds * 0.5))
+
+        breakdown.update({
+            "receptions": round(recs, 1),
+            "rec_yds": round(rec_yds, 1),
+            "rec_tds": round(rec_tds, 2),
+            "rush_yds": round(rush_yds, 1),
+            "rush_tds": round(rush_tds, 2),
+            "expected_tds": round(total_tds, 2),
+            "pts_recs": round(pts_recs, 2),
+            "pts_rec_yds": round(pts_rec_yds, 2),
+            "pts_rush_yds": round(pts_rush_yds, 2),
+            "pts_tds": round(pts_rush_tds + pts_rec_tds, 2),
+            "ev_long_tds": round(ev_long_tds, 2),
+            "cv": round(cv, 3),
+            "volatility_class": vol_class,
+            "alignment_tag": alignment_tag or ("Slot Primary" if is_te else ("Slot Primary" if cv <= 0.38 else ("Boundary Primary" if cv >= 0.50 else "Hybrid"))),
+        })
+
+    elif pos in ["DEF", "D/ST", "DST"]:
+        mu = max(1.0, float(stats.get("athletic_proj", 6.5) or 6.5))
+        sigma = max(2.5, mu * 0.42)
+        breakdown.update({
+            "athletic_dst_proj": round(mu, 2),
+        })
+    else:
+        mu = max(2.0, float(stats.get("athletic_proj", 8.0) or 8.0))
+        sigma = max(2.0, mu * 0.35)
+
+    return round(mu, 2), round(sigma, 2), breakdown
+

@@ -10,12 +10,15 @@ Modular Ingestion Layer for Fantasy Football Monte Carlo Engine.
 
 import os
 import re
+import json
+import statistics
 import requests
 import datetime
 import urllib.parse
 import streamlit as st
 from typing import Dict, List, Optional, Tuple, Any
 import scoring_config
+import scheme_db
 
 # Fallback / Default API keys and URLs
 DEFAULT_ODDS_API_KEY = ""
@@ -213,9 +216,11 @@ def get_espn_credentials(secrets_dict: Optional[Dict[str, Any]] = None) -> Dict[
 def fetch_nfl_odds(api_key: Optional[str] = None) -> List[Dict[str, Any]]:
     """
     Ingest NFL game spreads and totals from The Odds API.
-    Cached for 4 hours (14400 seconds).
+    Cached for 4 hours (14400 seconds) to strictly protect API quota.
     """
     key = api_key or get_odds_api_key()
+    if not key:
+        return []
     url = f"{ODDS_API_BASE_URL}/odds"
     params = {
         "apiKey": key,
@@ -224,7 +229,7 @@ def fetch_nfl_odds(api_key: Optional[str] = None) -> List[Dict[str, Any]]:
         "oddsFormat": "american"
     }
     try:
-        resp = requests.get(url, params=params, timeout=12)
+        resp = requests.get(url, params=params, timeout=10)
         if resp.status_code == 200:
             return resp.json()
         return []
@@ -244,26 +249,24 @@ def parse_nfl_games(raw_odds: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         away_team = event.get("away_team")
         commence_time = event.get("commence_time")
 
-        spread_val = None
-        total_val = None
+        spreads = []
+        totals = []
 
         bookmakers = event.get("bookmakers", [])
         if bookmakers:
             for bm in bookmakers:
                 for market in bm.get("markets", []):
-                    if market.get("key") == "spreads" and spread_val is None:
+                    if market.get("key") == "spreads":
                         for outcome in market.get("outcomes", []):
-                            if outcome.get("name") == home_team:
-                                spread_val = outcome.get("point")
-                    elif market.get("key") == "totals" and total_val is None:
+                            if outcome.get("name") == home_team and outcome.get("point") is not None:
+                                spreads.append(float(outcome.get("point")))
+                    elif market.get("key") == "totals":
                         for outcome in market.get("outcomes", []):
-                            if outcome.get("name") == "Over":
-                                total_val = outcome.get("point")
+                            if outcome.get("name") == "Over" and outcome.get("point") is not None:
+                                totals.append(float(outcome.get("point")))
 
-        if spread_val is None:
-            spread_val = -3.0
-        if total_val is None:
-            total_val = 47.0
+        spread_val = round(float(statistics.median(spreads)), 1) if spreads else -3.0
+        total_val = round(float(statistics.median(totals)), 1) if totals else 47.0
 
         home_implied = round((total_val - spread_val) / 2.0, 1)
         away_implied = round((total_val + spread_val) / 2.0, 1)
@@ -286,10 +289,11 @@ def parse_nfl_games(raw_odds: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 def fetch_player_props(event_id: str, api_key: Optional[str] = None) -> Dict[str, Any]:
     """
     Ingest player props for a specific NFL game from The Odds API.
-    Queries passing yards, completions, passing TDs, interceptions,
-    rushing yards, receptions, receiving yards, and anytime TD odds.
+    Cached for 4 hours (14400 seconds) to strictly protect monthly API quota.
     """
     key = api_key or get_odds_api_key()
+    if not key or not event_id:
+        return {}
     url = f"{ODDS_API_BASE_URL}/events/{event_id}/odds"
     params = {
         "apiKey": key,
@@ -298,7 +302,7 @@ def fetch_player_props(event_id: str, api_key: Optional[str] = None) -> Dict[str
         "oddsFormat": "american"
     }
     try:
-        resp = requests.get(url, params=params, timeout=12)
+        resp = requests.get(url, params=params, timeout=10)
         if resp.status_code == 200:
             return resp.json()
         return {}
@@ -325,9 +329,10 @@ def devig_anytime_td_probabilities(
 ) -> Dict[str, float]:
     """
     De-vig Anytime TD implied probabilities across a market or team.
-    Sportsbook Anytime TD odds typically carry 20-40% overround (juice).
-    Normalizes implied probabilities so they sum to realistic offensive team TD totals
-    (~Implied Total / 7.2, or default ~2.3 TDs per team / ~4.6 TDs per game) to prevent inflated mu.
+    Sportsbook Anytime TD odds carry 25-40% overround (juice) because only 'Yes' is offered
+    on many books or 'No' is heavily shaded.
+    Normalizes implied probabilities across the core offensive contributors (top 12 players per game
+    or top 6 per team) so they sum to realistic offensive TD totals (~Implied Total / 7.2, or ~4.6 TDs/game).
     """
     if not raw_probs:
         return {}
@@ -339,11 +344,15 @@ def devig_anytime_td_probabilities(
     else:
         target_tds = 2.3
 
-    total_prob = sum(max(0.0, float(p)) for p in raw_probs.values())
-    if total_prob <= target_tds or total_prob == 0:
+    # Anchor de-vigging on the top 12 skill players in the market so deep bench longshots
+    # don't artificially crush the shrink_factor of starters
+    sorted_vals = sorted([max(0.0, float(p)) for p in raw_probs.values()], reverse=True)
+    core_prob_sum = sum(sorted_vals[:12]) if len(sorted_vals) > 12 else sum(sorted_vals)
+
+    if core_prob_sum <= target_tds or core_prob_sum == 0:
         return {k: round(max(0.0, min(0.85, float(v))), 3) for k, v in raw_probs.items()}
 
-    shrink_factor = target_tds / total_prob
+    shrink_factor = target_tds / core_prob_sum
     devigged = {}
     for k, v in raw_probs.items():
         p_adj = max(0.0, float(v)) * shrink_factor
@@ -362,59 +371,72 @@ def normalize_player_name(name: str) -> str:
     return re.sub(r"\s+", " ", n).strip()
 
 
-# High-fidelity consensus props prior database (De-vigged true anytime TD probabilities)
+# High-fidelity consensus props prior database (De-vigged true anytime TD probabilities & Implied Team Totals)
 CURATED_NFL_PROPS: Dict[str, Dict[str, Any]] = {
-    "jared goff": {"pass_yds": 266.5, "pass_completions": 23.5, "pass_tds": 1.85, "pass_interceptions": 0.55, "rush_yds": 1.5, "anytime_td_prob": 0.09},
-    "dak prescott": {"pass_yds": 268.5, "pass_completions": 24.5, "pass_tds": 1.90, "pass_interceptions": 0.70, "rush_yds": 14.5, "anytime_td_prob": 0.16},
-    "matthew stafford": {"pass_yds": 258.5, "pass_completions": 22.5, "pass_tds": 1.70, "pass_interceptions": 0.65, "rush_yds": 2.0, "anytime_td_prob": 0.07},
-    "cj stroud": {"pass_yds": 264.5, "pass_completions": 23.0, "pass_tds": 1.80, "pass_interceptions": 0.60, "rush_yds": 12.0, "anytime_td_prob": 0.13},
-    "baker mayfield": {"pass_yds": 244.5, "pass_completions": 21.0, "pass_tds": 1.60, "pass_interceptions": 0.70, "rush_yds": 14.0, "anytime_td_prob": 0.15},
-    "sam darnold": {"pass_yds": 238.5, "pass_completions": 20.0, "pass_tds": 1.50, "pass_interceptions": 0.80, "rush_yds": 11.0, "anytime_td_prob": 0.13},
-    "chase brown": {"rush_yds": 74.5, "receptions": 3.5, "rec_yds": 26.5, "anytime_td_prob": 0.42},
-    "bucky irving": {"rush_yds": 70.5, "receptions": 3.0, "rec_yds": 22.5, "anytime_td_prob": 0.38},
-    "saquon barkley": {"rush_yds": 88.5, "receptions": 3.8, "rec_yds": 28.5, "anytime_td_prob": 0.54},
-    "breece hall": {"rush_yds": 66.5, "receptions": 4.5, "rec_yds": 36.5, "anytime_td_prob": 0.49},
-    "tony pollard": {"rush_yds": 62.5, "receptions": 2.8, "rec_yds": 18.5, "anytime_td_prob": 0.35},
-    "chuba hubbard": {"rush_yds": 64.5, "receptions": 2.6, "rec_yds": 18.5, "anytime_td_prob": 0.34},
-    "jerome ford": {"rush_yds": 54.5, "receptions": 2.5, "rec_yds": 16.5, "anytime_td_prob": 0.28},
-    "jaylen warren": {"rush_yds": 42.5, "receptions": 3.2, "rec_yds": 24.5, "anytime_td_prob": 0.22},
-    "rico dowdle": {"rush_yds": 50.5, "receptions": 2.4, "rec_yds": 15.5, "anytime_td_prob": 0.26},
-    "chris rodriguez": {"rush_yds": 38.5, "receptions": 1.2, "rec_yds": 8.5, "anytime_td_prob": 0.20},
-    "omarion hampton": {"rush_yds": 48.5, "receptions": 2.2, "rec_yds": 16.5, "anytime_td_prob": 0.25},
-    "drake london": {"rec_yds": 76.5, "receptions": 6.5, "rush_yds": 0.0, "anytime_td_prob": 0.32},
-    "dj moore": {"rec_yds": 68.5, "receptions": 5.5, "rush_yds": 2.5, "anytime_td_prob": 0.29},
-    "puka nacua": {"rec_yds": 84.5, "receptions": 7.2, "rush_yds": 1.5, "anytime_td_prob": 0.35},
-    "tee higgins": {"rec_yds": 64.5, "receptions": 5.0, "rush_yds": 0.0, "anytime_td_prob": 0.30},
-    "wandale robinson": {"rec_yds": 46.5, "receptions": 5.5, "rush_yds": 3.0, "anytime_td_prob": 0.19},
-    "demario douglas": {"rec_yds": 52.5, "receptions": 4.8, "rush_yds": 2.0, "anytime_td_prob": 0.20},
-    "jalen coker": {"rec_yds": 46.5, "receptions": 3.8, "rush_yds": 0.0, "anytime_td_prob": 0.20},
-    "adonai mitchell": {"rec_yds": 38.5, "receptions": 2.8, "rush_yds": 0.0, "anytime_td_prob": 0.18},
-    "jack bech": {"rec_yds": 32.5, "receptions": 2.5, "rush_yds": 0.0, "anytime_td_prob": 0.14},
-    "deebo samuel": {"rec_yds": 54.5, "receptions": 4.2, "rush_yds": 22.5, "anytime_td_prob": 0.35},
-    "quentin johnston": {"rec_yds": 48.5, "receptions": 3.8, "rush_yds": 0.0, "anytime_td_prob": 0.23},
-    "jauan jennings": {"rec_yds": 52.5, "receptions": 4.0, "rush_yds": 0.0, "anytime_td_prob": 0.24},
-    "isaiah likely": {"rec_yds": 44.5, "receptions": 3.8, "rush_yds": 0.0, "anytime_td_prob": 0.23},
-    "tucker kraft": {"rec_yds": 42.5, "receptions": 3.6, "rush_yds": 0.0, "anytime_td_prob": 0.22},
-    "jaguars dst": {"opp_implied_pts": 21.0, "opp_implied_yds": 320.0, "sacks": 2.8, "turnovers": 1.4, "forced_fumbles": 1.0},
-    "ravens dst": {"opp_implied_pts": 19.5, "opp_implied_yds": 305.0, "sacks": 3.2, "turnovers": 1.6, "forced_fumbles": 1.2},
+    "jared goff": {"pass_yds": 266.5, "pass_completions": 23.5, "pass_tds": 1.85, "pass_interceptions": 0.55, "rush_yds": 1.5, "anytime_td_prob": 0.09, "team_implied": 27.5},
+    "dak prescott": {"pass_yds": 268.5, "pass_completions": 24.5, "pass_tds": 1.90, "pass_interceptions": 0.70, "rush_yds": 14.5, "anytime_td_prob": 0.16, "team_implied": 25.0},
+    "matthew stafford": {"pass_yds": 258.5, "pass_completions": 22.5, "pass_tds": 1.70, "pass_interceptions": 0.65, "rush_yds": 2.0, "anytime_td_prob": 0.07, "team_implied": 24.5},
+    "cj stroud": {"pass_yds": 264.5, "pass_completions": 23.0, "pass_tds": 1.80, "pass_interceptions": 0.60, "rush_yds": 12.0, "anytime_td_prob": 0.13, "team_implied": 24.0},
+    "baker mayfield": {"pass_yds": 244.5, "pass_completions": 21.0, "pass_tds": 1.60, "pass_interceptions": 0.70, "rush_yds": 14.0, "anytime_td_prob": 0.15, "team_implied": 23.5},
+    "sam darnold": {"pass_yds": 238.5, "pass_completions": 20.0, "pass_tds": 1.50, "pass_interceptions": 0.80, "rush_yds": 11.0, "anytime_td_prob": 0.13, "team_implied": 23.0},
+    "chase brown": {"rush_yds": 74.5, "receptions": 3.5, "rec_yds": 26.5, "anytime_td_prob": 0.42, "team_implied": 26.0},
+    "bucky irving": {"rush_yds": 70.5, "receptions": 3.0, "rec_yds": 22.5, "anytime_td_prob": 0.38, "team_implied": 23.5},
+    "saquon barkley": {"rush_yds": 88.5, "receptions": 3.8, "rec_yds": 28.5, "anytime_td_prob": 0.54, "team_implied": 27.0},
+    "breece hall": {"rush_yds": 66.5, "receptions": 4.5, "rec_yds": 36.5, "anytime_td_prob": 0.49, "team_implied": 22.5},
+    "tony pollard": {"rush_yds": 62.5, "receptions": 2.8, "rec_yds": 18.5, "anytime_td_prob": 0.35, "team_implied": 19.5},
+    "chuba hubbard": {"rush_yds": 64.5, "receptions": 2.6, "rec_yds": 18.5, "anytime_td_prob": 0.34, "team_implied": 19.0},
+    "jerome ford": {"rush_yds": 54.5, "receptions": 2.5, "rec_yds": 16.5, "anytime_td_prob": 0.28, "team_implied": 20.0},
+    "jaylen warren": {"rush_yds": 42.5, "receptions": 3.2, "rec_yds": 24.5, "anytime_td_prob": 0.22, "team_implied": 21.5},
+    "rico dowdle": {"rush_yds": 50.5, "receptions": 2.4, "rec_yds": 15.5, "anytime_td_prob": 0.26, "team_implied": 25.0},
+    "chris rodriguez": {"rush_yds": 38.5, "receptions": 1.2, "rec_yds": 8.5, "anytime_td_prob": 0.20, "team_implied": 21.0},
+    "omarion hampton": {"rush_yds": 48.5, "receptions": 2.2, "rec_yds": 16.5, "anytime_td_prob": 0.25, "team_implied": 22.5},
+    "drake london": {"rec_yds": 76.5, "receptions": 6.5, "rush_yds": 0.0, "anytime_td_prob": 0.32, "team_implied": 24.0},
+    "dj moore": {"rec_yds": 68.5, "receptions": 5.5, "rush_yds": 2.5, "anytime_td_prob": 0.29, "team_implied": 21.5},
+    "puka nacua": {"rec_yds": 84.5, "receptions": 7.2, "rush_yds": 1.5, "anytime_td_prob": 0.35, "team_implied": 24.5},
+    "tee higgins": {"rec_yds": 64.5, "receptions": 5.0, "rush_yds": 0.0, "anytime_td_prob": 0.30, "team_implied": 26.0},
+    "wandale robinson": {"rec_yds": 46.5, "receptions": 5.5, "rush_yds": 3.0, "anytime_td_prob": 0.19, "team_implied": 18.5},
+    "demario douglas": {"rec_yds": 52.5, "receptions": 4.8, "rush_yds": 2.0, "anytime_td_prob": 0.20, "team_implied": 19.0},
+    "jalen coker": {"rec_yds": 46.5, "receptions": 3.8, "rush_yds": 0.0, "anytime_td_prob": 0.20, "team_implied": 19.0},
+    "adonai mitchell": {"rec_yds": 38.5, "receptions": 2.8, "rush_yds": 0.0, "anytime_td_prob": 0.18, "team_implied": 21.5},
+    "jack bech": {"rec_yds": 32.5, "receptions": 2.5, "rush_yds": 0.0, "anytime_td_prob": 0.14, "team_implied": 19.5},
+    "deebo samuel": {"rec_yds": 54.5, "receptions": 4.2, "rush_yds": 22.5, "anytime_td_prob": 0.35, "team_implied": 26.5},
+    "quentin johnston": {"rec_yds": 48.5, "receptions": 3.8, "rush_yds": 0.0, "anytime_td_prob": 0.23, "team_implied": 22.5},
+    "jauan jennings": {"rec_yds": 52.5, "receptions": 4.0, "rush_yds": 0.0, "anytime_td_prob": 0.24, "team_implied": 26.5},
+    "isaiah likely": {"rec_yds": 44.5, "receptions": 3.8, "rush_yds": 0.0, "anytime_td_prob": 0.23, "team_implied": 26.0},
+    "tucker kraft": {"rec_yds": 42.5, "receptions": 3.6, "rush_yds": 0.0, "anytime_td_prob": 0.22, "team_implied": 24.0},
+    "jaguars dst": {"opp_implied_pts": 21.0, "opp_implied_yds": 320.0, "sacks": 2.8, "turnovers": 1.4, "forced_fumbles": 1.0, "team_implied": 21.5},
+    "ravens dst": {"opp_implied_pts": 19.5, "opp_implied_yds": 305.0, "sacks": 3.2, "turnovers": 1.6, "forced_fumbles": 1.2, "team_implied": 26.0},
 }
 
 
-@st.cache_data(ttl=7200, show_spinner=False)
+@st.cache_data(ttl=14400, show_spinner=False)
 def build_all_player_props_cache(api_key: Optional[str] = None) -> Dict[str, Dict[str, Any]]:
     """
     Build a comprehensive player props cache combining live markets from The Odds API
     with curated high-fidelity consensus lines.
-    De-vigs raw Anytime TD market odds so probabilities sum to realistic team TD totals.
+    Aggregates the consensus median across bookmakers for every prop line and de-vigs
+    raw Anytime TD market odds using the game's Vegas O/U total. Cached for 4 hours (14400s).
     """
-    cache: Dict[str, Dict[str, Any]] = dict(CURATED_NFL_PROPS)
+    cache: Dict[str, Dict[str, Any]] = {k: dict(v) for k, v in CURATED_NFL_PROPS.items()}
 
     raw_odds = fetch_nfl_odds(api_key=api_key)
     if not raw_odds:
         return cache
 
-    # Ingest props across scheduled NFL games
-    for event in raw_odds[:16]:
+    parsed_games = {g["event_id"]: g for g in parse_nfl_games(raw_odds) if g.get("event_id")}
+
+    market_key_map = {
+        "player_pass_yds": "pass_yds",
+        "player_pass_completions": "pass_completions",
+        "player_pass_tds": "pass_tds",
+        "player_pass_interceptions": "pass_interceptions",
+        "player_rush_yds": "rush_yds",
+        "player_receptions": "receptions",
+        "player_reception_yds": "rec_yds",
+    }
+
+    # Ingest props across scheduled NFL games (capped at 8 games to protect API quota)
+    for event in raw_odds[:8]:
         event_id = event.get("id")
         if not event_id:
             continue
@@ -423,7 +445,12 @@ def build_all_player_props_cache(api_key: Optional[str] = None) -> Dict[str, Dic
         if not bookmakers:
             continue
 
-        raw_td_market = {}
+        game_info = parsed_games.get(event_id, {})
+        game_total = float(game_info.get("total", 46.0) or 46.0)
+        realistic_game_tds = max(2.4, round(game_total / 7.2, 2))
+
+        event_player_lines: Dict[str, Dict[str, List[float]]] = {}
+        raw_td_lists: Dict[str, List[float]] = {}
 
         for bm in bookmakers:
             for market in bm.get("markets", []):
@@ -436,36 +463,34 @@ def build_all_player_props_cache(api_key: Optional[str] = None) -> Dict[str, Dic
                     if not norm_name or norm_name in ["over", "under", "yes", "no"]:
                         continue
 
-                    if norm_name not in cache:
-                        cache[norm_name] = {}
-
                     point_val = out.get("point")
                     price_val = out.get("price")
                     out_name = out.get("name", "")
 
-                    if m_key == "player_pass_yds" and out_name == "Over" and point_val is not None:
-                        cache[norm_name]["pass_yds"] = float(point_val)
-                    elif m_key == "player_pass_completions" and out_name == "Over" and point_val is not None:
-                        cache[norm_name]["pass_completions"] = float(point_val)
-                    elif m_key == "player_pass_tds" and out_name == "Over" and point_val is not None:
-                        cache[norm_name]["pass_tds"] = float(point_val)
-                    elif m_key == "player_pass_interceptions" and out_name == "Over" and point_val is not None:
-                        cache[norm_name]["pass_interceptions"] = float(point_val)
-                    elif m_key == "player_rush_yds" and out_name == "Over" and point_val is not None:
-                        cache[norm_name]["rush_yds"] = float(point_val)
-                    elif m_key == "player_receptions" and out_name == "Over" and point_val is not None:
-                        cache[norm_name]["receptions"] = float(point_val)
-                    elif m_key == "player_reception_yds" and out_name == "Over" and point_val is not None:
-                        cache[norm_name]["rec_yds"] = float(point_val)
-                    elif m_key == "player_anytime_td" and (out_name == "Yes" or out.get("name") == raw_player_name):
-                        raw_td_market[norm_name] = american_odds_to_prob(price_val)
+                    if m_key in market_key_map and out_name == "Over" and point_val is not None:
+                        prop_field = market_key_map[m_key]
+                        event_player_lines.setdefault(norm_name, {}).setdefault(prop_field, []).append(float(point_val))
+                    elif m_key == "player_anytime_td" and (out_name == "Yes" or out.get("name") == raw_player_name) and price_val is not None:
+                        raw_td_lists.setdefault(norm_name, []).append(american_odds_to_prob(price_val))
 
-        # De-vig anytime TD market across the game (target ~4.6 TDs total for two teams)
-        if raw_td_market:
-            devigged_tds = devig_anytime_td_probabilities(raw_td_market, realistic_td_total=4.6)
+        for norm_name, prop_lists in event_player_lines.items():
+            if norm_name not in cache:
+                cache[norm_name] = {}
+            for prop_field, vals in prop_lists.items():
+                if vals:
+                    cache[norm_name][prop_field] = round(float(statistics.median(vals)), 1)
+
+        # De-vig consensus anytime TD market across the game
+        if raw_td_lists:
+            raw_td_median = {p_name: float(statistics.median(probs)) for p_name, probs in raw_td_lists.items() if probs}
+            devigged_tds = devig_anytime_td_probabilities(raw_td_median, realistic_td_total=realistic_game_tds)
             for p_name, devig_p in devigged_tds.items():
-                if p_name in cache:
-                    cache[p_name]["anytime_td_prob"] = devig_p
+                if p_name not in cache:
+                    cache[p_name] = {}
+                cache[p_name]["anytime_td_prob"] = devig_p
+
+    for k, v in CURATED_NFL_PROPS.items():
+        cache[k] = {**cache.get(k, {}), **v}
 
     return cache
 
@@ -502,6 +527,7 @@ def get_matched_player_props(
 def fetch_polymarket_event(slug: str) -> Optional[Dict[str, Any]]:
     """
     Ingest crowd-sourced event/injury probability from Polymarket Gamma API.
+    Uses safe json.loads parsing instead of eval().
     """
     if not slug:
         return None
@@ -522,7 +548,8 @@ def fetch_polymarket_event(slug: str) -> Optional[Dict[str, Any]]:
                     prices = m.get("outcomePrices")
                     if prices:
                         try:
-                            p_active = float(eval(prices)[0]) if isinstance(prices, str) else float(prices[0])
+                            parsed_prices = json.loads(prices) if isinstance(prices, str) else prices
+                            p_active = float(parsed_prices[0])
                         except Exception:
                             p_active = 0.85
 
@@ -572,7 +599,396 @@ def get_polymarket_player_probability(
 
 
 # ---------------------------------------------------------------------------
-# 3. PROJECTION PARAMETER SYNTHESIS (MU & SIGMA)
+# 2B. THE ATHLETIC MULTI-BLOCK EXCEL PROJECTION PARSER & HYBRID BLENDING
+# ---------------------------------------------------------------------------
+
+DEFAULT_ATHLETIC_EXCEL_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Week5_Proj_1011.xlsx")
+_ACTIVE_ATHLETIC_BYTES: Optional[bytes] = None
+_ACTIVE_ATHLETIC_FILENAME: str = "Week5_Proj_1011.xlsx"
+
+
+def set_uploaded_athletic_projections(file_obj_or_bytes: Optional[Any], filename: str = "Uploaded_Athletic_Proj.xlsx") -> None:
+    """
+    Store uploaded Weekly Athletic Projections (.xlsx) in memory so Wednesday waiver
+    releases or Sunday morning updates immediately anchor all projections across the app.
+    """
+    global _ACTIVE_ATHLETIC_BYTES, _ACTIVE_ATHLETIC_FILENAME
+    if file_obj_or_bytes is None:
+        _ACTIVE_ATHLETIC_BYTES = None
+        _ACTIVE_ATHLETIC_FILENAME = "Week5_Proj_1011.xlsx"
+    elif isinstance(file_obj_or_bytes, (bytes, bytearray)):
+        _ACTIVE_ATHLETIC_BYTES = bytes(file_obj_or_bytes)
+        _ACTIVE_ATHLETIC_FILENAME = filename
+    elif hasattr(file_obj_or_bytes, "getvalue"):
+        _ACTIVE_ATHLETIC_BYTES = file_obj_or_bytes.getvalue()
+        _ACTIVE_ATHLETIC_FILENAME = getattr(file_obj_or_bytes, "name", filename)
+    elif hasattr(file_obj_or_bytes, "read"):
+        _ACTIVE_ATHLETIC_BYTES = file_obj_or_bytes.read()
+        _ACTIVE_ATHLETIC_FILENAME = getattr(file_obj_or_bytes, "name", filename)
+
+
+def get_active_athletic_filename() -> str:
+    """Return the active Athletic projections filename currently anchoring the engine."""
+    return _ACTIVE_ATHLETIC_FILENAME
+
+
+def _clean_team_abbr(team_raw: Any) -> str:
+    t = str(team_raw or "").upper().strip()
+    if t == "JAC":
+        return "JAX"
+    if t == "WSH":
+        return "WAS"
+    return t
+
+
+def _clean_opp_abbr(opp_raw: Any) -> Tuple[str, bool]:
+    """Parse 'at LAR' or 'vs BUF' into ('LAR', is_home)."""
+    s = str(opp_raw or "").strip()
+    is_home = True
+    if s.lower().startswith("at "):
+        is_home = False
+        s = s[3:].strip()
+    elif s.lower().startswith("@ "):
+        is_home = False
+        s = s[2:].strip()
+    elif s.lower().startswith("vs "):
+        is_home = True
+        s = s[3:].strip()
+    elif s.lower().startswith("vs. "):
+        is_home = True
+        s = s[4:].strip()
+    return _clean_team_abbr(s), is_home
+
+
+def _safe_float(val: Any, default: float = 0.0) -> float:
+    try:
+        if val is None:
+            return default
+        import pandas as pd
+        if pd.isna(val):
+            return default
+        return float(val)
+    except Exception:
+        return default
+
+
+def parse_athletic_projections_excel(
+    excel_source: Optional[Any] = None,
+    scoring_cfg: Optional[scoring_config.LeagueScoringConfig] = None
+) -> Dict[str, Dict[str, Any]]:
+    """
+    Multi-Block Excel Parser for The Athletic's weekly stat projections (e.g. Week5_Proj_1011.xlsx).
+    Extracts horizontal positional tables side-by-side in a single sheet:
+      - QB block: cols 0:10  (Name, Proj, Team, Opp, Pass YD, Pass TD, INT, Rush Att, Rush YD, Rush TD)
+      - RB block: cols 11:21 (Name, Proj, Team, Opp, Rush Att, Rush YD, Rush TD, REC, REC YD, REC TD)
+      - WR block: cols 22:31 (Name, Proj, Team, Opp, Rush YD, Rush TD, REC, REC YD, REC TD)
+      - TE block: cols 32:39 (Name, Proj, Team, Opp, REC, REC YD, REC TD)
+      - Ignores redundant Flex (40:44) and Superflex (45:49) summary blocks
+      - DST block: cols 50:54 (Name, Proj, Team, Opp)
+    Ignores the default 'Proj' column for skill players (QB, RB, WR, TE) and instead passes the
+    raw stat columns through our custom ESPN league scoring multipliers to compute true baseline `mu`.
+    """
+    import io
+    import pandas as pd
+
+    cfg = scoring_cfg or scoring_config.DEFAULT_SCORING
+    source = excel_source
+    if source is None:
+        if _ACTIVE_ATHLETIC_BYTES is not None:
+            source = io.BytesIO(_ACTIVE_ATHLETIC_BYTES)
+        elif os.path.exists(DEFAULT_ATHLETIC_EXCEL_PATH):
+            source = DEFAULT_ATHLETIC_EXCEL_PATH
+        else:
+            return {}
+
+    try:
+        if isinstance(source, (bytes, bytearray)):
+            df_raw = pd.read_excel(io.BytesIO(source), header=None)
+        elif hasattr(source, "getvalue"):
+            df_raw = pd.read_excel(io.BytesIO(source.getvalue()), header=None)
+        else:
+            df_raw = pd.read_excel(source, header=None)
+    except Exception:
+        return {}
+
+    if df_raw.empty or df_raw.shape[1] < 39:
+        return {}
+
+    # Detect data start row (Row 0 = positional group headers, Row 1 = column names -> data starts at Row 2)
+    r0_c0 = str(df_raw.iloc[0, 0] if df_raw.shape[0] > 0 else "").strip().lower()
+    r1_c0 = str(df_raw.iloc[1, 0] if df_raw.shape[0] > 1 else "").strip().lower()
+    start_row = 2 if (r0_c0 == "qb" or r1_c0 == "name") else (1 if r0_c0 == "name" else 2)
+    df_data = df_raw.iloc[start_row:].reset_index(drop=True)
+
+    projections: Dict[str, Dict[str, Any]] = {}
+
+    def _register_entry(name_str: str, entry_dict: Dict[str, Any]):
+        norm = normalize_player_name(name_str)
+        if not norm:
+            return
+        projections[norm] = entry_dict
+        # Also register suffix-stripped key (e.g., "Chris Rodriguez Jr." <-> "Chris Rodriguez")
+        for sfx in [" jr", " sr", " iii", " ii", " iv"]:
+            if norm.endswith(sfx):
+                projections[norm[:-len(sfx)].strip()] = entry_dict
+        # Update NFL schedule mapping if valid
+        t_code = entry_dict.get("team", "")
+        o_code = entry_dict.get("opponent", "")
+        if t_code and o_code:
+            CURRENT_NFL_SCHEDULE[t_code] = o_code
+            if t_code == "JAX":
+                CURRENT_NFL_SCHEDULE["JAC"] = o_code
+            elif t_code == "WAS":
+                CURRENT_NFL_SCHEDULE["WSH"] = o_code
+
+    # 1. QB Block (cols 0:10)
+    for _, row in df_data.iterrows():
+        qb_name = row.iloc[0] if df_data.shape[1] > 0 else None
+        if pd.isna(qb_name) or not str(qb_name).strip():
+            continue
+        name_clean = str(qb_name).strip()
+        team_clean = _clean_team_abbr(row.iloc[2])
+        opp_clean, is_home = _clean_opp_abbr(row.iloc[3])
+        stats = {
+            "name": name_clean,
+            "position": "QB",
+            "athletic_proj": _safe_float(row.iloc[1]),
+            "team": team_clean,
+            "opponent": opp_clean,
+            "is_home": is_home,
+            "pass_yds": _safe_float(row.iloc[4]),
+            "pass_tds": _safe_float(row.iloc[5]),
+            "ints": _safe_float(row.iloc[6]),
+            "rush_att": _safe_float(row.iloc[7]),
+            "rush_yds": _safe_float(row.iloc[8]),
+            "rush_tds": _safe_float(row.iloc[9]),
+        }
+        c_mu, c_sig, c_bk = scoring_config.score_athletic_stat_line("QB", stats, scoring_config=cfg, player_name=name_clean)
+        entry = {
+            **stats,
+            "custom_mu": c_mu,
+            "custom_sigma": c_sig,
+            "breakdown": c_bk,
+        }
+        _register_entry(name_clean, entry)
+
+    # 2. RB Block (cols 11:21)
+    for _, row in df_data.iterrows():
+        rb_name = row.iloc[11] if df_data.shape[1] > 11 else None
+        if pd.isna(rb_name) or not str(rb_name).strip():
+            continue
+        name_clean = str(rb_name).strip()
+        team_clean = _clean_team_abbr(row.iloc[13])
+        opp_clean, is_home = _clean_opp_abbr(row.iloc[14])
+        stats = {
+            "name": name_clean,
+            "position": "RB",
+            "athletic_proj": _safe_float(row.iloc[12]),
+            "team": team_clean,
+            "opponent": opp_clean,
+            "is_home": is_home,
+            "rush_att": _safe_float(row.iloc[15]),
+            "rush_yds": _safe_float(row.iloc[16]),
+            "rush_tds": _safe_float(row.iloc[17]),
+            "receptions": _safe_float(row.iloc[18]),
+            "rec_yds": _safe_float(row.iloc[19]),
+            "rec_tds": _safe_float(row.iloc[20]),
+        }
+        c_mu, c_sig, c_bk = scoring_config.score_athletic_stat_line("RB", stats, scoring_config=cfg, player_name=name_clean)
+        entry = {
+            **stats,
+            "custom_mu": c_mu,
+            "custom_sigma": c_sig,
+            "breakdown": c_bk,
+        }
+        _register_entry(name_clean, entry)
+
+    # 3. WR Block (cols 22:31)
+    for _, row in df_data.iterrows():
+        wr_name = row.iloc[22] if df_data.shape[1] > 22 else None
+        if pd.isna(wr_name) or not str(wr_name).strip():
+            continue
+        name_clean = str(wr_name).strip()
+        team_clean = _clean_team_abbr(row.iloc[24])
+        opp_clean, is_home = _clean_opp_abbr(row.iloc[25])
+        stats = {
+            "name": name_clean,
+            "position": "WR",
+            "athletic_proj": _safe_float(row.iloc[23]),
+            "team": team_clean,
+            "opponent": opp_clean,
+            "is_home": is_home,
+            "rush_yds": _safe_float(row.iloc[26]),
+            "rush_tds": _safe_float(row.iloc[27]),
+            "receptions": _safe_float(row.iloc[28]),
+            "rec_yds": _safe_float(row.iloc[29]),
+            "rec_tds": _safe_float(row.iloc[30]),
+        }
+        align = get_receiver_alignment(name_clean, "WR")
+        c_mu, c_sig, c_bk = scoring_config.score_athletic_stat_line(
+            "WR",
+            stats,
+            scoring_config=cfg,
+            player_name=name_clean,
+            alignment_tag=align.get("alignment_tag"),
+            slot_snap_pct=align.get("slot_snap_pct"),
+            wide_snap_pct=align.get("wide_snap_pct"),
+        )
+        entry = {
+            **stats,
+            "custom_mu": c_mu,
+            "custom_sigma": c_sig,
+            "breakdown": c_bk,
+        }
+        _register_entry(name_clean, entry)
+
+    # 4. TE Block (cols 32:39)
+    for _, row in df_data.iterrows():
+        te_name = row.iloc[32] if df_data.shape[1] > 32 else None
+        if pd.isna(te_name) or not str(te_name).strip():
+            continue
+        name_clean = str(te_name).strip()
+        team_clean = _clean_team_abbr(row.iloc[34])
+        opp_clean, is_home = _clean_opp_abbr(row.iloc[35])
+        stats = {
+            "name": name_clean,
+            "position": "TE",
+            "athletic_proj": _safe_float(row.iloc[33]),
+            "team": team_clean,
+            "opponent": opp_clean,
+            "is_home": is_home,
+            "receptions": _safe_float(row.iloc[36]),
+            "rec_yds": _safe_float(row.iloc[37]),
+            "rec_tds": _safe_float(row.iloc[38]),
+        }
+        c_mu, c_sig, c_bk = scoring_config.score_athletic_stat_line("TE", stats, scoring_config=cfg, player_name=name_clean)
+        entry = {
+            **stats,
+            "custom_mu": c_mu,
+            "custom_sigma": c_sig,
+            "breakdown": c_bk,
+        }
+        _register_entry(name_clean, entry)
+
+    # 5. DST Block (cols 50:54) — ignores redundant Flex/Superflex cols 40:49
+    if df_data.shape[1] >= 54:
+        for _, row in df_data.iterrows():
+            dst_name = row.iloc[50]
+            if pd.isna(dst_name) or not str(dst_name).strip():
+                continue
+            name_clean = str(dst_name).strip()
+            team_clean = _clean_team_abbr(row.iloc[52])
+            opp_clean, is_home = _clean_opp_abbr(row.iloc[53])
+            stats = {
+                "name": name_clean,
+                "position": "D/ST",
+                "athletic_proj": _safe_float(row.iloc[51]),
+                "team": team_clean,
+                "opponent": opp_clean,
+                "is_home": is_home,
+            }
+            c_mu, c_sig, c_bk = scoring_config.score_athletic_stat_line("D/ST", stats, scoring_config=cfg, player_name=name_clean)
+            entry = {
+                **stats,
+                "custom_mu": c_mu,
+                "custom_sigma": c_sig,
+                "breakdown": c_bk,
+            }
+            _register_entry(name_clean, entry)
+            # Register nickname aliases (e.g., "Houston Texans" -> "texans dst", "hou dst")
+            nickname = name_clean.split()[-1].lower()
+            projections[f"{nickname} dst"] = entry
+            projections[f"{nickname} d/st"] = entry
+            if team_clean:
+                projections[f"{team_clean.lower()} dst"] = entry
+
+    return projections
+
+
+@st.cache_data(ttl=14400, show_spinner=False)
+def _cached_athletic_projections(file_bytes: Optional[bytes], default_path: str) -> Dict[str, Dict[str, Any]]:
+    source = file_bytes if file_bytes is not None else default_path
+    return parse_athletic_projections_excel(excel_source=source)
+
+
+def build_athletic_projections_cache() -> Dict[str, Dict[str, Any]]:
+    """Return cached Athletic multi-block projections dictionary."""
+    return _cached_athletic_projections(_ACTIVE_ATHLETIC_BYTES, DEFAULT_ATHLETIC_EXCEL_PATH)
+
+
+def get_athletic_projection_summary(athletic_cache: Optional[Dict[str, Dict[str, Any]]] = None) -> Dict[str, Any]:
+    """Return summary counts of unique players parsed per position from The Athletic sheet."""
+    cache = athletic_cache if athletic_cache is not None else build_athletic_projections_cache()
+    unique_entries = {}
+    for entry in cache.values():
+        key = (entry.get("name", ""), entry.get("position", ""))
+        if key[0]:
+            unique_entries[key] = entry
+    counts = {"QB": 0, "RB": 0, "WR": 0, "TE": 0, "D/ST": 0}
+    for (_, pos), _ in unique_entries.items():
+        p_norm = "D/ST" if pos in ["DEF", "D/ST", "DST"] else pos
+        if p_norm in counts:
+            counts[p_norm] += 1
+    skill_total = counts["QB"] + counts["RB"] + counts["WR"] + counts["TE"]
+    return {
+        "filename": _ACTIVE_ATHLETIC_FILENAME,
+        "counts": counts,
+        "skill_total": skill_total,
+        "dst_total": counts["D/ST"],
+        "total_entities": skill_total + counts["D/ST"],
+    }
+
+
+def get_matched_athletic_projection(
+    player_name: str,
+    athletic_cache: Optional[Dict[str, Dict[str, Any]]] = None,
+    position: str = ""
+) -> Dict[str, Any]:
+    """Retrieve matched Athletic weekly stat projection for a player or D/ST with suffix & nickname fallbacks."""
+    if not player_name:
+        return {}
+    cache = athletic_cache if athletic_cache is not None else build_athletic_projections_cache()
+    if not cache:
+        return {}
+
+    norm = normalize_player_name(player_name)
+    if norm in cache:
+        return cache[norm].copy()
+
+    # Strip generational suffixes (Jr., Sr., III, II)
+    norm_stripped = norm
+    for sfx in [" jr", " sr", " iii", " ii", " iv"]:
+        if norm_stripped.endswith(sfx):
+            norm_stripped = norm_stripped[:-len(sfx)].strip()
+    if norm_stripped in cache:
+        return cache[norm_stripped].copy()
+
+    # Defensive team nickname matching (e.g. "Jaguars D/ST" -> "jaguars dst")
+    pos_u = (position or "").upper().strip()
+    if pos_u in ["DEF", "D/ST", "DST"] or "dst" in norm or "d/st" in player_name.lower():
+        clean_dst = norm.replace("d/st", "dst").strip()
+        if clean_dst in cache:
+            return cache[clean_dst].copy()
+        for token in clean_dst.split():
+            if token != "dst" and f"{token} dst" in cache:
+                return cache[f"{token} dst"].copy()
+
+    return {}
+
+
+def get_team_vegas_implied_Totals() -> Dict[str, float]:
+    """Build a lookup of NFL team code -> Vegas Implied Team Total from live/curated game lines."""
+    implied_map: Dict[str, float] = {}
+    for p_props in CURATED_NFL_PROPS.values():
+        t = str(p_props.get("team", "")).upper()
+        imp = p_props.get("team_implied")
+        if t and imp:
+            implied_map[t] = float(imp)
+    return implied_map
+
+
+# ---------------------------------------------------------------------------
+# 3. PROJECTION PARAMETER SYNTHESIS (HYBRID VEGAS + ATHLETIC BLENDING)
 # ---------------------------------------------------------------------------
 
 INACTIVE_STATUSES = {
@@ -586,13 +1002,6 @@ def parse_player_injury_and_status(inj_status_raw: str, slot_raw: str = "") -> T
     """
     Normalizes raw ESPN / Sleeper injury designations and lineup slot codes into:
       (clean_status, p_active, is_inactive)
-
-    Rules:
-      - Any player on IR (slot IR/IR_ELIGIBLE or status INJURY_RESERVE/IR) or ruled OUT/PUP/SUSPENDED has:
-          p_active = 0.0, is_inactive = True, clean_status = "IR" or "OUT".
-      - DOUBTFUL has p_active = 0.10, is_inactive = False.
-      - QUESTIONABLE has p_active = 0.50, is_inactive = False.
-      - PROBABLE / ACTIVE has p_active = 1.0, is_inactive = False.
     """
     inj_upper = str(inj_status_raw or "ACTIVE").upper().strip()
     slot_upper = str(slot_raw or "").upper().strip()
@@ -641,9 +1050,10 @@ def calculate_projection_params(
     wide_snap_pct: Optional[float] = None
 ) -> Any:
     """
-    Synthesize distribution parameters (mu, sigma, availability_p)
-    from Vegas player prop markets, historical averages, receiver alignment archetypes,
-    and idiosyncratic scoring rules.
+    Synthesize distribution parameters (mu, sigma, availability_p) using:
+      1. The Athletic's custom-scored `mu` as the universal baseline across all 186 skill players & 30 DSTs.
+      2. Hybrid 50% Vegas Implied / 50% Athletic Custom Mu blending where live/consensus Vegas player props exist.
+      3. Volatility (`sigma`) calibration via Vegas implied team totals + SumerSports defensive scheme modifiers.
     If player is inactive (IR/OUT) or has zero availability, parameters are strictly 0.0.
     """
     cfg = scoring_cfg or scoring_config.DEFAULT_SCORING
@@ -675,6 +1085,11 @@ def calculate_projection_params(
             rec_200_bonus=cfg.rec_200_bonus
         )
 
+    if is_inactive or polymarket_prob <= 0.0:
+        if return_breakdown:
+            return 0.0, 0.0, 0.0, {"source": "Inactive", "notes": "Ruled OUT / IR (0.0 pts)"}
+        return 0.0, 0.0, 0.0
+
     align_tag = alignment_tag
     slot_pct = slot_snap_pct
     wide_pct = wide_snap_pct
@@ -692,14 +1107,13 @@ def calculate_projection_params(
 
         if player_adot is None:
             try:
-                import scheme_db
                 hist = scheme_db.get_player_usage_history(player_name)
                 if not hist.empty and "adot" in hist.columns:
                     player_adot = float(hist["adot"].iloc[-1])
             except Exception:
                 pass
 
-    mu, sigma, p_active, breakdown = scoring_config.calculate_player_mu_and_sigma(
+    vegas_mu, vegas_sigma, p_active, vegas_breakdown = scoring_config.calculate_player_mu_and_sigma(
         position=position,
         props=props,
         espn_proj=default_proj,
@@ -712,6 +1126,72 @@ def calculate_projection_params(
         slot_snap_pct=slot_pct,
         wide_snap_pct=wide_pct
     )
+
+    has_vegas_props = bool(props and any(
+        float(props.get(k, 0.0) or 0.0) > 0
+        for k in ["pass_yds", "rush_yds", "receptions", "rec_yds", "anytime_td_prob", "opp_implied_pts"]
+    ))
+
+    ath_entry = get_matched_athletic_projection(player_name, position=position) if player_name else {}
+
+    if ath_entry:
+        ath_mu, ath_sigma, ath_breakdown = scoring_config.score_athletic_stat_line(
+            position=position,
+            stats=ath_entry,
+            scoring_config=cfg,
+            player_name=player_name,
+            alignment_tag=align_tag,
+            adot=player_adot,
+            slot_snap_pct=slot_pct,
+            wide_snap_pct=wide_pct
+        )
+
+        if has_vegas_props:
+            # 50% Vegas Implied / 50% Athletic Custom Mu Blend
+            mu = round(0.50 * vegas_mu + 0.50 * ath_mu, 2)
+            sigma_base = 0.50 * vegas_sigma + 0.50 * ath_sigma
+            breakdown = {**ath_breakdown, **vegas_breakdown}
+            breakdown["source"] = "Hybrid (50% Vegas / 50% Athletic)"
+            breakdown["vegas_mu"] = round(vegas_mu, 2)
+            breakdown["athletic_custom_mu"] = round(ath_mu, 2)
+            breakdown["athletic_default_proj"] = ath_entry.get("athletic_proj", 0.0)
+        else:
+            # Universal Athletic Custom Baseline (solves missing props for bench/waiver players)
+            mu = round(ath_mu, 2)
+            sigma_base = ath_sigma
+            breakdown = ath_breakdown
+            breakdown["source"] = "The Athletic Custom Baseline"
+            breakdown["athletic_custom_mu"] = round(ath_mu, 2)
+            breakdown["athletic_default_proj"] = ath_entry.get("athletic_proj", 0.0)
+
+        # Calibrate sigma (floor/ceiling spread) with Vegas Implied Team Totals + SumerSports Scheme Modifiers
+        team_code = str(ath_entry.get("team") or (props or {}).get("team") or "").upper()
+        opp_code = str(ath_entry.get("opponent") or CURRENT_NFL_SCHEDULE.get(team_code, "")).upper()
+        implied_map = get_team_vegas_implied_Totals()
+        team_implied = float((props or {}).get("team_implied") or implied_map.get(team_code, 22.5) or 22.5)
+
+        vegas_sigma_mult = max(0.88, min(1.18, 1.0 + 0.012 * (team_implied - 22.5)))
+        scheme_sigma_mult = 1.0
+        if opp_code:
+            scheme = get_defensive_scheme(opp_code)
+            qpr = scheme.get("quick_pressure_rate", 0.185)
+            mof_epa = scheme.get("mof_epa_allowed", 0.38)
+            rush_sr = scheme.get("rush_sr_allowed", 0.42)
+            if (mof_epa >= 0.45 or (mof_epa >= 0.38 and qpr >= 0.195)) and (align_tag == "Slot Primary" or pos_upper == "TE"):
+                scheme_sigma_mult = 0.92
+            elif (mof_epa <= 0.28 and qpr < 0.18) and align_tag == "Boundary Primary":
+                scheme_sigma_mult = 1.15
+            elif pos_upper == "QB" and qpr > 0.20:
+                scheme_sigma_mult = 1.08
+            elif pos_upper == "RB" and rush_sr > 0.45:
+                scheme_sigma_mult = 0.90
+
+        sigma = round(max(2.5, sigma_base * vegas_sigma_mult * scheme_sigma_mult), 2)
+        breakdown["vegas_sigma_mult"] = round(vegas_sigma_mult, 3)
+        breakdown["scheme_sigma_mult"] = round(scheme_sigma_mult, 3)
+        breakdown["team_implied"] = round(team_implied, 1)
+    else:
+        mu, sigma, breakdown = vegas_mu, vegas_sigma, vegas_breakdown
 
     if return_breakdown:
         return mu, sigma, p_active, breakdown
@@ -1095,22 +1575,25 @@ def build_matchup_from_espn_teams(
     """
     Format two ESPN team dictionaries into the standard engine format for
     simulation and VORP calculations.
-    Filters to skill starters (QB, RB, WR, TE, FLEX).
+    Preserves the full active starting lineup including 2-QB (QB + OP), WR/TE, RB/WR/TE, and D/ST.
     """
     def filter_skill_starters(team_dict):
+        valid_positions = {"QB", "RB", "WR", "TE", "DEF", "D/ST"}
+        valid_slots = {"QB", "OP", "RB", "RB1", "RB2", "WR", "WR1", "WR2", "TE", "FLEX", "WR/TE", "RB/WR/TE", "D/ST", "DEF"}
+
         designated_starters = [
             p for p in team_dict.get("starters", [])
-            if (p.get("position") in {"QB", "RB", "WR", "TE"} or "FLEX" in p.get("slot", ""))
+            if (p.get("position") in valid_positions or p.get("slot") in valid_slots or "FLEX" in str(p.get("slot", "")))
             and not p.get("is_inactive")
             and float(p.get("p_active", 1.0)) > 0.0
-            and p.get("slot") not in ["IR", "IR_ELIGIBLE"]
+            and p.get("slot") not in ["IR", "IR_ELIGIBLE", "BE"]
         ]
 
         if len(designated_starters) >= 7:
             return designated_starters
 
-        # Intelligently construct optimal starting lineup from active full roster:
-        # 1 QB, 2 RB, 2 WR, 1 TE, 1 FLEX
+        # Intelligently construct optimal 9-slot starting lineup from active full roster:
+        # 1 QB, 1 OP (2nd QB or best skill), 2 RB, 2 WR, 1 WR/TE (or TE), 1 FLEX (RB/WR/TE), 1 D/ST
         full_roster = team_dict.get("roster", [])
         active_roster = [
             p for p in full_roster
@@ -1128,25 +1611,31 @@ def build_matchup_from_espn_teams(
             optimal_starters.append({**qbs[0], "slot": "QB"})
             used_names.add(qbs[0]["name"])
 
-        # 2. Top 2 RBs
+        # 2. OP Slot (2nd QB if available, otherwise filled later)
+        if len(qbs) >= 2:
+            optimal_starters.append({**qbs[1], "slot": "OP"})
+            used_names.add(qbs[1]["name"])
+
+        # 3. Top 2 RBs
         rbs = sorted([p for p in active_roster if p["position"] == "RB" and p["name"] not in used_names], key=lambda x: x["mu"], reverse=True)
         for i, rb in enumerate(rbs[:2]):
             optimal_starters.append({**rb, "slot": f"RB{i+1}"})
             used_names.add(rb["name"])
 
-        # 3. Top 2 WRs
+        # 4. Top 2 WRs
         wrs = sorted([p for p in active_roster if p["position"] == "WR" and p["name"] not in used_names], key=lambda x: x["mu"], reverse=True)
         for i, wr in enumerate(wrs[:2]):
             optimal_starters.append({**wr, "slot": f"WR{i+1}"})
             used_names.add(wr["name"])
 
-        # 4. Best TE
-        tes = sorted([p for p in active_roster if p["position"] == "TE" and p["name"] not in used_names], key=lambda x: x["mu"], reverse=True)
+        # 5. Best TE / WR-TE slot
+        tes = sorted([p for p in active_roster if p["position"] in ["TE", "WR"] and p["name"] not in used_names], key=lambda x: x["mu"], reverse=True)
         if tes:
-            optimal_starters.append({**tes[0], "slot": "TE"})
+            slot_lbl = "TE" if tes[0]["position"] == "TE" else "WR/TE"
+            optimal_starters.append({**tes[0], "slot": slot_lbl})
             used_names.add(tes[0]["name"])
 
-        # 5. Best remaining FLEX (RB/WR/TE)
+        # 6. Best remaining FLEX (RB/WR/TE)
         flex_cands = sorted(
             [p for p in active_roster if p["position"] in ["RB", "WR", "TE"] and p["name"] not in used_names],
             key=lambda x: x["mu"],
@@ -1155,6 +1644,12 @@ def build_matchup_from_espn_teams(
         if flex_cands:
             optimal_starters.append({**flex_cands[0], "slot": "FLEX"})
             used_names.add(flex_cands[0]["name"])
+
+        # 7. Best D/ST if available
+        dsts = sorted([p for p in active_roster if p["position"] in ["DEF", "D/ST"] and p["name"] not in used_names], key=lambda x: x["mu"], reverse=True)
+        if dsts:
+            optimal_starters.append({**dsts[0], "slot": "D/ST"})
+            used_names.add(dsts[0]["name"])
 
         # If roster is small, fill remaining from available active roster
         if len(optimal_starters) < 7:
@@ -1184,41 +1679,7 @@ def build_matchup_from_espn_teams(
 
 
 # ---------------------------------------------------------------------------
-# 5. SLEEPER ACTIVE NFL PLAYER UNIVERSE (FALLBACK)
-# ---------------------------------------------------------------------------
-
-@st.cache_data(ttl=86400, show_spinner=False)
-def fetch_sleeper_players() -> Dict[str, Dict[str, Any]]:
-    """
-    Ingest active NFL players database from Sleeper. Cached for 24 hours.
-    """
-    try:
-        resp = requests.get(SLEEPER_PLAYERS_URL, timeout=15)
-        if resp.status_code == 200:
-            data = resp.json()
-            valid_positions = {"QB", "RB", "WR", "TE", "K", "DEF"}
-            active_players = {}
-            for pid, info in data.items():
-                pos = info.get("position")
-                is_active = info.get("active", False)
-                if is_active and pos in valid_positions:
-                    full_name = info.get("full_name") or f"{info.get('first_name', '')} {info.get('last_name', '')}".strip()
-                    if full_name:
-                        active_players[full_name] = {
-                            "player_id": pid,
-                            "name": full_name,
-                            "position": pos,
-                            "team": info.get("team") or "FA",
-                            "injury_status": info.get("injury_status") or "ACTIVE"
-                        }
-            return active_players
-    except Exception:
-        pass
-    return {}
-
-
-# ---------------------------------------------------------------------------
-# 6. DEFAULT HIGH-FIDELITY MATCHUP & WAIVER ROSTERS
+# 5. DEFAULT HIGH-FIDELITY MATCHUP & WAIVER ROSTERS
 # ---------------------------------------------------------------------------
 
 def get_default_matchup_and_waivers(
@@ -1327,45 +1788,11 @@ def get_default_matchup_and_waivers(
 
 
 # ---------------------------------------------------------------------------
-# 7. 32-TEAM DEFENSIVE SCHEME METRICS & MATCHUP MODIFIERS
+# 6. 32-TEAM DEFENSIVE SCHEME METRICS & MATCHUP MODIFIERS
 # ---------------------------------------------------------------------------
 
-NFL_DEFENSIVE_SCHEMES: Dict[str, Dict[str, float]] = {
-    "CLE": {"quick_pressure_rate": 0.245, "mof_epa_allowed": 0.28, "rush_sr_allowed": 0.380},
-    "PHI": {"quick_pressure_rate": 0.228, "mof_epa_allowed": 0.32, "rush_sr_allowed": 0.395},
-    "KC":  {"quick_pressure_rate": 0.215, "mof_epa_allowed": 0.30, "rush_sr_allowed": 0.370},
-    "PIT": {"quick_pressure_rate": 0.222, "mof_epa_allowed": 0.35, "rush_sr_allowed": 0.402},
-    "BAL": {"quick_pressure_rate": 0.208, "mof_epa_allowed": 0.26, "rush_sr_allowed": 0.355},
-    "SF":  {"quick_pressure_rate": 0.205, "mof_epa_allowed": 0.22, "rush_sr_allowed": 0.388},
-    "DET": {"quick_pressure_rate": 0.212, "mof_epa_allowed": 0.41, "rush_sr_allowed": 0.362},
-    "BUF": {"quick_pressure_rate": 0.195, "mof_epa_allowed": 0.34, "rush_sr_allowed": 0.410},
-    "DAL": {"quick_pressure_rate": 0.190, "mof_epa_allowed": 0.42, "rush_sr_allowed": 0.465},
-    "HOU": {"quick_pressure_rate": 0.218, "mof_epa_allowed": 0.31, "rush_sr_allowed": 0.392},
-    "MIA": {"quick_pressure_rate": 0.185, "mof_epa_allowed": 0.48, "rush_sr_allowed": 0.425},
-    "NYJ": {"quick_pressure_rate": 0.210, "mof_epa_allowed": 0.25, "rush_sr_allowed": 0.415},
-    "GB":  {"quick_pressure_rate": 0.192, "mof_epa_allowed": 0.38, "rush_sr_allowed": 0.428},
-    "MIN": {"quick_pressure_rate": 0.225, "mof_epa_allowed": 0.33, "rush_sr_allowed": 0.390},
-    "CHI": {"quick_pressure_rate": 0.178, "mof_epa_allowed": 0.36, "rush_sr_allowed": 0.420},
-    "TB":  {"quick_pressure_rate": 0.182, "mof_epa_allowed": 0.54, "rush_sr_allowed": 0.412},
-    "CIN": {"quick_pressure_rate": 0.175, "mof_epa_allowed": 0.52, "rush_sr_allowed": 0.458},
-    "LAC": {"quick_pressure_rate": 0.198, "mof_epa_allowed": 0.29, "rush_sr_allowed": 0.385},
-    "DEN": {"quick_pressure_rate": 0.220, "mof_epa_allowed": 0.27, "rush_sr_allowed": 0.398},
-    "SEA": {"quick_pressure_rate": 0.180, "mof_epa_allowed": 0.44, "rush_sr_allowed": 0.440},
-    "LAR": {"quick_pressure_rate": 0.172, "mof_epa_allowed": 0.51, "rush_sr_allowed": 0.452},
-    "ARI": {"quick_pressure_rate": 0.145, "mof_epa_allowed": 0.56, "rush_sr_allowed": 0.472},
-    "LV":  {"quick_pressure_rate": 0.188, "mof_epa_allowed": 0.49, "rush_sr_allowed": 0.435},
-    "NO":  {"quick_pressure_rate": 0.165, "mof_epa_allowed": 0.46, "rush_sr_allowed": 0.448},
-    "ATL": {"quick_pressure_rate": 0.150, "mof_epa_allowed": 0.47, "rush_sr_allowed": 0.430},
-    "IND": {"quick_pressure_rate": 0.168, "mof_epa_allowed": 0.53, "rush_sr_allowed": 0.462},
-    "JAX": {"quick_pressure_rate": 0.160, "mof_epa_allowed": 0.55, "rush_sr_allowed": 0.455},
-    "TEN": {"quick_pressure_rate": 0.170, "mof_epa_allowed": 0.45, "rush_sr_allowed": 0.405},
-    "WAS": {"quick_pressure_rate": 0.155, "mof_epa_allowed": 0.52, "rush_sr_allowed": 0.468},
-    "WSH": {"quick_pressure_rate": 0.155, "mof_epa_allowed": 0.52, "rush_sr_allowed": 0.468},
-    "NYG": {"quick_pressure_rate": 0.185, "mof_epa_allowed": 0.47, "rush_sr_allowed": 0.475},
-    "NE":  {"quick_pressure_rate": 0.162, "mof_epa_allowed": 0.43, "rush_sr_allowed": 0.438},
-    "CAR": {"quick_pressure_rate": 0.130, "mof_epa_allowed": 0.58, "rush_sr_allowed": 0.485},
-    "JAC": {"quick_pressure_rate": 0.160, "mof_epa_allowed": 0.55, "rush_sr_allowed": 0.455},
-}
+# Single source of truth referenced from scheme_db.DEFAULT_DEFENSIVE_SCHEMES
+NFL_DEFENSIVE_SCHEMES: Dict[str, Dict[str, float]] = scheme_db.DEFAULT_DEFENSIVE_SCHEMES
 
 
 def get_defensive_scheme(team_code: str, window: int = 3) -> Dict[str, float]:
@@ -1376,7 +1803,6 @@ def get_defensive_scheme(team_code: str, window: int = 3) -> Dict[str, float]:
     """
     team = (team_code or "").upper().strip()
     try:
-        import scheme_db
         rolling = scheme_db.get_team_defense_rolling(team, window=window)
         if rolling and rolling.get("weeks_counted", 0) > 0:
             return rolling
@@ -1391,7 +1817,7 @@ def get_defensive_scheme(team_code: str, window: int = 3) -> Dict[str, float]:
 
 
 # ---------------------------------------------------------------------------
-# 7B. RECEIVER ALIGNMENT PROFILES & SCHEME-TO-ALIGNMENT FUNNEL SYNERGY
+# 6B. RECEIVER ALIGNMENT PROFILES & SCHEME-TO-ALIGNMENT FUNNEL SYNERGY
 # ---------------------------------------------------------------------------
 
 RECEIVER_ALIGNMENT_PROFILES: Dict[str, Dict[str, Any]] = {
@@ -1484,9 +1910,9 @@ def apply_defensive_scheme_modifiers(
       3. QB & RB Baselines:
          - QB: Pocket compressed under QP >20% (mu * 0.92, sigma * 1.10).
          - RB: Boosted efficiency & tighter floor if Rush SR >45% (mu * 1.10, sigma * 0.85).
-      4. Early-Season Bayesian Shrinkage (Weeks 1-3):
+      4. Early-Season Bayesian Shrinkage (Weeks 1-4):
          - Dampens small-sample scheme volatility with a Bayesian shrinkage weight.
-         - Caps maximum matchup drift strictly to +/- 8% (0.92x to 1.08x) in Weeks 1-3.
+         - Caps maximum matchup drift strictly to +/- 8% (0.92x to 1.08x) in Weeks 1-4.
     """
     scheme = get_defensive_scheme(opponent_team)
     qpr = scheme["quick_pressure_rate"]
@@ -1571,8 +1997,8 @@ def apply_defensive_scheme_modifiers(
         sigma *= 0.85
         mod_notes.append(f"High Rush SR ({rush_sr*100:.1f}%): RB efficiency boost & tighter floor")
 
-    # 6. Early-Season Bayesian Shrinkage Damping (Weeks 1-3): cap matchup drift to +/- 8%
-    if week is not None and 1 <= week <= 3:
+    # 6. Early-Season Bayesian Shrinkage Damping (Weeks 1-4): cap matchup drift to +/- 8%
+    if week is not None and 1 <= week <= 4:
         if orig_mu > 0:
             drift_mu_raw = (mu - orig_mu) / orig_mu
             shrinkage_w = week / (week + 2.0)
@@ -1609,6 +2035,8 @@ def format_distribution_columns(
     """
     Standardize raw statistical parameter columns ('mu', 'sigma') in display tables to:
     'Projected (Med)', 'Floor (P10)', and 'Ceiling (P90)'.
+    If 'Pos' or 'position' column is present alongside non-standard positional distributions,
+    computes exact positional percentiles while preserving test compatibility for generic tables.
     """
     import pandas as pd
     if not isinstance(df, pd.DataFrame):
@@ -1616,7 +2044,6 @@ def format_distribution_columns(
 
     df_out = df.copy()
 
-    # If P10 and P90 already exist
     has_p10 = p10_col in df_out.columns if p10_col else ("Floor (P10)" in df_out.columns or "p10" in df_out.columns)
     has_p90 = p90_col in df_out.columns if p90_col else ("Ceiling (P90)" in df_out.columns or "p90" in df_out.columns)
 
@@ -1645,6 +2072,8 @@ def format_distribution_columns(
         rename_map["Proj Pts"] = "Projected (Med)"
     if "Proj Pts (μ)" in df_out.columns:
         rename_map["Proj Pts (μ)"] = "Projected (Med)"
+    if "Idiosyncratic Proj (μ)" in df_out.columns:
+        rename_map["Idiosyncratic Proj (μ)"] = "Projected (Med)"
     if "Median" in df_out.columns:
         rename_map["Median"] = "Projected (Med)"
     if "p10" in df_out.columns:
@@ -1654,8 +2083,11 @@ def format_distribution_columns(
 
     df_out = df_out.rename(columns=rename_map)
 
+    if "Projected (Med)" in df_out.columns and pd.api.types.is_numeric_dtype(df_out["Projected (Med)"]):
+        df_out["Projected (Med)"] = df_out["Projected (Med)"].round(1)
+
     # Drop raw sigma or Std (σ) column in final presentation view
-    for s_name in [sigma_col, "sigma", "Std (σ)", "std"]:
+    for s_name in [sigma_col, "sigma", "Std (σ)", "Std Dev (σ)", "std"]:
         if s_name in df_out.columns:
             df_out = df_out.drop(columns=[s_name])
 
@@ -1663,7 +2095,7 @@ def format_distribution_columns(
 
 
 # ---------------------------------------------------------------------------
-# 8. BAYESIAN USAGE VS. EFFICIENCY UPDATING
+# 7. BAYESIAN USAGE VS. EFFICIENCY UPDATING (WEEKS 1-4)
 # ---------------------------------------------------------------------------
 
 def apply_bayesian_usage_shrinkage(
@@ -1672,16 +2104,19 @@ def apply_bayesian_usage_shrinkage(
     target_share: Optional[float] = None,
     air_yards_share: Optional[float] = None,
     ppr: float = 1.0,
-    prior_weight: float = 0.70
+    prior_weight: float = 0.70,
+    week: Optional[int] = None,
+    scoring_cfg: Optional[scoring_config.LeagueScoringConfig] = None
 ) -> Tuple[float, float, Dict[str, float]]:
     """
-    Bayesian shrinkage updating function.
-    Weights stable volume metrics heavily (prior_weight w ~ 0.70)
-    while regressing volatile efficiency metrics (TD rates, yards/target)
-    toward historical positional means.
+    Bayesian shrinkage updating function for early-season sample sizes (Weeks 1-4).
+    Weights sticky volume metrics (target_share, snap_pct) heavily while regressing
+    volatile efficiency metrics (TD rates, YPRR, YPC) toward positional baselines,
+    evaluated strictly under the league's idiosyncratic scoring configuration.
 
     Returns: (mu_bayes, sigma_bayes, diagnostic_metrics)
     """
+    cfg = scoring_cfg or scoring_config.DEFAULT_SCORING
     pos = player.get("position", "WR").upper()
     current_mu = float(player.get("mu", 12.0))
     current_sigma = float(player.get("sigma", 5.0))
@@ -1691,49 +2126,100 @@ def apply_bayesian_usage_shrinkage(
     tgt_s = target_share if target_share is not None else float(player.get("target_share", 0.18))
     ay_s = air_yards_share if air_yards_share is not None else float(player.get("air_yards_share", 0.22))
 
-    # Positional baselines (NFL team averages: 34 passes/gm, 26 rushes/gm)
+    eff_ppr = ppr if scoring_cfg is None else cfg.ppr
+
+    # Positional baselines evaluated under idiosyncratic league scoring rules
     if pos == "WR":
-        # Expected volume opportunity
         exp_targets = tgt_s * 34.0
         exp_receptions = exp_targets * 0.65
-        # Regress yards/target to positional mean (7.8 ypt) and TD rate (4.8% per target)
-        regressed_rec_yds = exp_targets * 7.8
+        regressed_rec_yds = exp_targets * (7.8 + 1.2 * (ay_s - 0.22))
         regressed_tds = exp_targets * 0.048
-        mu_volume = (exp_receptions * ppr) + (regressed_rec_yds * 0.10) + (regressed_tds * 6.0)
+        ev_milestones = scoring_config.calculate_rec_milestone_ev(regressed_rec_yds, max(18.0, regressed_rec_yds * 0.42), cfg)
+        ev_long_tds = scoring_config.calculate_long_rush_rec_td_ev(regressed_tds, is_rec=True, cfg=cfg)
+        mu_volume = (
+            (exp_receptions * eff_ppr)
+            + (regressed_rec_yds * cfg.rec_yd_multiplier)
+            + (regressed_tds * cfg.rec_td)
+            + ev_milestones
+            + ev_long_tds
+        )
 
     elif pos == "TE":
         exp_targets = tgt_s * 32.0
         exp_receptions = exp_targets * 0.70
         regressed_rec_yds = exp_targets * 7.2
         regressed_tds = exp_targets * 0.055
-        mu_volume = (exp_receptions * ppr) + (regressed_rec_yds * 0.10) + (regressed_tds * 6.0)
+        ev_milestones = scoring_config.calculate_rec_milestone_ev(regressed_rec_yds, max(15.0, regressed_rec_yds * 0.40), cfg)
+        ev_long_tds = scoring_config.calculate_long_rush_rec_td_ev(regressed_tds, is_rec=True, cfg=cfg)
+        mu_volume = (
+            (exp_receptions * eff_ppr)
+            + (regressed_rec_yds * cfg.rec_yd_multiplier)
+            + (regressed_tds * cfg.rec_td)
+            + ev_milestones
+            + ev_long_tds
+        )
 
     elif pos == "RB":
-        # RB volume derived from snap % and target share
         exp_carries = snap_p * 24.0 * 0.65
         exp_targets = tgt_s * 32.0
         exp_receptions = exp_targets * 0.78
-        # Regress yards/carry to 4.25 ypc and TD rate to 3.5%
         regressed_rush_yds = exp_carries * 4.25
         regressed_rec_yds = exp_receptions * 7.2
         regressed_tds = (exp_carries + exp_targets) * 0.035
-        mu_volume = (regressed_rush_yds * 0.10) + (exp_receptions * ppr) + (regressed_rec_yds * 0.10) + (regressed_tds * 6.0)
+        ev_milestones = scoring_config.calculate_rush_milestone_ev(regressed_rush_yds, max(18.0, regressed_rush_yds * 0.38), cfg)
+        ev_long_tds = scoring_config.calculate_long_rush_rec_td_ev(regressed_tds, is_rec=False, cfg=cfg)
+        mu_volume = (
+            (regressed_rush_yds * cfg.rush_yd_multiplier)
+            + (exp_receptions * eff_ppr)
+            + (regressed_rec_yds * cfg.rec_yd_multiplier)
+            + (regressed_tds * cfg.rush_td)
+            + ev_milestones
+            + ev_long_tds
+        )
 
     elif pos == "QB":
         exp_attempts = 34.0
-        exp_pass_yds = exp_attempts * 6.9
-        exp_pass_tds = exp_attempts * 0.045
-        exp_rush_yds = 18.0 * (1.2 if "Lamar" in player.get("name", "") or "Allen" in player.get("name", "") else 0.8)
-        mu_volume = (exp_pass_yds * 0.04) + (exp_pass_tds * 4.0) + (exp_rush_yds * 0.10) - 1.2
+        exp_completions = exp_attempts * 0.655
+        exp_pass_yds = exp_attempts * 7.1
+        exp_pass_tds = exp_attempts * 0.048
+        exp_ints = 0.72
+        exp_rush_yds = 18.0 * (1.4 if any(k in player.get("name", "") for k in ["Lamar", "Allen", "Hurts", "Daniels"]) else 0.8)
+        exp_rush_tds = 0.16
+        ev_milestones = scoring_config.calculate_pass_milestone_ev(exp_pass_yds, max(30.0, exp_pass_yds * 0.18), cfg)
+        ev_long_tds = scoring_config.calculate_long_pass_td_ev(exp_pass_tds, cfg)
+        mu_volume = (
+            (exp_pass_yds * cfg.pass_yd_multiplier)
+            + (exp_completions * cfg.completion_bonus)
+            + (exp_pass_tds * cfg.pass_td)
+            + (exp_ints * cfg.pass_int)
+            + (exp_rush_yds * cfg.rush_yd_multiplier)
+            + (exp_rush_tds * cfg.rush_td)
+            + ev_milestones
+            + ev_long_tds
+        )
     else:
         mu_volume = current_mu
 
-    # Bayesian Shrinkage Formula:
-    # mu_bayes = w * mu_volume + (1 - w) * current_mu
-    w = max(0.0, min(1.0, prior_weight))
+    # Dynamic Early-Season Shrinkage Weight (Weeks 1-4)
+    if week is not None and 1 <= week <= 4:
+        w = max(0.35, min(0.80, 3.0 / (week + 2.0)))
+    else:
+        w = max(0.0, min(1.0, prior_weight))
+
+    # Check Expectation vs Reality Delta for PASS_PROTECTION_COLLAPSE prior decay acceleration
+    p_team = str(player.get("team", "")).upper().strip()
+    regime_tags = []
+    if p_team:
+        try:
+            delta_info = scheme_db.get_team_expectation_delta(p_team, week=week)
+            regime_tags = delta_info.get("regime_tags", [])
+            if "PASS_PROTECTION_COLLAPSE" in regime_tags:
+                w = round(w * float(delta_info.get("prior_decay_multiplier", 0.65)), 3)
+        except Exception:
+            pass
+
     mu_bayes = (w * mu_volume) + ((1.0 - w) * current_mu)
 
-    # Variance adjustment: high snap share stabilizes variance
     if snap_p > 0.80:
         sigma_bayes = max(2.5, current_sigma * 0.92)
     elif snap_p < 0.40:
@@ -1745,10 +2231,12 @@ def apply_bayesian_usage_shrinkage(
         "mu_volume_prior": round(mu_volume, 2),
         "mu_observed": round(current_mu, 2),
         "mu_bayes": round(mu_bayes, 2),
-        "prior_weight": w,
+        "prior_weight": round(w, 3),
         "snap_pct": snap_p,
-        "target_share": tgt_s
+        "target_share": tgt_s,
+        "regime_tags": regime_tags,
     }
 
     return round(mu_bayes, 2), round(sigma_bayes, 2), diagnostics
+
 

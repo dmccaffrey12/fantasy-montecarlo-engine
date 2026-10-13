@@ -1,0 +1,3260 @@
+{
+  "ARI": {
+    "team": "ARI",
+    "preseason_expectation": "Balanced NFL Scheme Baseline (Prior QP 14.5%)",
+    "regime_tags": [
+      "SLOT_FUNNEL_HIGH"
+    ],
+    "expectation_delta": {
+      "team": "ARI",
+      "week": 15,
+      "expected_qpr": 0.195,
+      "realized_qpr": 0.158,
+      "qpr_delta": -0.037,
+      "expected_mof_epa": -0.18,
+      "realized_mof_epa": 1.16,
+      "mof_epa_delta": 1.34,
+      "realized_pass_oe": 2.5,
+      "realized_epa_rush": -0.09,
+      "regime_tags": [
+        "SLOT_FUNNEL_HIGH"
+      ],
+      "prior_decay_multiplier": 1.0,
+      "slot_te_mu_boost": 1.18,
+      "slot_te_floor_boost": 1.08,
+      "slot_te_ceiling_boost": 1.12,
+      "verdict": "Defense bled elevated MOF EPA (+1.16 realized vs -0.18 previewed) -> Opposing Slot/TE floor & ceiling elevated"
+    },
+    "rolling_3wk": {
+      "quick_pressure_rate": 0.158,
+      "mof_epa_allowed": 1.157,
+      "rush_sr_allowed": 0.526,
+      "pressure_rate": 0.349,
+      "mof_pct": 0.345,
+      "weeks_counted": 3,
+      "is_rolling": true
+    },
+    "weekly_ledger": [
+      {
+        "week": 1,
+        "opponent": "LAC",
+        "preview_hypothesis": "Inside/Slot Funnel (45% Man / 78% Zone) \u2014 ARI vs LAC: 1-High 45.0% / 2-High 77.5% | Blitz 25.0% | Press 34.2% | Exp MOF EPA +0.28",
+        "review_execution": "ARI vs LAC: Pass OE +0.1%, EPA/DB +0.27, Off Press Allowed 30.8% (QP 15.8%), Def MOF EPA Allowed +0.78, Rush SR Allowed 37.5%.",
+        "expected_qpr": 0.193,
+        "realized_qpr": 0.155,
+        "qpr_delta": -0.038,
+        "pressure_rate": 0.311,
+        "expected_mof_epa": 0.28,
+        "realized_mof_epa": 0.78,
+        "mof_epa_delta": 0.5,
+        "pass_oe": 0.1
+      },
+      {
+        "week": 2,
+        "opponent": "SEA",
+        "preview_hypothesis": "Inside/Slot Funnel (22% Man / 78% Zone) \u2014 ARI vs SEA: 1-High 22.0% / 2-High 78.0% | Blitz 25.0% | Press 34.1% | Exp MOF EPA -0.27",
+        "review_execution": "ARI vs SEA: Pass OE +5.2%, EPA/DB -0.34, Off Press Allowed 41.9% (QP 22.6%), Def MOF EPA Allowed +1.99, Rush SR Allowed 43.6%.",
+        "expected_qpr": 0.188,
+        "realized_qpr": 0.229,
+        "qpr_delta": 0.041,
+        "pressure_rate": 0.413,
+        "expected_mof_epa": -0.27,
+        "realized_mof_epa": 1.99,
+        "mof_epa_delta": 2.26,
+        "pass_oe": 5.2
+      },
+      {
+        "week": 3,
+        "opponent": "SF",
+        "preview_hypothesis": "Inside/Slot Funnel (34% Man / 66% Zone) \u2014 ARI vs SF: 1-High 33.9% / 2-High 66.1% | Blitz 25.0% | Press 38.6% | Exp MOF EPA -0.56",
+        "review_execution": "ARI vs SF: Pass OE +1.1%, EPA/DB +0.12, Off Press Allowed 26.4% (QP 13.5%), Def MOF EPA Allowed +0.74, Rush SR Allowed 57.1%.",
+        "expected_qpr": 0.204,
+        "realized_qpr": 0.123,
+        "qpr_delta": -0.081,
+        "pressure_rate": 0.317,
+        "expected_mof_epa": -0.56,
+        "realized_mof_epa": 0.74,
+        "mof_epa_delta": 1.3,
+        "pass_oe": 1.1
+      },
+      {
+        "week": 15,
+        "opponent": "SF",
+        "preview_hypothesis": "Standard baseline shell vs SF",
+        "review_execution": "ARI vs SF: Pass OE +1.1%, EPA/DB +0.12, Off Press Allowed 26.4% (QP 13.5%), Def MOF EPA Allowed +0.74, Rush SR Allowed 57.1%.",
+        "expected_qpr": 0.108,
+        "realized_qpr": 0.123,
+        "qpr_delta": 0.015,
+        "pressure_rate": 0.317,
+        "expected_mof_epa": 0.65,
+        "realized_mof_epa": 0.74,
+        "mof_epa_delta": 0.089,
+        "pass_oe": 1.1
+      }
+    ]
+  },
+  "ATL": {
+    "team": "ATL",
+    "preseason_expectation": "Balanced NFL Scheme Baseline (Prior QP 15.0%)",
+    "regime_tags": [
+      "RUN_GAME_BROKEN"
+    ],
+    "expectation_delta": {
+      "team": "ATL",
+      "week": 15,
+      "expected_qpr": 0.193,
+      "realized_qpr": 0.171,
+      "qpr_delta": -0.021,
+      "expected_mof_epa": 0.64,
+      "realized_mof_epa": 0.01,
+      "mof_epa_delta": -0.633,
+      "realized_pass_oe": -10.0,
+      "realized_epa_rush": 0.11,
+      "regime_tags": [
+        "RUN_GAME_BROKEN"
+      ],
+      "prior_decay_multiplier": 1.0,
+      "slot_te_mu_boost": 1.0,
+      "slot_te_floor_boost": 1.0,
+      "slot_te_ceiling_boost": 1.0,
+      "verdict": "Inefficient ground game (Rush EPA +0.11, Rush SR 35.5%)"
+    },
+    "rolling_3wk": {
+      "quick_pressure_rate": 0.171,
+      "mof_epa_allowed": 0.404,
+      "rush_sr_allowed": 0.417,
+      "pressure_rate": 0.333,
+      "mof_pct": 0.104,
+      "weeks_counted": 3,
+      "is_rolling": true
+    },
+    "weekly_ledger": [
+      {
+        "week": 1,
+        "opponent": "PIT",
+        "preview_hypothesis": "Inside/Slot Funnel (44% Man / 56% Zone) \u2014 ATL vs PIT: 1-High 44.2% / 2-High 55.8% | Blitz 25.0% | Press 32.6% | Exp MOF EPA +0.28",
+        "review_execution": "ATL vs PIT: Pass OE -16.9%, EPA/DB -0.83, Off Press Allowed 28.0% (QP 14.6%), Def MOF EPA Allowed +0.23, Rush SR Allowed 42.0%.",
+        "expected_qpr": 0.176,
+        "realized_qpr": 0.162,
+        "qpr_delta": -0.014,
+        "pressure_rate": 0.373,
+        "expected_mof_epa": 0.28,
+        "realized_mof_epa": 0.23,
+        "mof_epa_delta": -0.05,
+        "pass_oe": -16.9
+      },
+      {
+        "week": 2,
+        "opponent": "CAR",
+        "preview_hypothesis": "Inside/Slot Funnel (29% Man / 71% Zone) \u2014 ATL vs CAR: 1-High 28.9% / 2-High 71.1% | Blitz 44.7% | Press 39.5% | Exp MOF EPA +0.39",
+        "review_execution": "ATL vs CAR: Pass OE -6.9%, EPA/DB -0.69, Off Press Allowed 25.6% (QP 12.8%), Def MOF EPA Allowed +0.13, Rush SR Allowed 40.0%.",
+        "expected_qpr": 0.186,
+        "realized_qpr": 0.222,
+        "qpr_delta": 0.036,
+        "pressure_rate": 0.378,
+        "expected_mof_epa": 0.39,
+        "realized_mof_epa": 0.13,
+        "mof_epa_delta": -0.26,
+        "pass_oe": -6.9
+      },
+      {
+        "week": 3,
+        "opponent": "GB",
+        "preview_hypothesis": "Inside/Slot Funnel (35% Man / 65% Zone) \u2014 ATL vs GB: 1-High 35.1% / 2-High 64.9% | Blitz 33.8% | Press 39.2% | Exp MOF EPA +1.26",
+        "review_execution": "ATL vs GB: Pass OE -11.6%, EPA/DB +0.40, Off Press Allowed 16.7% (QP 8.3%), Def MOF EPA Allowed -0.05, Rush SR Allowed 33.3%.",
+        "expected_qpr": 0.216,
+        "realized_qpr": 0.146,
+        "qpr_delta": -0.07,
+        "pressure_rate": 0.31,
+        "expected_mof_epa": 1.26,
+        "realized_mof_epa": -0.05,
+        "mof_epa_delta": -1.31,
+        "pass_oe": -11.6
+      },
+      {
+        "week": 15,
+        "opponent": "GB",
+        "preview_hypothesis": "Standard baseline shell vs GB",
+        "review_execution": "ATL vs GB: Pass OE -11.6%, EPA/DB +0.40, Off Press Allowed 16.7% (QP 8.3%), Def MOF EPA Allowed -0.05, Rush SR Allowed 33.3%.",
+        "expected_qpr": 0.128,
+        "realized_qpr": 0.146,
+        "qpr_delta": 0.018,
+        "pressure_rate": 0.31,
+        "expected_mof_epa": -0.04,
+        "realized_mof_epa": -0.05,
+        "mof_epa_delta": -0.006,
+        "pass_oe": -11.6
+      }
+    ]
+  },
+  "BAL": {
+    "team": "BAL",
+    "preseason_expectation": "Split-Safety disguise & Historic QB/RB Dual-Threat Rushing Efficiency",
+    "regime_tags": [
+      "RUN_GAME_BROKEN"
+    ],
+    "expectation_delta": {
+      "team": "BAL",
+      "week": 15,
+      "expected_qpr": 0.199,
+      "realized_qpr": 0.16,
+      "qpr_delta": -0.039,
+      "expected_mof_epa": 0.77,
+      "realized_mof_epa": -1.14,
+      "mof_epa_delta": -1.91,
+      "realized_pass_oe": -9.7,
+      "realized_epa_rush": -0.15,
+      "regime_tags": [
+        "RUN_GAME_BROKEN"
+      ],
+      "prior_decay_multiplier": 1.0,
+      "slot_te_mu_boost": 1.0,
+      "slot_te_floor_boost": 1.0,
+      "slot_te_ceiling_boost": 1.0,
+      "verdict": "Inefficient ground game (Rush EPA -0.15, Rush SR 43.3%)"
+    },
+    "rolling_3wk": {
+      "quick_pressure_rate": 0.187,
+      "mof_epa_allowed": 0.224,
+      "rush_sr_allowed": 0.433,
+      "pressure_rate": 0.392,
+      "mof_pct": 0.209,
+      "weeks_counted": 3,
+      "is_rolling": true
+    },
+    "weekly_ledger": [
+      {
+        "week": 1,
+        "opponent": "IND",
+        "preview_hypothesis": "Inside/Slot Funnel (48% Man / 52% Zone) \u2014 BAL vs IND: 1-High 48.2% / 2-High 51.8% | Blitz 25.0% | Press 32.7% | Exp MOF EPA +0.29",
+        "review_execution": "Baltimore Ravens 41, Indianapolis Colts 23: Declan Doyle and Lamar Jackson look like a perfect match. In Declan Doyle\u2019s first game calling plays for Lamar Jackson, Jackson had the highest under center percentage of any game of his career.",
+        "expected_qpr": 0.189,
+        "realized_qpr": 0.226,
+        "qpr_delta": 0.037,
+        "pressure_rate": 0.474,
+        "expected_mof_epa": 0.29,
+        "realized_mof_epa": 0.49,
+        "mof_epa_delta": 0.2,
+        "pass_oe": -3.7
+      },
+      {
+        "week": 2,
+        "opponent": "NO",
+        "preview_hypothesis": "Inside/Slot Funnel (45% Man / 50% Zone) \u2014 BAL vs NO: 1-High 45.0% / 2-High 50.0% | Blitz 17.5% | Press 37.5% | Exp MOF EPA +1.37",
+        "review_execution": "BAL vs NO: Pass OE +7.4%, EPA/DB +0.09, Off Press Allowed 41.7% (QP 18.2%), Def MOF EPA Allowed +0.35, Rush SR Allowed 37.5%.",
+        "expected_qpr": 0.206,
+        "realized_qpr": 0.172,
+        "qpr_delta": -0.034,
+        "pressure_rate": 0.371,
+        "expected_mof_epa": 1.37,
+        "realized_mof_epa": 0.35,
+        "mof_epa_delta": -1.02,
+        "pass_oe": 7.4
+      },
+      {
+        "week": 3,
+        "opponent": "DAL",
+        "preview_hypothesis": "Inside/Slot Funnel (24% Man / 76% Zone) \u2014 Baltimore Ravens @ Dallas Cowboys (Brazil): Can the Ravens keep their under center game rolling? The Ravens have changed the shape of their offense with Declan Doyle. Their under center rate and multiple tight end looks on runs have shot up while they do not turn to 21 (BAL vs DAL: 1-High 23.7% / 2-High 76.3% | Blitz 2",
+        "review_execution": "Baltimore Ravens 34, Dallas Cowboys 31: The Ravens win at the last second. Literally. The Cowboys got the ball with 1:30 left in the game down by three. They marched down the field and had 1st and goal with 28 seconds left. Dallas ended up settling for a game tying field goal that left just seven se",
+        "expected_qpr": 0.202,
+        "realized_qpr": 0.154,
+        "qpr_delta": -0.048,
+        "pressure_rate": 0.402,
+        "expected_mof_epa": 0.66,
+        "realized_mof_epa": -1.88,
+        "mof_epa_delta": -2.54,
+        "pass_oe": -18.3
+      },
+      {
+        "week": 15,
+        "opponent": "DAL",
+        "preview_hypothesis": "Standard baseline shell vs DAL",
+        "review_execution": "Baltimore Ravens 34, Dallas Cowboys 31: The Ravens win at the last second. Literally. The Cowboys got the ball with 1:30 left in the game down by three. They marched down the field and had 1st and goal with 28 seconds left. Dallas ended up settling for a game tying field goal that left just seven se",
+        "expected_qpr": 0.136,
+        "realized_qpr": 0.154,
+        "qpr_delta": 0.018,
+        "pressure_rate": 0.402,
+        "expected_mof_epa": -1.65,
+        "realized_mof_epa": -1.88,
+        "mof_epa_delta": -0.226,
+        "pass_oe": -18.3
+      }
+    ]
+  },
+  "BUF": {
+    "team": "BUF",
+    "preseason_expectation": "Nickel Two-High Disguise Defense & Josh Allen High-EPA Spread Progression",
+    "regime_tags": [],
+    "expectation_delta": {
+      "team": "BUF",
+      "week": 15,
+      "expected_qpr": 0.21,
+      "realized_qpr": 0.16,
+      "qpr_delta": -0.05,
+      "expected_mof_epa": -0.24,
+      "realized_mof_epa": -0.87,
+      "mof_epa_delta": -0.627,
+      "realized_pass_oe": -2.4,
+      "realized_epa_rush": 0.14,
+      "regime_tags": [],
+      "prior_decay_multiplier": 1.0,
+      "slot_te_mu_boost": 1.0,
+      "slot_te_floor_boost": 1.0,
+      "slot_te_ceiling_boost": 1.0,
+      "verdict": "Execution aligned with pre-game preview expectations"
+    },
+    "rolling_3wk": {
+      "quick_pressure_rate": 0.176,
+      "mof_epa_allowed": 0.292,
+      "rush_sr_allowed": 0.457,
+      "pressure_rate": 0.45,
+      "mof_pct": 0.149,
+      "weeks_counted": 3,
+      "is_rolling": true
+    },
+    "weekly_ledger": [
+      {
+        "week": 1,
+        "opponent": "HOU",
+        "preview_hypothesis": "Inside/Slot Funnel (45% Man / 57% Zone) \u2014 Buffalo Bills @ Houston Texans: How effective will the Texans run game be? The Texans run game had the 31st ranked success rate and did not have a running back that ranked better than 32nd in yards before contact last season. They had to turn to 6 OL looks to try to get some movement in the run game (BUF vs HOU: 1-High",
+        "review_execution": "Buffalo Bills 36, Houston Texans 31: Josh Allen starts off flaming hot. The Buffalo Bills put up the 3rd best offensive performance by EPA/play against the Houston Texans since DeMeco Ryans took over as head coach. Josh Allen had a 96th percentile EPA/dropback and was 7/8 for 131 yards on intermedia",
+        "expected_qpr": 0.182,
+        "realized_qpr": 0.157,
+        "qpr_delta": -0.025,
+        "pressure_rate": 0.397,
+        "expected_mof_epa": -0.06,
+        "realized_mof_epa": 0.27,
+        "mof_epa_delta": 0.33,
+        "pass_oe": 4.0
+      },
+      {
+        "week": 2,
+        "opponent": "DET",
+        "preview_hypothesis": "Inside/Slot Funnel (39% Man / 61% Zone) \u2014 Detroit Lions @ Buffalo Bills: How will the Lions base defense look against the Bills heavier looks? The Bills decided to get big against the Texans and used 13 personnel on 20 of 51 qualifying plays with 19 of those coming from under center. They ran on 14 of those 20 (BUF vs DET: 1-High 39.3% / 2-High 60.7% | Blitz 3",
+        "review_execution": "Buffalo Bills 41, Detroit Lions 31: Josh Allen and the Bills offense can do anything. The Bills offense has leaned into a heavy attack that can mash opponents on the ground. Dalton Kincaid allows them to still push the ball vertically, and James Cook is great on both duo and zone runs. It also helps",
+        "expected_qpr": 0.211,
+        "realized_qpr": 0.188,
+        "qpr_delta": -0.023,
+        "pressure_rate": 0.457,
+        "expected_mof_epa": -0.67,
+        "realized_mof_epa": 1.22,
+        "mof_epa_delta": 1.89,
+        "pass_oe": 9.7
+      },
+      {
+        "week": 3,
+        "opponent": "LAC",
+        "preview_hypothesis": "Standard baseline shell vs LAC",
+        "review_execution": "BUF vs LAC: Pass OE -8.5%, EPA/DB -0.44, Off Press Allowed 37.9% (QP 6.9%), Def MOF EPA Allowed -1.91, Rush SR Allowed 53.8%.",
+        "expected_qpr": 0.128,
+        "realized_qpr": 0.146,
+        "qpr_delta": 0.018,
+        "pressure_rate": 0.447,
+        "expected_mof_epa": -1.68,
+        "realized_mof_epa": -1.91,
+        "mof_epa_delta": -0.229,
+        "pass_oe": -8.5
+      },
+      {
+        "week": 5,
+        "opponent": "LAR",
+        "preview_hypothesis": "Inside/Slot Funnel (23% Man / 77% Zone) \u2014 Buffalo Bills @ Los Angeles Rams: Which version of the Bills offense will we see on Monday night? After using 13 personnel over 25% in each of the first three weeks of the season, the Bills used it 13% of the time in Week 4. The Bills were 1st in EPA/play over the first two weeks (BUF vs LAR: 1-High 22.6% / 2-High 77.4",
+        "review_execution": "Pending game review",
+        "expected_qpr": 0.236,
+        "realized_qpr": 0.236,
+        "qpr_delta": 0.0,
+        "pressure_rate": 0.378,
+        "expected_mof_epa": 0.01,
+        "realized_mof_epa": 0.01,
+        "mof_epa_delta": 0.0,
+        "pass_oe": 0.0
+      },
+      {
+        "week": 15,
+        "opponent": "LAC",
+        "preview_hypothesis": "Standard baseline shell vs LAC",
+        "review_execution": "BUF vs LAC: Pass OE -8.5%, EPA/DB -0.44, Off Press Allowed 37.9% (QP 6.9%), Def MOF EPA Allowed -1.91, Rush SR Allowed 53.8%.",
+        "expected_qpr": 0.128,
+        "realized_qpr": 0.146,
+        "qpr_delta": 0.018,
+        "pressure_rate": 0.447,
+        "expected_mof_epa": -1.68,
+        "realized_mof_epa": -1.91,
+        "mof_epa_delta": -0.229,
+        "pass_oe": -8.5
+      }
+    ]
+  },
+  "CAR": {
+    "team": "CAR",
+    "preseason_expectation": "Rebuild Zone Shell Vulnerable in Middle-of-Field (Projected Inside Slot/TE Funnel)",
+    "regime_tags": [
+      "SLOT_FUNNEL_HIGH",
+      "RUN_GAME_BROKEN"
+    ],
+    "expectation_delta": {
+      "team": "CAR",
+      "week": 15,
+      "expected_qpr": 0.192,
+      "realized_qpr": 0.22,
+      "qpr_delta": 0.028,
+      "expected_mof_epa": 0.51,
+      "realized_mof_epa": -0.17,
+      "mof_epa_delta": -0.677,
+      "realized_pass_oe": 3.7,
+      "realized_epa_rush": -0.18,
+      "regime_tags": [
+        "SLOT_FUNNEL_HIGH",
+        "RUN_GAME_BROKEN"
+      ],
+      "prior_decay_multiplier": 1.0,
+      "slot_te_mu_boost": 1.18,
+      "slot_te_floor_boost": 1.08,
+      "slot_te_ceiling_boost": 1.12,
+      "verdict": "Defense bled elevated MOF EPA (-0.17 realized vs +0.51 previewed) -> Opposing Slot/TE floor & ceiling elevated | Inefficient ground game (Rush EPA -0.18, Rush SR 35.1%)"
+    },
+    "rolling_3wk": {
+      "quick_pressure_rate": 0.22,
+      "mof_epa_allowed": 0.499,
+      "rush_sr_allowed": 0.47,
+      "pressure_rate": 0.435,
+      "mof_pct": 0.129,
+      "weeks_counted": 3,
+      "is_rolling": true
+    },
+    "weekly_ledger": [
+      {
+        "week": 1,
+        "opponent": "CHI",
+        "preview_hypothesis": "Inside/Slot Funnel (46% Man / 54% Zone) \u2014 CAR vs CHI: 1-High 45.8% / 2-High 54.2% | Blitz 25.0% | Press 30.9% | Exp MOF EPA +0.47",
+        "review_execution": "Chicago Bears 59, Carolina Panthers 37: The Bears offense is insane. When Caleb Williams\u2019 time to throw was over three seconds, he was 7/12 for 150 yards and 0.80 EPA/dropback. He was able to thrive under pressure, when he was forced to escape the pocket, and when he played on time.",
+        "expected_qpr": 0.184,
+        "realized_qpr": 0.229,
+        "qpr_delta": 0.045,
+        "pressure_rate": 0.412,
+        "expected_mof_epa": 0.47,
+        "realized_mof_epa": -0.05,
+        "mof_epa_delta": -0.52,
+        "pass_oe": 3.5
+      },
+      {
+        "week": 2,
+        "opponent": "ATL",
+        "preview_hypothesis": "Inside/Slot Funnel (36% Man / 64% Zone) \u2014 CAR vs ATL: 1-High 35.7% / 2-High 64.3% | Blitz 16.3% | Press 33.0% | Exp MOF EPA +0.61",
+        "review_execution": "CAR vs ATL: Pass OE +7.8%, EPA/DB +0.25, Off Press Allowed 50.0% (QP 31.6%), Def MOF EPA Allowed -0.15, Rush SR Allowed 35.7%.",
+        "expected_qpr": 0.209,
+        "realized_qpr": 0.222,
+        "qpr_delta": 0.013,
+        "pressure_rate": 0.378,
+        "expected_mof_epa": 0.61,
+        "realized_mof_epa": -0.15,
+        "mof_epa_delta": -0.76,
+        "pass_oe": 7.8
+      },
+      {
+        "week": 3,
+        "opponent": "CLE",
+        "preview_hypothesis": "Inside/Slot Funnel (45% Man / 48% Zone) \u2014 CAR vs CLE: 1-High 45.0% / 2-High 47.6% | Blitz 25.0% | Press 33.3% | Exp MOF EPA +0.44",
+        "review_execution": "CAR vs CLE: Pass OE +1.7%, EPA/DB -0.20, Off Press Allowed 32.0% (QP 16.6%), Def MOF EPA Allowed -0.18, Rush SR Allowed 34.8%.",
+        "expected_qpr": 0.183,
+        "realized_qpr": 0.162,
+        "qpr_delta": -0.021,
+        "pressure_rate": 0.384,
+        "expected_mof_epa": 0.44,
+        "realized_mof_epa": -0.18,
+        "mof_epa_delta": -0.62,
+        "pass_oe": 1.7
+      },
+      {
+        "week": 15,
+        "opponent": "CLE",
+        "preview_hypothesis": "Standard baseline shell vs CLE",
+        "review_execution": "CAR vs CLE: Pass OE +1.7%, EPA/DB -0.20, Off Press Allowed 63.8% (QP 39.1%), Def MOF EPA Allowed -0.18, Rush SR Allowed 34.8%.",
+        "expected_qpr": 0.242,
+        "realized_qpr": 0.275,
+        "qpr_delta": 0.033,
+        "pressure_rate": 0.542,
+        "expected_mof_epa": -0.16,
+        "realized_mof_epa": -0.18,
+        "mof_epa_delta": -0.022,
+        "pass_oe": 1.7
+      }
+    ]
+  },
+  "CHI": {
+    "team": "CHI",
+    "preseason_expectation": "Balanced NFL Scheme Baseline (Prior QP 17.8%)",
+    "regime_tags": [
+      "SLOT_FUNNEL_HIGH"
+    ],
+    "expectation_delta": {
+      "team": "CHI",
+      "week": 5,
+      "expected_qpr": 0.208,
+      "realized_qpr": 0.186,
+      "qpr_delta": -0.022,
+      "expected_mof_epa": 0.09,
+      "realized_mof_epa": 0.82,
+      "mof_epa_delta": 0.73,
+      "realized_pass_oe": -0.4,
+      "realized_epa_rush": -0.03,
+      "regime_tags": [
+        "SLOT_FUNNEL_HIGH"
+      ],
+      "prior_decay_multiplier": 1.0,
+      "slot_te_mu_boost": 1.18,
+      "slot_te_floor_boost": 1.08,
+      "slot_te_ceiling_boost": 1.12,
+      "verdict": "Defense bled elevated MOF EPA (+0.82 realized vs +0.09 previewed) -> Opposing Slot/TE floor & ceiling elevated"
+    },
+    "rolling_3wk": {
+      "quick_pressure_rate": 0.186,
+      "mof_epa_allowed": 0.823,
+      "rush_sr_allowed": 0.407,
+      "pressure_rate": 0.379,
+      "mof_pct": 0.149,
+      "weeks_counted": 3,
+      "is_rolling": true
+    },
+    "weekly_ledger": [
+      {
+        "week": 1,
+        "opponent": "CAR",
+        "preview_hypothesis": "Inside/Slot Funnel (26% Man / 74% Zone) \u2014 CHI vs CAR: 1-High 25.8% / 2-High 74.2% | Blitz 26.8% | Press 33.0% | Exp MOF EPA +0.24",
+        "review_execution": "Chicago Bears 59, Carolina Panthers 37: The Bears offense is insane. When Caleb Williams\u2019 time to throw was over three seconds, he was 7/12 for 150 yards and 0.80 EPA/dropback. He was able to thrive under pressure, when he was forced to escape the pocket, and when he played on time.",
+        "expected_qpr": 0.178,
+        "realized_qpr": 0.229,
+        "qpr_delta": 0.051,
+        "pressure_rate": 0.412,
+        "expected_mof_epa": 0.24,
+        "realized_mof_epa": 0.86,
+        "mof_epa_delta": 0.62,
+        "pass_oe": 1.6
+      },
+      {
+        "week": 2,
+        "opponent": "MIN",
+        "preview_hypothesis": "Inside/Slot Funnel (46% Man / 54% Zone) \u2014 Minnesota Vikings @ Chicago Bears: Who will win this round of Ben Johnson vs. Brian Flores? Ben Johnson vs. Brian Flores is one of our favorite battles across the NFL. Across six games, Johnson\u2019s offenses have had a 0.30 EPA/dropback versus the blitz and 0.05 (CHI vs MIN: 1-High 45.7% / 2-High 54.3% | Blitz 25.0% | Pre",
+        "review_execution": "Minnesota Vikings 9, Chicago Bears 3: Brian Flores gets the best of a rainy battle. Through bad weather and a Caleb Williams injury, Brian Flores\u2019 Vikings defense held Ben Johnson\u2019s offense to the worst single game offensive success rate since Johnson started calling plays. Flores blitzed the Bears ",
+        "expected_qpr": 0.264,
+        "realized_qpr": 0.168,
+        "qpr_delta": -0.096,
+        "pressure_rate": 0.377,
+        "expected_mof_epa": -0.07,
+        "realized_mof_epa": -0.04,
+        "mof_epa_delta": 0.03,
+        "pass_oe": -5.8
+      },
+      {
+        "week": 3,
+        "opponent": "PHI",
+        "preview_hypothesis": "Inside/Slot Funnel (45% Man / 55% Zone) \u2014 CHI vs PHI: 1-High 45.0% / 2-High 55.0% | Blitz 25.0% | Press 33.0% | Exp MOF EPA +0.11",
+        "review_execution": "Pending game review",
+        "expected_qpr": 0.182,
+        "realized_qpr": 0.182,
+        "qpr_delta": 0.0,
+        "pressure_rate": 0.291,
+        "expected_mof_epa": 0.11,
+        "realized_mof_epa": 0.11,
+        "mof_epa_delta": 0.0,
+        "pass_oe": 0.0
+      },
+      {
+        "week": 5,
+        "opponent": "GB",
+        "preview_hypothesis": "Standard baseline shell vs GB",
+        "review_execution": "Green Bay Packers 31, Chicago Bears 7: Matt LaFleur gets his revenge. Matt LaFleur aired it out against the Bears with a 90th percentile pass rate over expected. Jordan Love was nails on deep throws and produced a 99.9th percentile total EPA when throwing the ball 20+ yards down the field.",
+        "expected_qpr": 0.142,
+        "realized_qpr": 0.161,
+        "qpr_delta": 0.019,
+        "pressure_rate": 0.349,
+        "expected_mof_epa": 1.45,
+        "realized_mof_epa": 1.65,
+        "mof_epa_delta": 0.198,
+        "pass_oe": 3.1
+      }
+    ]
+  },
+  "CIN": {
+    "team": "CIN",
+    "preseason_expectation": "Balanced NFL Scheme Baseline (Prior QP 17.5%)",
+    "regime_tags": [
+      "SLOT_FUNNEL_HIGH",
+      "RUN_GAME_BROKEN",
+      "GARBAGE_TIME_ALPHA"
+    ],
+    "expectation_delta": {
+      "team": "CIN",
+      "week": 15,
+      "expected_qpr": 0.215,
+      "realized_qpr": 0.169,
+      "qpr_delta": -0.046,
+      "expected_mof_epa": 0.2,
+      "realized_mof_epa": 0.77,
+      "mof_epa_delta": 0.573,
+      "realized_pass_oe": 11.0,
+      "realized_epa_rush": -0.13,
+      "regime_tags": [
+        "SLOT_FUNNEL_HIGH",
+        "RUN_GAME_BROKEN",
+        "GARBAGE_TIME_ALPHA"
+      ],
+      "prior_decay_multiplier": 1.0,
+      "slot_te_mu_boost": 1.18,
+      "slot_te_floor_boost": 1.08,
+      "slot_te_ceiling_boost": 1.12,
+      "verdict": "Defense bled elevated MOF EPA (+0.77 realized vs +0.20 previewed) -> Opposing Slot/TE floor & ceiling elevated | Inefficient ground game (Rush EPA -0.13, Rush SR 51.7%) | Elevated Pass Over Expected (+11.0% POE) driving late-game passing volume"
+    },
+    "rolling_3wk": {
+      "quick_pressure_rate": 0.169,
+      "mof_epa_allowed": 0.77,
+      "rush_sr_allowed": 0.517,
+      "pressure_rate": 0.35,
+      "mof_pct": 0.373,
+      "weeks_counted": 3,
+      "is_rolling": true
+    },
+    "weekly_ledger": [
+      {
+        "week": 1,
+        "opponent": "TB",
+        "preview_hypothesis": "Inside/Slot Funnel (45% Man / 55% Zone) \u2014 CIN vs TB: 1-High 45.0% / 2-High 55.0% | Blitz 25.0% | Press 33.0% | Exp MOF EPA +0.36",
+        "review_execution": "Cincinnati Bengals 33, Tampa Bay Buccaneers 27: The Bengals defense turns it over again and again. The Bengals defense forced four turnovers, which produced -22.1 total EPA for the Buccaneers offense. On every other play, the Buccaneers had a 0.23 EPA/play. We will be",
+        "expected_qpr": 0.177,
+        "realized_qpr": 0.182,
+        "qpr_delta": 0.005,
+        "pressure_rate": 0.329,
+        "expected_mof_epa": 0.36,
+        "realized_mof_epa": 2.56,
+        "mof_epa_delta": 2.2,
+        "pass_oe": 8.5
+      },
+      {
+        "week": 2,
+        "opponent": "HOU",
+        "preview_hypothesis": "Inside/Slot Funnel (53% Man / 47% Zone) \u2014 Cincinnati Bengals @ Houston Texans: Can the Bengals offensive line continue its improvement against the Texans edge rushers? The Bengals offensive line is solidifying in spots. They had the 5th best pressure rate allowed in Week 1. Center Ted Karras had a 93rd percentile pressure rate allowed rate (CIN vs HOU: 1-High ",
+        "review_execution": "Cincinnati Bengals 20, Houston Texans 6: The Bengals defense shows up once again. The Bengals defense held the Texans to a single successful designed rush across the entire game. They were also able to generate a 46.7% pressure rate behind Jonathon Allen, Boye Mafe, Cashius Howell, and Dexter Lawren",
+        "expected_qpr": 0.241,
+        "realized_qpr": 0.269,
+        "qpr_delta": 0.028,
+        "pressure_rate": 0.436,
+        "expected_mof_epa": 0.15,
+        "realized_mof_epa": -0.31,
+        "mof_epa_delta": -0.46,
+        "pass_oe": 1.2
+      },
+      {
+        "week": 3,
+        "opponent": "PIT",
+        "preview_hypothesis": "Inside/Slot Funnel (47% Man / 53% Zone) \u2014 CIN vs PIT: 1-High 47.1% / 2-High 52.9% | Blitz 25.0% | Press 45.1% | Exp MOF EPA -0.59",
+        "review_execution": "CIN vs PIT: Pass OE +10.2%, EPA/DB +0.40, Off Press Allowed 35.0% (QP 15.0%), Def MOF EPA Allowed +0.49, Rush SR Allowed 55.6%.",
+        "expected_qpr": 0.218,
+        "realized_qpr": 0.161,
+        "qpr_delta": -0.057,
+        "pressure_rate": 0.328,
+        "expected_mof_epa": -0.59,
+        "realized_mof_epa": 0.49,
+        "mof_epa_delta": 1.08,
+        "pass_oe": 10.2
+      },
+      {
+        "week": 4,
+        "opponent": "JAX",
+        "preview_hypothesis": "Inside/Slot Funnel (39% Man / 61% Zone) \u2014 Jacksonville Jaguars @ Cincinnati Bengals: Will the Bengals offensive line shut down the Jaguars pass rush? Bengals right tackle Amarius Mims is off to a great start to the season. He has not let up a pressure and had strong battles with TJ Watt last week. Ted Karras ranks 11th/32 in (CIN vs JAX: 1-High 39.2% / 2-High ",
+        "review_execution": "Jacksonville Jaguars 22, Cincinnati Bengals 17: The Jaguars are the top cat. The Jaguars produced the 3rd best EPA/play of the week against a Bengals defense that entered Week 4 7th in EPA/play allowed. Trevor Lawrence had 0.51 EPA/play against zone coverage (0.69 vs. cover 3) and -0.10 against five",
+        "expected_qpr": 0.186,
+        "realized_qpr": 0.185,
+        "qpr_delta": -0.001,
+        "pressure_rate": 0.393,
+        "expected_mof_epa": 1.03,
+        "realized_mof_epa": 1.33,
+        "mof_epa_delta": 0.3,
+        "pass_oe": 12.6
+      },
+      {
+        "week": 15,
+        "opponent": "PIT",
+        "preview_hypothesis": "Standard baseline shell vs PIT",
+        "review_execution": "CIN vs PIT: Pass OE +10.2%, EPA/DB +0.40, Off Press Allowed 35.0% (QP 15.0%), Def MOF EPA Allowed +0.49, Rush SR Allowed 55.6%.",
+        "expected_qpr": 0.142,
+        "realized_qpr": 0.161,
+        "qpr_delta": 0.019,
+        "pressure_rate": 0.328,
+        "expected_mof_epa": 0.43,
+        "realized_mof_epa": 0.49,
+        "mof_epa_delta": 0.059,
+        "pass_oe": 10.2
+      }
+    ]
+  },
+  "CLE": {
+    "team": "CLE",
+    "preseason_expectation": "Aggressive Man-Heavy Pass Rush (Top-5 Quick Pressure Expected) & Play-Action Vertical Offense",
+    "regime_tags": [
+      "PASS_PROTECTION_COLLAPSE",
+      "SLOT_FUNNEL_HIGH",
+      "RUN_GAME_BROKEN"
+    ],
+    "expectation_delta": {
+      "team": "CLE",
+      "week": 15,
+      "expected_qpr": 0.189,
+      "realized_qpr": 0.204,
+      "qpr_delta": 0.015,
+      "expected_mof_epa": 0.2,
+      "realized_mof_epa": 0.68,
+      "mof_epa_delta": 0.477,
+      "realized_pass_oe": 3.8,
+      "realized_epa_rush": -0.39,
+      "regime_tags": [
+        "PASS_PROTECTION_COLLAPSE",
+        "SLOT_FUNNEL_HIGH",
+        "RUN_GAME_BROKEN"
+      ],
+      "prior_decay_multiplier": 0.65,
+      "slot_te_mu_boost": 1.18,
+      "slot_te_floor_boost": 1.08,
+      "slot_te_ceiling_boost": 1.12,
+      "verdict": "Quick/overall pressure spiked (QP 20.4%, PR 42.6% realized vs 18.9% previewed) -> Accelerated Bayesian prior decay (0.65x) | Defense bled elevated MOF EPA (+0.68 realized vs +0.20 previewed) -> Opposing Slot/TE floor & ceiling elevated | Inefficient ground game (Rush EPA -0.39, Rush SR 37.7%)"
+    },
+    "rolling_3wk": {
+      "quick_pressure_rate": 0.221,
+      "mof_epa_allowed": 0.68,
+      "rush_sr_allowed": 0.377,
+      "pressure_rate": 0.426,
+      "mof_pct": 0.119,
+      "weeks_counted": 3,
+      "is_rolling": true
+    },
+    "weekly_ledger": [
+      {
+        "week": 1,
+        "opponent": "JAX",
+        "preview_hypothesis": "Inside/Slot Funnel (45% Man / 60% Zone) \u2014 CLE vs JAX: 1-High 45.0% / 2-High 59.5% | Blitz 25.0% | Press 32.3% | Exp MOF EPA -0.20",
+        "review_execution": "Jacksonville Jaguars 34, Cleveland Browns 10: Trevor Lawrence shreds it. Trevor Lawrence had an outstanding 0.7 EPA/dropback against the Browns, good for a 98th percentile performance. He was productive in every way, and Liam Coen put together some fantastic designs to open up pass catchers down the",
+        "expected_qpr": 0.178,
+        "realized_qpr": 0.137,
+        "qpr_delta": -0.041,
+        "pressure_rate": 0.321,
+        "expected_mof_epa": -0.2,
+        "realized_mof_epa": 0.24,
+        "mof_epa_delta": 0.44,
+        "pass_oe": -7.0
+      },
+      {
+        "week": 2,
+        "opponent": "TB",
+        "preview_hypothesis": "Inside/Slot Funnel (45% Man / 32% Zone) \u2014 CLE vs TB: 1-High 45.0% / 2-High 32.4% | Blitz 25.0% | Press 29.7% | Exp MOF EPA +0.87",
+        "review_execution": "CLE vs TB: Pass OE +6.7%, EPA/DB +0.24, Off Press Allowed 29.4% (QP 14.7%), Def MOF EPA Allowed +1.26, Rush SR Allowed 52.4%.",
+        "expected_qpr": 0.201,
+        "realized_qpr": 0.176,
+        "qpr_delta": -0.025,
+        "pressure_rate": 0.352,
+        "expected_mof_epa": 0.87,
+        "realized_mof_epa": 1.26,
+        "mof_epa_delta": 0.39,
+        "pass_oe": 6.7
+      },
+      {
+        "week": 3,
+        "opponent": "CAR",
+        "preview_hypothesis": "Inside/Slot Funnel (31% Man / 69% Zone) \u2014 CLE vs CAR: 1-High 31.2% / 2-High 68.8% | Blitz 25.0% | Press 32.5% | Exp MOF EPA -0.06",
+        "review_execution": "CLE vs CAR: Pass OE +2.3%, EPA/DB +0.08, Off Press Allowed 44.7% (QP 15.8%), Def MOF EPA Allowed +0.39, Rush SR Allowed 30.4%.",
+        "expected_qpr": 0.188,
+        "realized_qpr": 0.162,
+        "qpr_delta": -0.026,
+        "pressure_rate": 0.384,
+        "expected_mof_epa": -0.06,
+        "realized_mof_epa": 0.39,
+        "mof_epa_delta": 0.45,
+        "pass_oe": 2.3
+      },
+      {
+        "week": 15,
+        "opponent": "CAR",
+        "preview_hypothesis": "Standard baseline shell vs CAR",
+        "review_execution": "CLE vs CAR: Pass OE +2.3%, EPA/DB +0.08, Off Press Allowed 44.7% (QP 15.8%), Def MOF EPA Allowed +0.39, Rush SR Allowed 30.4%.",
+        "expected_qpr": 0.242,
+        "realized_qpr": 0.275,
+        "qpr_delta": 0.033,
+        "pressure_rate": 0.542,
+        "expected_mof_epa": 0.34,
+        "realized_mof_epa": 0.39,
+        "mof_epa_delta": 0.047,
+        "pass_oe": 2.3
+      }
+    ]
+  },
+  "DAL": {
+    "team": "DAL",
+    "preseason_expectation": "Balanced NFL Scheme Baseline (Prior QP 19.0%)",
+    "regime_tags": [
+      "SLOT_FUNNEL_HIGH",
+      "GARBAGE_TIME_ALPHA"
+    ],
+    "expectation_delta": {
+      "team": "DAL",
+      "week": 15,
+      "expected_qpr": 0.181,
+      "realized_qpr": 0.151,
+      "qpr_delta": -0.03,
+      "expected_mof_epa": 0.69,
+      "realized_mof_epa": 0.75,
+      "mof_epa_delta": 0.057,
+      "realized_pass_oe": 7.8,
+      "realized_epa_rush": -0.09,
+      "regime_tags": [
+        "SLOT_FUNNEL_HIGH",
+        "GARBAGE_TIME_ALPHA"
+      ],
+      "prior_decay_multiplier": 1.0,
+      "slot_te_mu_boost": 1.18,
+      "slot_te_floor_boost": 1.08,
+      "slot_te_ceiling_boost": 1.12,
+      "verdict": "Defense bled elevated MOF EPA (+0.75 realized vs +0.69 previewed) -> Opposing Slot/TE floor & ceiling elevated | Elevated Pass Over Expected (+7.8% POE) driving late-game passing volume"
+    },
+    "rolling_3wk": {
+      "quick_pressure_rate": 0.171,
+      "mof_epa_allowed": 0.75,
+      "rush_sr_allowed": 0.451,
+      "pressure_rate": 0.383,
+      "mof_pct": 0.218,
+      "weeks_counted": 3,
+      "is_rolling": true
+    },
+    "weekly_ledger": [
+      {
+        "week": 1,
+        "opponent": "NYG",
+        "preview_hypothesis": "Inside/Slot Funnel (42% Man / 58% Zone) \u2014 DAL vs NYG: 1-High 41.5% / 2-High 58.5% | Blitz 30.1% | Press 33.0% | Exp MOF EPA +0.34",
+        "review_execution": "Pending game review",
+        "expected_qpr": 0.18,
+        "realized_qpr": 0.18,
+        "qpr_delta": 0.0,
+        "pressure_rate": 0.288,
+        "expected_mof_epa": 0.34,
+        "realized_mof_epa": 0.34,
+        "mof_epa_delta": 0.0,
+        "pass_oe": 0.0
+      },
+      {
+        "week": 2,
+        "opponent": "WAS",
+        "preview_hypothesis": "Inside/Slot Funnel (45% Man / 70% Zone) \u2014 DAL vs WAS: 1-High 45.0% / 2-High 69.7% | Blitz 39.4% | Press 33.0% | Exp MOF EPA +1.35",
+        "review_execution": "DAL vs WAS: Pass OE +17.6%, EPA/DB +0.41, Off Press Allowed 28.6% (QP 11.4%), Def MOF EPA Allowed +1.03, Rush SR Allowed 41.7%.",
+        "expected_qpr": 0.185,
+        "realized_qpr": 0.144,
+        "qpr_delta": -0.041,
+        "pressure_rate": 0.346,
+        "expected_mof_epa": 1.35,
+        "realized_mof_epa": 1.03,
+        "mof_epa_delta": -0.32,
+        "pass_oe": 17.6
+      },
+      {
+        "week": 3,
+        "opponent": "BAL",
+        "preview_hypothesis": "Inside/Slot Funnel (21% Man / 79% Zone) \u2014 Baltimore Ravens @ Dallas Cowboys (Brazil): Can the Ravens keep their under center game rolling? The Ravens have changed the shape of their offense with Declan Doyle. Their under center rate and multiple tight end looks on runs have shot up while they do not turn to 21 (DAL vs BAL: 1-High 21.1% / 2-High 78.9% | Blitz 2",
+        "review_execution": "Baltimore Ravens 34, Dallas Cowboys 31: The Ravens win at the last second. Literally. The Cowboys got the ball with 1:30 left in the game down by three. They marched down the field and had 1st and goal with 28 seconds left. Dallas ended up settling for a game tying field goal that left just seven se",
+        "expected_qpr": 0.177,
+        "realized_qpr": 0.154,
+        "qpr_delta": -0.023,
+        "pressure_rate": 0.402,
+        "expected_mof_epa": 0.39,
+        "realized_mof_epa": 0.61,
+        "mof_epa_delta": 0.22,
+        "pass_oe": 2.9
+      },
+      {
+        "week": 15,
+        "opponent": "BAL",
+        "preview_hypothesis": "Standard baseline shell vs BAL",
+        "review_execution": "Baltimore Ravens 34, Dallas Cowboys 31: The Ravens win at the last second. Literally. The Cowboys got the ball with 1:30 left in the game down by three. They marched down the field and had 1st and goal with 28 seconds left. Dallas ended up settling for a game tying field goal that left just seven se",
+        "expected_qpr": 0.136,
+        "realized_qpr": 0.154,
+        "qpr_delta": 0.018,
+        "pressure_rate": 0.402,
+        "expected_mof_epa": 0.54,
+        "realized_mof_epa": 0.61,
+        "mof_epa_delta": 0.073,
+        "pass_oe": 2.9
+      }
+    ]
+  },
+  "DEN": {
+    "team": "DEN",
+    "preseason_expectation": "Balanced NFL Scheme Baseline (Prior QP 22.0%)",
+    "regime_tags": [
+      "PASS_PROTECTION_COLLAPSE"
+    ],
+    "expectation_delta": {
+      "team": "DEN",
+      "week": 4,
+      "expected_qpr": 0.199,
+      "realized_qpr": 0.202,
+      "qpr_delta": 0.003,
+      "expected_mof_epa": 0.7,
+      "realized_mof_epa": 0.41,
+      "mof_epa_delta": -0.288,
+      "realized_pass_oe": -0.3,
+      "realized_epa_rush": -0.07,
+      "regime_tags": [
+        "PASS_PROTECTION_COLLAPSE"
+      ],
+      "prior_decay_multiplier": 0.65,
+      "slot_te_mu_boost": 1.0,
+      "slot_te_floor_boost": 1.0,
+      "slot_te_ceiling_boost": 1.0,
+      "verdict": "Quick/overall pressure spiked (QP 20.2%, PR 42.4% realized vs 19.9% previewed) -> Accelerated Bayesian prior decay (0.65x)"
+    },
+    "rolling_3wk": {
+      "quick_pressure_rate": 0.208,
+      "mof_epa_allowed": 0.367,
+      "rush_sr_allowed": 0.423,
+      "pressure_rate": 0.424,
+      "mof_pct": 0.186,
+      "weeks_counted": 2,
+      "is_rolling": true
+    },
+    "weekly_ledger": [
+      {
+        "week": 1,
+        "opponent": "KC",
+        "preview_hypothesis": "Inside/Slot Funnel (27% Man / 73% Zone) \u2014 Denver Broncos @ Kansas City Chiefs: How many explosive runs will the Chiefs have? The Kansas City Chiefs did not have a running back break the top 40 in 10+ yard runs last season, and Kenneth Walker could be a solution to that problem. Walker ranked 6th in 10+ yard runs and 10th in missed tackles (DEN vs KC: 1-High 27",
+        "review_execution": "Pending game review",
+        "expected_qpr": 0.182,
+        "realized_qpr": 0.182,
+        "qpr_delta": 0.0,
+        "pressure_rate": 0.291,
+        "expected_mof_epa": 0.2,
+        "realized_mof_epa": 0.2,
+        "mof_epa_delta": 0.0,
+        "pass_oe": 0.0
+      },
+      {
+        "week": 2,
+        "opponent": "JAX",
+        "preview_hypothesis": "Inside/Slot Funnel (45% Man / 57% Zone) \u2014 Jacksonville Jaguars vs. Denver Broncos: What will Liam Coen cook up next? The Jaguars offense and Broncos defense had opposite experiences in Week 1. Liam Coen\u2019s Jaguars got into 13 personnel, Trevor Lawrence was throwing heaters, and everything clicked against the Browns. The Broncos had a histori (DEN vs JAX: 1-High",
+        "review_execution": "Denver Broncos 20, Jacksonville Jaguars 13: The Broncos bounce back. Jaylen Waddle had a strong 34.5% target share, 6.57 yards per route run, and a 15.4 average depth of target. Denver went from -0.16 EPA/play in the first half to 0.32 EPA/play in the second half. Two big 3rd and short situations le",
+        "expected_qpr": 0.182,
+        "realized_qpr": 0.245,
+        "qpr_delta": 0.063,
+        "pressure_rate": 0.435,
+        "expected_mof_epa": 1.1,
+        "realized_mof_epa": -0.15,
+        "mof_epa_delta": -1.25,
+        "pass_oe": 1.5
+      },
+      {
+        "week": 3,
+        "opponent": "LAR",
+        "preview_hypothesis": "Inside/Slot Funnel (45% Man / 83% Zone) \u2014 Los Angeles Rams @ Denver Broncos: How will Bo Nix\u2019s sack avoidance help against the Rams? Bo Nix was the best quarterback in terms of sack rate and 2nd best in terms of pressure to sack rate in 2025. Those numbers have fallen to 17th and 12th this season. He ranks 9th (DEN vs LAR: 1-High 45.0% / 2-High 82.9% | Blitz 2",
+        "review_execution": "Pending game review",
+        "expected_qpr": 0.215,
+        "realized_qpr": 0.215,
+        "qpr_delta": 0.0,
+        "pressure_rate": 0.344,
+        "expected_mof_epa": -0.08,
+        "realized_mof_epa": -0.08,
+        "mof_epa_delta": 0.0,
+        "pass_oe": 0.0
+      },
+      {
+        "week": 4,
+        "opponent": "SF",
+        "preview_hypothesis": "Inside/Slot Funnel (22% Man / 78% Zone) \u2014 Denver Broncos @ San Francisco 49ers: Can the Broncos slow down Brock Purdy\u2019s incredible start? Brock Purdy has gotten off to an insane start to the season. He is 1st in EPA/dropback, has not taken a sack this year, and Kyle Shanahan has dialed up a 5.7% pass rate over (DEN vs SF: 1-High 22.1% / 2-High 77.9% | Blitz 23",
+        "review_execution": "San Francisco 49ers 24, Denver Broncos 14: Brock Purdy still hasn\u2019t been sacked yet this season. Though the 49ers pulled away at the end of this game, the Broncos defense did make life hard on San Francisco\u2019s offense. Brock Purdy was 3/5 for 11 yards against man coverage",
+        "expected_qpr": 0.199,
+        "realized_qpr": 0.158,
+        "qpr_delta": -0.041,
+        "pressure_rate": 0.413,
+        "expected_mof_epa": 1.09,
+        "realized_mof_epa": 0.98,
+        "mof_epa_delta": -0.11,
+        "pass_oe": -2.1
+      }
+    ]
+  },
+  "DET": {
+    "team": "DET",
+    "preseason_expectation": "Press-Man Heavy Run Wall (Top-3 Rush Defense) & Elite Play-Action Slot/Seam Attack",
+    "regime_tags": [
+      "SLOT_FUNNEL_HIGH",
+      "RUN_GAME_BROKEN",
+      "GARBAGE_TIME_ALPHA"
+    ],
+    "expectation_delta": {
+      "team": "DET",
+      "week": 15,
+      "expected_qpr": 0.198,
+      "realized_qpr": 0.183,
+      "qpr_delta": -0.015,
+      "expected_mof_epa": 0.38,
+      "realized_mof_epa": 0.88,
+      "mof_epa_delta": 0.503,
+      "realized_pass_oe": 5.1,
+      "realized_epa_rush": -0.1,
+      "regime_tags": [
+        "SLOT_FUNNEL_HIGH",
+        "RUN_GAME_BROKEN",
+        "GARBAGE_TIME_ALPHA"
+      ],
+      "prior_decay_multiplier": 1.0,
+      "slot_te_mu_boost": 1.18,
+      "slot_te_floor_boost": 1.08,
+      "slot_te_ceiling_boost": 1.12,
+      "verdict": "Defense bled elevated MOF EPA (+0.88 realized vs +0.38 previewed) -> Opposing Slot/TE floor & ceiling elevated | Inefficient ground game (Rush EPA -0.10, Rush SR 38.1%) | Elevated Pass Over Expected (+5.1% POE) driving late-game passing volume"
+    },
+    "rolling_3wk": {
+      "quick_pressure_rate": 0.191,
+      "mof_epa_allowed": 0.88,
+      "rush_sr_allowed": 0.381,
+      "pressure_rate": 0.414,
+      "mof_pct": 0.172,
+      "weeks_counted": 3,
+      "is_rolling": true
+    },
+    "weekly_ledger": [
+      {
+        "week": 1,
+        "opponent": "NO",
+        "preview_hypothesis": "Inside/Slot Funnel (40% Man / 60% Zone) \u2014 New Orleans Saints @ Detroit Lions: How much play action does Detroit use, and will Brandon Staley match it with base + two high looks? Drew Petzing\u2019s Cardinals ranked 8th in play action usage in 2024 and 13th in 2025. The Lions ranked 1st in play action usage in 2024 and 8th in 2025 while (DET vs NO: 1-High 39.6% / 2-",
+        "review_execution": "DET vs NO: Pass OE +0.9%, EPA/DB -0.00, Off Press Allowed 37.5% (QP 17.9%), Def MOF EPA Allowed +1.32, Rush SR Allowed 34.8%.",
+        "expected_qpr": 0.181,
+        "realized_qpr": 0.248,
+        "qpr_delta": 0.067,
+        "pressure_rate": 0.404,
+        "expected_mof_epa": 0.31,
+        "realized_mof_epa": 1.32,
+        "mof_epa_delta": 1.01,
+        "pass_oe": 0.9
+      },
+      {
+        "week": 2,
+        "opponent": "BUF",
+        "preview_hypothesis": "Inside/Slot Funnel (48% Man / 52% Zone) \u2014 Detroit Lions @ Buffalo Bills: How will the Lions base defense look against the Bills heavier looks? The Bills decided to get big against the Texans and used 13 personnel on 20 of 51 qualifying plays with 19 of those coming from under center. They ran on 14 of those 20 (DET vs BUF: 1-High 47.6% / 2-High 52.4% | Blitz 2",
+        "review_execution": "Buffalo Bills 41, Detroit Lions 31: Josh Allen and the Bills offense can do anything. The Bills offense has leaned into a heavy attack that can mash opponents on the ground. Dalton Kincaid allows them to still push the ball vertically, and James Cook is great on both duo and zone runs. It also helps",
+        "expected_qpr": 0.201,
+        "realized_qpr": 0.188,
+        "qpr_delta": -0.013,
+        "pressure_rate": 0.457,
+        "expected_mof_epa": 0.6,
+        "realized_mof_epa": 0.88,
+        "mof_epa_delta": 0.28,
+        "pass_oe": -1.2
+      },
+      {
+        "week": 3,
+        "opponent": "NYJ",
+        "preview_hypothesis": "Inside/Slot Funnel (19% Man / 81% Zone) \u2014 DET vs NYJ: 1-High 18.6% / 2-High 81.4% | Blitz 25.0% | Press 35.7% | Exp MOF EPA +0.22",
+        "review_execution": "DET vs NYJ: Pass OE +8.3%, EPA/DB +0.33, Off Press Allowed 30.6% (QP 8.3%), Def MOF EPA Allowed +0.88, Rush SR Allowed 29.4%.",
+        "expected_qpr": 0.213,
+        "realized_qpr": 0.181,
+        "qpr_delta": -0.032,
+        "pressure_rate": 0.392,
+        "expected_mof_epa": 0.22,
+        "realized_mof_epa": 0.88,
+        "mof_epa_delta": 0.66,
+        "pass_oe": 8.3
+      },
+      {
+        "week": 15,
+        "opponent": "NYJ",
+        "preview_hypothesis": "Standard baseline shell vs NYJ",
+        "review_execution": "DET vs NYJ: Pass OE +8.3%, EPA/DB +0.33, Off Press Allowed 30.6% (QP 8.3%), Def MOF EPA Allowed +0.88, Rush SR Allowed 29.4%.",
+        "expected_qpr": 0.159,
+        "realized_qpr": 0.181,
+        "qpr_delta": 0.022,
+        "pressure_rate": 0.392,
+        "expected_mof_epa": 0.77,
+        "realized_mof_epa": 0.88,
+        "mof_epa_delta": 0.106,
+        "pass_oe": 8.3
+      }
+    ]
+  },
+  "GB": {
+    "team": "GB",
+    "preseason_expectation": "Balanced NFL Scheme Baseline (Prior QP 19.2%)",
+    "regime_tags": [
+      "RUN_GAME_BROKEN",
+      "GARBAGE_TIME_ALPHA"
+    ],
+    "expectation_delta": {
+      "team": "GB",
+      "week": 15,
+      "expected_qpr": 0.207,
+      "realized_qpr": 0.151,
+      "qpr_delta": -0.056,
+      "expected_mof_epa": 0.26,
+      "realized_mof_epa": -0.72,
+      "mof_epa_delta": -0.98,
+      "realized_pass_oe": 12.5,
+      "realized_epa_rush": -0.24,
+      "regime_tags": [
+        "RUN_GAME_BROKEN",
+        "GARBAGE_TIME_ALPHA"
+      ],
+      "prior_decay_multiplier": 1.0,
+      "slot_te_mu_boost": 1.0,
+      "slot_te_floor_boost": 1.0,
+      "slot_te_ceiling_boost": 1.0,
+      "verdict": "Inefficient ground game (Rush EPA -0.24, Rush SR 53.7%) | Elevated Pass Over Expected (+12.5% POE) driving late-game passing volume"
+    },
+    "rolling_3wk": {
+      "quick_pressure_rate": 0.173,
+      "mof_epa_allowed": 0.327,
+      "rush_sr_allowed": 0.537,
+      "pressure_rate": 0.323,
+      "mof_pct": 0.246,
+      "weeks_counted": 3,
+      "is_rolling": true
+    },
+    "weekly_ledger": [
+      {
+        "week": 1,
+        "opponent": "MIN",
+        "preview_hypothesis": "Inside/Slot Funnel (32% Man / 68% Zone) \u2014 GB vs MIN: 1-High 32.1% / 2-High 67.9% | Blitz 25.0% | Press 33.0% | Exp MOF EPA +0.15",
+        "review_execution": "Minnesota Vikings 39, Green Bay Packers 22: The Vikings lost Kyler Murray but storm back in the 4th quarter. Jordan Love had a 0.36 EPA/dropback in the first three quarters against the Vikings and then produced a -0.75 EPA/dropback in the 4th quarter.",
+        "expected_qpr": 0.19,
+        "realized_qpr": 0.239,
+        "qpr_delta": 0.049,
+        "pressure_rate": 0.479,
+        "expected_mof_epa": 0.15,
+        "realized_mof_epa": 0.82,
+        "mof_epa_delta": 0.67,
+        "pass_oe": 0.2
+      },
+      {
+        "week": 2,
+        "opponent": "NYJ",
+        "preview_hypothesis": "Inside/Slot Funnel (18% Man / 82% Zone) \u2014 GB vs NYJ: 1-High 17.9% / 2-High 82.1% | Blitz 25.0% | Press 38.5% | Exp MOF EPA -0.20",
+        "review_execution": "GB vs NYJ: Pass OE -2.7%, EPA/DB -0.25, Off Press Allowed 32.3% (QP 16.8%), Def MOF EPA Allowed +0.35, Rush SR Allowed 26.1%.",
+        "expected_qpr": 0.212,
+        "realized_qpr": 0.14,
+        "qpr_delta": -0.072,
+        "pressure_rate": 0.357,
+        "expected_mof_epa": -0.2,
+        "realized_mof_epa": 0.35,
+        "mof_epa_delta": 0.55,
+        "pass_oe": -2.7
+      },
+      {
+        "week": 3,
+        "opponent": "ATL",
+        "preview_hypothesis": "Inside/Slot Funnel (44% Man / 56% Zone) \u2014 GB vs ATL: 1-High 43.8% / 2-High 56.2% | Blitz 25.0% | Press 33.0% | Exp MOF EPA +0.82",
+        "review_execution": "GB vs ATL: Pass OE +14.2%, EPA/DB -0.03, Off Press Allowed 45.3% (QP 20.8%), Def MOF EPA Allowed -0.73, Rush SR Allowed 61.5%.",
+        "expected_qpr": 0.219,
+        "realized_qpr": 0.146,
+        "qpr_delta": -0.073,
+        "pressure_rate": 0.31,
+        "expected_mof_epa": 0.82,
+        "realized_mof_epa": -0.73,
+        "mof_epa_delta": -1.55,
+        "pass_oe": 14.2
+      },
+      {
+        "week": 5,
+        "opponent": "CHI",
+        "preview_hypothesis": "Standard baseline shell vs CHI",
+        "review_execution": "Green Bay Packers 31, Chicago Bears 7: Matt LaFleur gets his revenge. Matt LaFleur aired it out against the Bears with a 90th percentile pass rate over expected. Jordan Love was nails on deep throws and produced a 99.9th percentile total EPA when throwing the ball 20+ yards down the field.",
+        "expected_qpr": 0.142,
+        "realized_qpr": 0.161,
+        "qpr_delta": 0.019,
+        "pressure_rate": 0.349,
+        "expected_mof_epa": -0.62,
+        "realized_mof_epa": -0.71,
+        "mof_epa_delta": -0.085,
+        "pass_oe": 9.0
+      },
+      {
+        "week": 15,
+        "opponent": "ATL",
+        "preview_hypothesis": "Standard baseline shell vs ATL",
+        "review_execution": "GB vs ATL: Pass OE +14.2%, EPA/DB -0.03, Off Press Allowed 45.3% (QP 20.8%), Def MOF EPA Allowed -0.73, Rush SR Allowed 61.5%.",
+        "expected_qpr": 0.128,
+        "realized_qpr": 0.146,
+        "qpr_delta": 0.018,
+        "pressure_rate": 0.31,
+        "expected_mof_epa": -0.64,
+        "realized_mof_epa": -0.73,
+        "mof_epa_delta": -0.088,
+        "pass_oe": 14.2
+      }
+    ]
+  },
+  "HOU": {
+    "team": "HOU",
+    "preseason_expectation": "Balanced NFL Scheme Baseline (Prior QP 21.8%)",
+    "regime_tags": [
+      "SLOT_FUNNEL_HIGH",
+      "RUN_GAME_BROKEN"
+    ],
+    "expectation_delta": {
+      "team": "HOU",
+      "week": 15,
+      "expected_qpr": 0.196,
+      "realized_qpr": 0.248,
+      "qpr_delta": 0.052,
+      "expected_mof_epa": 0.41,
+      "realized_mof_epa": 0.63,
+      "mof_epa_delta": 0.213,
+      "realized_pass_oe": -1.0,
+      "realized_epa_rush": -0.13,
+      "regime_tags": [
+        "SLOT_FUNNEL_HIGH",
+        "RUN_GAME_BROKEN"
+      ],
+      "prior_decay_multiplier": 1.0,
+      "slot_te_mu_boost": 1.18,
+      "slot_te_floor_boost": 1.08,
+      "slot_te_ceiling_boost": 1.12,
+      "verdict": "Defense bled elevated MOF EPA (+0.63 realized vs +0.41 previewed) -> Opposing Slot/TE floor & ceiling elevated | Inefficient ground game (Rush EPA -0.13, Rush SR 33.6%)"
+    },
+    "rolling_3wk": {
+      "quick_pressure_rate": 0.248,
+      "mof_epa_allowed": 0.627,
+      "rush_sr_allowed": 0.38,
+      "pressure_rate": 0.419,
+      "mof_pct": 0.334,
+      "weeks_counted": 3,
+      "is_rolling": true
+    },
+    "weekly_ledger": [
+      {
+        "week": 1,
+        "opponent": "BUF",
+        "preview_hypothesis": "Inside/Slot Funnel (45% Man / 55% Zone) \u2014 Buffalo Bills @ Houston Texans: How effective will the Texans run game be? The Texans run game had the 31st ranked success rate and did not have a running back that ranked better than 32nd in yards before contact last season. They had to turn to 6 OL looks to try to get some movement in the run game (HOU vs BUF: 1-High",
+        "review_execution": "Buffalo Bills 36, Houston Texans 31: Josh Allen starts off flaming hot. The Buffalo Bills put up the 3rd best offensive performance by EPA/play against the Houston Texans since DeMeco Ryans took over as head coach. Josh Allen had a 96th percentile EPA/dropback and was 7/8 for 131 yards on intermedia",
+        "expected_qpr": 0.184,
+        "realized_qpr": 0.157,
+        "qpr_delta": -0.027,
+        "pressure_rate": 0.397,
+        "expected_mof_epa": 0.03,
+        "realized_mof_epa": 0.91,
+        "mof_epa_delta": 0.88,
+        "pass_oe": -1.6
+      },
+      {
+        "week": 2,
+        "opponent": "CIN",
+        "preview_hypothesis": "Inside/Slot Funnel (33% Man / 67% Zone) \u2014 Cincinnati Bengals @ Houston Texans: Can the Bengals offensive line continue its improvement against the Texans edge rushers? The Bengals offensive line is solidifying in spots. They had the 5th best pressure rate allowed in Week 1. Center Ted Karras had a 93rd percentile pressure rate allowed rate (HOU vs CIN: 1-High ",
+        "review_execution": "Cincinnati Bengals 20, Houston Texans 6: The Bengals defense shows up once again. The Bengals defense held the Texans to a single successful designed rush across the entire game. They were also able to generate a 46.7% pressure rate behind Jonathon Allen, Boye Mafe, Cashius Howell, and Dexter Lawren",
+        "expected_qpr": 0.197,
+        "realized_qpr": 0.269,
+        "qpr_delta": 0.072,
+        "pressure_rate": 0.436,
+        "expected_mof_epa": 0.79,
+        "realized_mof_epa": 0.38,
+        "mof_epa_delta": -0.41,
+        "pass_oe": 9.8
+      },
+      {
+        "week": 3,
+        "opponent": "IND",
+        "preview_hypothesis": "Inside/Slot Funnel (45% Man / 55% Zone) \u2014 HOU vs IND: 1-High 45.0% / 2-High 55.0% | Blitz 25.0% | Press 33.8% | Exp MOF EPA +0.42",
+        "review_execution": "HOU vs IND: Pass OE -6.4%, EPA/DB -0.09, Off Press Allowed 33.3% (QP 20.0%), Def MOF EPA Allowed +0.75, Rush SR Allowed 34.5%.",
+        "expected_qpr": 0.208,
+        "realized_qpr": 0.238,
+        "qpr_delta": 0.03,
+        "pressure_rate": 0.41,
+        "expected_mof_epa": 0.42,
+        "realized_mof_epa": 0.75,
+        "mof_epa_delta": 0.33,
+        "pass_oe": -6.4
+      },
+      {
+        "week": 15,
+        "opponent": "IND",
+        "preview_hypothesis": "Standard baseline shell vs IND",
+        "review_execution": "HOU vs IND: Pass OE -6.4%, EPA/DB -0.09, Off Press Allowed 33.3% (QP 20.0%), Def MOF EPA Allowed +0.75, Rush SR Allowed 34.5%.",
+        "expected_qpr": 0.209,
+        "realized_qpr": 0.238,
+        "qpr_delta": 0.029,
+        "pressure_rate": 0.41,
+        "expected_mof_epa": 0.66,
+        "realized_mof_epa": 0.75,
+        "mof_epa_delta": 0.09,
+        "pass_oe": -6.4
+      }
+    ]
+  },
+  "IND": {
+    "team": "IND",
+    "preseason_expectation": "Balanced NFL Scheme Baseline (Prior QP 16.8%)",
+    "regime_tags": [
+      "SLOT_FUNNEL_HIGH"
+    ],
+    "expectation_delta": {
+      "team": "IND",
+      "week": 15,
+      "expected_qpr": 0.203,
+      "realized_qpr": 0.234,
+      "qpr_delta": 0.031,
+      "expected_mof_epa": 0.02,
+      "realized_mof_epa": 0.23,
+      "mof_epa_delta": 0.217,
+      "realized_pass_oe": 1.4,
+      "realized_epa_rush": -0.01,
+      "regime_tags": [
+        "SLOT_FUNNEL_HIGH"
+      ],
+      "prior_decay_multiplier": 1.0,
+      "slot_te_mu_boost": 1.18,
+      "slot_te_floor_boost": 1.08,
+      "slot_te_ceiling_boost": 1.12,
+      "verdict": "Defense bled elevated MOF EPA (+0.23 realized vs +0.02 previewed) -> Opposing Slot/TE floor & ceiling elevated"
+    },
+    "rolling_3wk": {
+      "quick_pressure_rate": 0.234,
+      "mof_epa_allowed": 0.456,
+      "rush_sr_allowed": 0.456,
+      "pressure_rate": 0.431,
+      "mof_pct": 0.224,
+      "weeks_counted": 3,
+      "is_rolling": true
+    },
+    "weekly_ledger": [
+      {
+        "week": 1,
+        "opponent": "BAL",
+        "preview_hypothesis": "Inside/Slot Funnel (42% Man / 58% Zone) \u2014 IND vs BAL: 1-High 41.9% / 2-High 58.1% | Blitz 23.6% | Press 28.1% | Exp MOF EPA +0.23",
+        "review_execution": "Baltimore Ravens 41, Indianapolis Colts 23: Declan Doyle and Lamar Jackson look like a perfect match. In Declan Doyle\u2019s first game calling plays for Lamar Jackson, Jackson had the highest under center percentage of any game of his career.",
+        "expected_qpr": 0.162,
+        "realized_qpr": 0.226,
+        "qpr_delta": 0.064,
+        "pressure_rate": 0.474,
+        "expected_mof_epa": 0.23,
+        "realized_mof_epa": 0.74,
+        "mof_epa_delta": 0.51,
+        "pass_oe": -2.3
+      },
+      {
+        "week": 2,
+        "opponent": "KC",
+        "preview_hypothesis": "Inside/Slot Funnel (21% Man / 79% Zone) \u2014 IND vs KC: 1-High 21.2% / 2-High 78.8% | Blitz 25.0% | Press 33.0% | Exp MOF EPA -0.80",
+        "review_execution": "Pending game review",
+        "expected_qpr": 0.22,
+        "realized_qpr": 0.22,
+        "qpr_delta": 0.0,
+        "pressure_rate": 0.352,
+        "expected_mof_epa": -0.8,
+        "realized_mof_epa": -0.8,
+        "mof_epa_delta": 0.0,
+        "pass_oe": 0.0
+      },
+      {
+        "week": 3,
+        "opponent": "HOU",
+        "preview_hypothesis": "Inside/Slot Funnel (48% Man / 52% Zone) \u2014 IND vs HOU: 1-High 48.5% / 2-High 51.5% | Blitz 20.6% | Press 41.2% | Exp MOF EPA +0.62",
+        "review_execution": "IND vs HOU: Pass OE +3.3%, EPA/DB -0.15, Off Press Allowed 48.8% (QP 27.5%), Def MOF EPA Allowed -0.02, Rush SR Allowed 45.0%.",
+        "expected_qpr": 0.227,
+        "realized_qpr": 0.238,
+        "qpr_delta": 0.011,
+        "pressure_rate": 0.41,
+        "expected_mof_epa": 0.62,
+        "realized_mof_epa": -0.02,
+        "mof_epa_delta": -0.64,
+        "pass_oe": 3.3
+      },
+      {
+        "week": 15,
+        "opponent": "HOU",
+        "preview_hypothesis": "Standard baseline shell vs HOU",
+        "review_execution": "IND vs HOU: Pass OE +3.3%, EPA/DB -0.15, Off Press Allowed 48.8% (QP 27.5%), Def MOF EPA Allowed -0.02, Rush SR Allowed 45.0%.",
+        "expected_qpr": 0.209,
+        "realized_qpr": 0.238,
+        "qpr_delta": 0.029,
+        "pressure_rate": 0.41,
+        "expected_mof_epa": -0.02,
+        "realized_mof_epa": -0.02,
+        "mof_epa_delta": -0.002,
+        "pass_oe": 3.3
+      }
+    ]
+  },
+  "JAC": {
+    "team": "JAC",
+    "preseason_expectation": "Balanced NFL Scheme Baseline (Prior QP 16.0%)",
+    "regime_tags": [
+      "SLOT_FUNNEL_HIGH"
+    ],
+    "expectation_delta": {
+      "team": "JAC",
+      "week": 1,
+      "expected_qpr": 0.16,
+      "realized_qpr": 0.16,
+      "qpr_delta": 0.0,
+      "expected_mof_epa": 0.55,
+      "realized_mof_epa": 0.55,
+      "mof_epa_delta": 0.0,
+      "realized_pass_oe": 0.0,
+      "realized_epa_rush": -0.05,
+      "regime_tags": [
+        "SLOT_FUNNEL_HIGH"
+      ],
+      "prior_decay_multiplier": 1.0,
+      "slot_te_mu_boost": 1.18,
+      "slot_te_floor_boost": 1.08,
+      "slot_te_ceiling_boost": 1.12,
+      "verdict": "Baseline Prior"
+    },
+    "rolling_3wk": {
+      "quick_pressure_rate": 0.16,
+      "mof_epa_allowed": 0.55,
+      "rush_sr_allowed": 0.455,
+      "pressure_rate": 0.256,
+      "mof_pct": 0.4,
+      "weeks_counted": 0,
+      "is_rolling": false
+    },
+    "weekly_ledger": []
+  },
+  "JAX": {
+    "team": "JAX",
+    "preseason_expectation": "Balanced NFL Scheme Baseline (Prior QP 16.0%)",
+    "regime_tags": [
+      "SLOT_FUNNEL_HIGH",
+      "RUN_GAME_BROKEN"
+    ],
+    "expectation_delta": {
+      "team": "JAX",
+      "week": 15,
+      "expected_qpr": 0.176,
+      "realized_qpr": 0.213,
+      "qpr_delta": 0.036,
+      "expected_mof_epa": 0.11,
+      "realized_mof_epa": 0.04,
+      "mof_epa_delta": -0.067,
+      "realized_pass_oe": -1.4,
+      "realized_epa_rush": 0.14,
+      "regime_tags": [
+        "SLOT_FUNNEL_HIGH",
+        "RUN_GAME_BROKEN"
+      ],
+      "prior_decay_multiplier": 1.0,
+      "slot_te_mu_boost": 1.18,
+      "slot_te_floor_boost": 1.08,
+      "slot_te_ceiling_boost": 1.12,
+      "verdict": "Defense bled elevated MOF EPA (+0.04 realized vs +0.11 previewed) -> Opposing Slot/TE floor & ceiling elevated | Inefficient ground game (Rush EPA +0.14, Rush SR 20.3%)"
+    },
+    "rolling_3wk": {
+      "quick_pressure_rate": 0.213,
+      "mof_epa_allowed": 0.473,
+      "rush_sr_allowed": 0.441,
+      "pressure_rate": 0.439,
+      "mof_pct": 0.163,
+      "weeks_counted": 3,
+      "is_rolling": true
+    },
+    "weekly_ledger": [
+      {
+        "week": 1,
+        "opponent": "CLE",
+        "preview_hypothesis": "Inside/Slot Funnel (45% Man / 55% Zone) \u2014 JAX vs CLE: 1-High 45.0% / 2-High 55.0% | Blitz 28.3% | Press 33.0% | Exp MOF EPA +0.24",
+        "review_execution": "Jacksonville Jaguars 34, Cleveland Browns 10: Trevor Lawrence shreds it. Trevor Lawrence had an outstanding 0.7 EPA/dropback against the Browns, good for a 98th percentile performance. He was productive in every way, and Liam Coen put together some fantastic designs to open up pass catchers down the",
+        "expected_qpr": 0.183,
+        "realized_qpr": 0.137,
+        "qpr_delta": -0.046,
+        "pressure_rate": 0.321,
+        "expected_mof_epa": 0.24,
+        "realized_mof_epa": -0.74,
+        "mof_epa_delta": -0.98,
+        "pass_oe": 0.2
+      },
+      {
+        "week": 2,
+        "opponent": "DEN",
+        "preview_hypothesis": "Boundary Funnel (62% Man / 38% Zone) \u2014 Jacksonville Jaguars vs. Denver Broncos: What will Liam Coen cook up next? The Jaguars offense and Broncos defense had opposite experiences in Week 1. Liam Coen\u2019s Jaguars got into 13 personnel, Trevor Lawrence was throwing heaters, and everything clicked against the Browns. The Broncos had a histori (JAX vs DEN: 1-High",
+        "review_execution": "Denver Broncos 20, Jacksonville Jaguars 13: The Broncos bounce back. Jaylen Waddle had a strong 34.5% target share, 6.57 yards per route run, and a 15.4 average depth of target. Denver went from -0.16 EPA/play in the first half to 0.32 EPA/play in the second half. Two big 3rd and short situations le",
+        "expected_qpr": 0.155,
+        "realized_qpr": 0.245,
+        "qpr_delta": 0.09,
+        "pressure_rate": 0.435,
+        "expected_mof_epa": -0.53,
+        "realized_mof_epa": 0.35,
+        "mof_epa_delta": 0.88,
+        "pass_oe": -7.1
+      },
+      {
+        "week": 3,
+        "opponent": "NE",
+        "preview_hypothesis": "Inside/Slot Funnel (62% Man / 38% Zone) \u2014 New England Patriots @ Jacksonville Jaguars: How heavy will the Jaguars go, and can they protect? The Jaguars remain one of the most well-designed offenses in the league. They rank 6th in 12 personnel usage and 12th in 13 personnel usage this season. The have eviscerated (JAX vs NE: 1-High 61.6% / 2-High 38.4% | Blitz ",
+        "review_execution": "Jacksonville Jaguars 35, New England Patriots 6: The Jaguars are the only team in the top five in EPA/play on offense and defense this season. The Jaguars had a 93rd percentile EPA/rush and a diverse run game menu. They ran duo 11 times for 41 yards, outside zone nine times for 39 yards, and inside ",
+        "expected_qpr": 0.184,
+        "realized_qpr": 0.213,
+        "qpr_delta": 0.029,
+        "pressure_rate": 0.462,
+        "expected_mof_epa": 0.4,
+        "realized_mof_epa": 0.09,
+        "mof_epa_delta": -0.31,
+        "pass_oe": 1.6
+      },
+      {
+        "week": 4,
+        "opponent": "CIN",
+        "preview_hypothesis": "Inside/Slot Funnel (47% Man / 53% Zone) \u2014 Jacksonville Jaguars @ Cincinnati Bengals: Will the Bengals offensive line shut down the Jaguars pass rush? Bengals right tackle Amarius Mims is off to a great start to the season. He has not let up a pressure and had strong battles with TJ Watt last week. Ted Karras ranks 11th/32 in (JAX vs CIN: 1-High 46.9% / 2-High ",
+        "review_execution": "Jacksonville Jaguars 22, Cincinnati Bengals 17: The Jaguars are the top cat. The Jaguars produced the 3rd best EPA/play of the week against a Bengals defense that entered Week 4 7th in EPA/play allowed. Trevor Lawrence had 0.51 EPA/play against zone coverage (0.69 vs. cover 3) and -0.10 against five",
+        "expected_qpr": 0.19,
+        "realized_qpr": 0.185,
+        "qpr_delta": -0.005,
+        "pressure_rate": 0.393,
+        "expected_mof_epa": 0.46,
+        "realized_mof_epa": -0.05,
+        "mof_epa_delta": -0.51,
+        "pass_oe": -7.3
+      },
+      {
+        "week": 15,
+        "opponent": "NE",
+        "preview_hypothesis": "Standard baseline shell vs NE",
+        "review_execution": "Jacksonville Jaguars 35, New England Patriots 6: The Jaguars are the only team in the top five in EPA/play on offense and defense this season. The Jaguars had a 93rd percentile EPA/rush and a diverse run game menu. They ran duo 11 times for 41 yards, outside zone nine times for 39 yards, and inside ",
+        "expected_qpr": 0.211,
+        "realized_qpr": 0.24,
+        "qpr_delta": 0.029,
+        "pressure_rate": 0.462,
+        "expected_mof_epa": 0.08,
+        "realized_mof_epa": 0.09,
+        "mof_epa_delta": 0.011,
+        "pass_oe": 1.6
+      }
+    ]
+  },
+  "KC": {
+    "team": "KC",
+    "preseason_expectation": "Spagnuolo Press-Man Blitz & High-Percentage Underneath Option Offense",
+    "regime_tags": [
+      "RUN_GAME_BROKEN"
+    ],
+    "expectation_delta": {
+      "team": "KC",
+      "week": 15,
+      "expected_qpr": 0.173,
+      "realized_qpr": 0.248,
+      "qpr_delta": 0.074,
+      "expected_mof_epa": 0.51,
+      "realized_mof_epa": 0.09,
+      "mof_epa_delta": -0.423,
+      "realized_pass_oe": 4.0,
+      "realized_epa_rush": -0.09,
+      "regime_tags": [
+        "RUN_GAME_BROKEN"
+      ],
+      "prior_decay_multiplier": 1.0,
+      "slot_te_mu_boost": 1.0,
+      "slot_te_floor_boost": 1.0,
+      "slot_te_ceiling_boost": 1.0,
+      "verdict": "Inefficient ground game (Rush EPA -0.09, Rush SR 24.0%)"
+    },
+    "rolling_3wk": {
+      "quick_pressure_rate": 0.248,
+      "mof_epa_allowed": 0.258,
+      "rush_sr_allowed": 0.359,
+      "pressure_rate": 0.399,
+      "mof_pct": 0.396,
+      "weeks_counted": 3,
+      "is_rolling": true
+    },
+    "weekly_ledger": [
+      {
+        "week": 1,
+        "opponent": "DEN",
+        "preview_hypothesis": "Inside/Slot Funnel (56% Man / 44% Zone) \u2014 Denver Broncos @ Kansas City Chiefs: How many explosive runs will the Chiefs have? The Kansas City Chiefs did not have a running back break the top 40 in 10+ yard runs last season, and Kenneth Walker could be a solution to that problem. Walker ranked 6th in 10+ yard runs and 10th in missed tackles (KC vs DEN: 1-High 55",
+        "review_execution": "Pending game review",
+        "expected_qpr": 0.199,
+        "realized_qpr": 0.199,
+        "qpr_delta": 0.0,
+        "pressure_rate": 0.318,
+        "expected_mof_epa": -0.03,
+        "realized_mof_epa": -0.03,
+        "mof_epa_delta": 0.0,
+        "pass_oe": 0.0
+      },
+      {
+        "week": 2,
+        "opponent": "IND",
+        "preview_hypothesis": "Inside/Slot Funnel (48% Man / 52% Zone) \u2014 KC vs IND: 1-High 48.3% / 2-High 51.7% | Blitz 25.0% | Press 33.0% | Exp MOF EPA +0.73",
+        "review_execution": "Pending game review",
+        "expected_qpr": 0.182,
+        "realized_qpr": 0.182,
+        "qpr_delta": 0.0,
+        "pressure_rate": 0.291,
+        "expected_mof_epa": 0.73,
+        "realized_mof_epa": 0.73,
+        "mof_epa_delta": 0.0,
+        "pass_oe": 0.0
+      },
+      {
+        "week": 3,
+        "opponent": "MIA",
+        "preview_hypothesis": "Inside/Slot Funnel (45% Man / 57% Zone) \u2014 KC vs MIA: 1-High 45.0% / 2-High 56.6% | Blitz 32.1% | Press 28.3% | Exp MOF EPA +0.66",
+        "review_execution": "KC vs MIA: Pass OE +6.0%, EPA/DB +0.45, Off Press Allowed 33.3% (QP 29.2%), Def MOF EPA Allowed +0.20, Rush SR Allowed 16.7%.",
+        "expected_qpr": 0.156,
+        "realized_qpr": 0.253,
+        "qpr_delta": 0.097,
+        "pressure_rate": 0.357,
+        "expected_mof_epa": 0.66,
+        "realized_mof_epa": 0.2,
+        "mof_epa_delta": -0.46,
+        "pass_oe": 6.0
+      },
+      {
+        "week": 4,
+        "opponent": "LV",
+        "preview_hypothesis": "Inside/Slot Funnel (42% Man / 58% Zone) \u2014 Kansas City Chiefs @ Las Vegas Raiders: How does the Raiders offense match up with the Chiefs defense? The Raiders have been a pleasant surprise so far this year, and they rank 15th in EPA/play and 24th in EPA/rush. Kirk Cousins is an astounding 6th in EPA/play when (KC vs LV: 1-High 42.4% / 2-High 57.6% | Blitz 26.3% ",
+        "review_execution": "Kansas City Chiefs 30, Las Vegas Raiders 27: Kenneth Walker is still running. The Kansas City Chiefs were one of a handful of teams that we expected to increase their under center rate during the 2026 season. Through four weeks, the Chiefs are around the middle of the pack in under center rate, but ",
+        "expected_qpr": 0.182,
+        "realized_qpr": 0.237,
+        "qpr_delta": 0.055,
+        "pressure_rate": 0.483,
+        "expected_mof_epa": 0.15,
+        "realized_mof_epa": -0.13,
+        "mof_epa_delta": -0.28,
+        "pass_oe": -0.1
+      },
+      {
+        "week": 15,
+        "opponent": "MIA",
+        "preview_hypothesis": "Standard baseline shell vs MIA",
+        "review_execution": "KC vs MIA: Pass OE +6.0%, EPA/DB +0.45, Off Press Allowed 33.3% (QP 29.2%), Def MOF EPA Allowed +0.20, Rush SR Allowed 16.7%.",
+        "expected_qpr": 0.223,
+        "realized_qpr": 0.253,
+        "qpr_delta": 0.03,
+        "pressure_rate": 0.357,
+        "expected_mof_epa": 0.18,
+        "realized_mof_epa": 0.2,
+        "mof_epa_delta": 0.024,
+        "pass_oe": 6.0
+      }
+    ]
+  },
+  "LAC": {
+    "team": "LAC",
+    "preseason_expectation": "Balanced NFL Scheme Baseline (Prior QP 19.8%)",
+    "regime_tags": [
+      "RUN_GAME_BROKEN"
+    ],
+    "expectation_delta": {
+      "team": "LAC",
+      "week": 15,
+      "expected_qpr": 0.186,
+      "realized_qpr": 0.18,
+      "qpr_delta": -0.006,
+      "expected_mof_epa": 0.09,
+      "realized_mof_epa": -0.57,
+      "mof_epa_delta": -0.66,
+      "realized_pass_oe": -6.4,
+      "realized_epa_rush": -0.12,
+      "regime_tags": [
+        "RUN_GAME_BROKEN"
+      ],
+      "prior_decay_multiplier": 1.0,
+      "slot_te_mu_boost": 1.0,
+      "slot_te_floor_boost": 1.0,
+      "slot_te_ceiling_boost": 1.0,
+      "verdict": "Inefficient ground game (Rush EPA -0.12, Rush SR 48.1%)"
+    },
+    "rolling_3wk": {
+      "quick_pressure_rate": 0.18,
+      "mof_epa_allowed": 0.249,
+      "rush_sr_allowed": 0.481,
+      "pressure_rate": 0.452,
+      "mof_pct": 0.35,
+      "weeks_counted": 3,
+      "is_rolling": true
+    },
+    "weekly_ledger": [
+      {
+        "week": 1,
+        "opponent": "ARI",
+        "preview_hypothesis": "Inside/Slot Funnel (39% Man / 61% Zone) \u2014 LAC vs ARI: 1-High 38.8% / 2-High 61.2% | Blitz 25.0% | Press 29.0% | Exp MOF EPA +0.41",
+        "review_execution": "LAC vs ARI: Pass OE +2.3%, EPA/DB -0.17, Off Press Allowed 31.4% (QP 15.2%), Def MOF EPA Allowed -0.01, Rush SR Allowed 40.0%.",
+        "expected_qpr": 0.19,
+        "realized_qpr": 0.155,
+        "qpr_delta": -0.035,
+        "pressure_rate": 0.311,
+        "expected_mof_epa": 0.41,
+        "realized_mof_epa": -0.01,
+        "mof_epa_delta": -0.42,
+        "pass_oe": 2.3
+      },
+      {
+        "week": 2,
+        "opponent": "LV",
+        "preview_hypothesis": "Inside/Slot Funnel (40% Man / 60% Zone) \u2014 LAC vs LV: 1-High 40.5% / 2-High 59.5% | Blitz 25.0% | Press 33.0% | Exp MOF EPA -0.23",
+        "review_execution": "Las Vegas Raiders 26, Los Angeles Chargers 14: The Raiders pull off a sweet upset. The Raiders sit at 2-0 after a big division win over the Los Angeles Chargers. Klint Kubiak\u2019s offense had nine play action dropbacks for a 97th percentile 0.80 EPA/dropback. Tre Tucker had seven targets for five catch",
+        "expected_qpr": 0.182,
+        "realized_qpr": 0.248,
+        "qpr_delta": 0.066,
+        "pressure_rate": 0.461,
+        "expected_mof_epa": -0.23,
+        "realized_mof_epa": -0.21,
+        "mof_epa_delta": 0.02,
+        "pass_oe": -12.9
+      },
+      {
+        "week": 3,
+        "opponent": "BUF",
+        "preview_hypothesis": "Standard baseline shell vs BUF",
+        "review_execution": "LAC vs BUF: Pass OE -3.2%, EPA/DB -0.39, Off Press Allowed 51.4% (QP 22.2%), Def MOF EPA Allowed -0.75, Rush SR Allowed 58.1%.",
+        "expected_qpr": 0.128,
+        "realized_qpr": 0.146,
+        "qpr_delta": 0.018,
+        "pressure_rate": 0.447,
+        "expected_mof_epa": -0.66,
+        "realized_mof_epa": -0.75,
+        "mof_epa_delta": -0.09,
+        "pass_oe": -3.2
+      },
+      {
+        "week": 15,
+        "opponent": "BUF",
+        "preview_hypothesis": "Standard baseline shell vs BUF",
+        "review_execution": "LAC vs BUF: Pass OE -3.2%, EPA/DB -0.39, Off Press Allowed 51.4% (QP 22.2%), Def MOF EPA Allowed -0.75, Rush SR Allowed 58.1%.",
+        "expected_qpr": 0.128,
+        "realized_qpr": 0.146,
+        "qpr_delta": 0.018,
+        "pressure_rate": 0.447,
+        "expected_mof_epa": -0.66,
+        "realized_mof_epa": -0.75,
+        "mof_epa_delta": -0.09,
+        "pass_oe": -3.2
+      }
+    ]
+  },
+  "LAR": {
+    "team": "LAR",
+    "preseason_expectation": "Balanced NFL Scheme Baseline (Prior QP 17.2%)",
+    "regime_tags": [
+      "SLOT_FUNNEL_HIGH",
+      "RUN_GAME_BROKEN"
+    ],
+    "expectation_delta": {
+      "team": "LAR",
+      "week": 1,
+      "expected_qpr": 0.199,
+      "realized_qpr": 0.08,
+      "qpr_delta": -0.119,
+      "expected_mof_epa": 0.05,
+      "realized_mof_epa": -0.68,
+      "mof_epa_delta": -0.73,
+      "realized_pass_oe": -12.2,
+      "realized_epa_rush": -0.17,
+      "regime_tags": [
+        "SLOT_FUNNEL_HIGH",
+        "RUN_GAME_BROKEN"
+      ],
+      "prior_decay_multiplier": 1.0,
+      "slot_te_mu_boost": 1.18,
+      "slot_te_floor_boost": 1.08,
+      "slot_te_ceiling_boost": 1.12,
+      "verdict": "Defense bled elevated MOF EPA (-0.68 realized vs +0.05 previewed) -> Opposing Slot/TE floor & ceiling elevated | Inefficient ground game (Rush EPA -0.17, Rush SR 53.6%)"
+    },
+    "rolling_3wk": {
+      "quick_pressure_rate": 0.155,
+      "mof_epa_allowed": 0.439,
+      "rush_sr_allowed": 0.48,
+      "pressure_rate": 0.315,
+      "mof_pct": 0.061,
+      "weeks_counted": 1,
+      "is_rolling": true
+    },
+    "weekly_ledger": [
+      {
+        "week": 1,
+        "opponent": "SF",
+        "preview_hypothesis": "Inside/Slot Funnel (45% Man / 55% Zone) \u2014 San Francisco 49ers @ Los Angeles Rams (Melbourne, Australia): How will the 49ers try to protect against the Rams\u2019 new defensive front? The Rams ranked 2nd in pressure rate last season despite blitzing at the 31st highest rate in the league. Adding Defensive Player of the Year Myles Garrett (LAR vs SF: 1-High 45.0% / 2",
+        "review_execution": "San Francisco 49ers 27, Los Angeles Rams 7: Kyle Shanahan put together another masterpiece. The 49ers had a fantastic plan for Myles Garrett including quick throws, chips, screens, and high-level tackle play. Every player was up for the task including Brock Purdy whose",
+        "expected_qpr": 0.142,
+        "realized_qpr": 0.08,
+        "qpr_delta": -0.062,
+        "pressure_rate": 0.315,
+        "expected_mof_epa": 0.42,
+        "realized_mof_epa": -0.68,
+        "mof_epa_delta": -1.1,
+        "pass_oe": -12.2
+      },
+      {
+        "week": 2,
+        "opponent": "NYG",
+        "preview_hypothesis": "Inside/Slot Funnel (29% Man / 71% Zone) \u2014 LAR vs NYG: 1-High 28.6% / 2-High 71.4% | Blitz 14.3% | Press 33.0% | Exp MOF EPA -0.14",
+        "review_execution": "Pending game review",
+        "expected_qpr": 0.195,
+        "realized_qpr": 0.195,
+        "qpr_delta": 0.0,
+        "pressure_rate": 0.312,
+        "expected_mof_epa": -0.14,
+        "realized_mof_epa": -0.14,
+        "mof_epa_delta": 0.0,
+        "pass_oe": 0.0
+      },
+      {
+        "week": 3,
+        "opponent": "DEN",
+        "preview_hypothesis": "Boundary Funnel (54% Man / 46% Zone) \u2014 Los Angeles Rams @ Denver Broncos: How will Bo Nix\u2019s sack avoidance help against the Rams? Bo Nix was the best quarterback in terms of sack rate and 2nd best in terms of pressure to sack rate in 2025. Those numbers have fallen to 17th and 12th this season. He ranks 9th (LAR vs DEN: 1-High 54.1% / 2-High 45.9% | Blitz 2",
+        "review_execution": "Pending game review",
+        "expected_qpr": 0.167,
+        "realized_qpr": 0.167,
+        "qpr_delta": 0.0,
+        "pressure_rate": 0.267,
+        "expected_mof_epa": -0.14,
+        "realized_mof_epa": -0.14,
+        "mof_epa_delta": 0.0,
+        "pass_oe": 0.0
+      },
+      {
+        "week": 5,
+        "opponent": "BUF",
+        "preview_hypothesis": "Inside/Slot Funnel (37% Man / 63% Zone) \u2014 Buffalo Bills @ Los Angeles Rams: Which version of the Bills offense will we see on Monday night? After using 13 personnel over 25% in each of the first three weeks of the season, the Bills used it 13% of the time in Week 4. The Bills were 1st in EPA/play over the first two weeks (LAR vs BUF: 1-High 36.8% / 2-High 63.2",
+        "review_execution": "Pending game review",
+        "expected_qpr": 0.236,
+        "realized_qpr": 0.236,
+        "qpr_delta": 0.0,
+        "pressure_rate": 0.378,
+        "expected_mof_epa": 0.43,
+        "realized_mof_epa": 0.43,
+        "mof_epa_delta": 0.0,
+        "pass_oe": 0.0
+      }
+    ]
+  },
+  "LV": {
+    "team": "LV",
+    "preseason_expectation": "Balanced NFL Scheme Baseline (Prior QP 18.8%)",
+    "regime_tags": [
+      "SLOT_FUNNEL_HIGH",
+      "RUN_GAME_BROKEN"
+    ],
+    "expectation_delta": {
+      "team": "LV",
+      "week": 15,
+      "expected_qpr": 0.219,
+      "realized_qpr": 0.212,
+      "qpr_delta": -0.007,
+      "expected_mof_epa": 0.34,
+      "realized_mof_epa": 0.69,
+      "mof_epa_delta": 0.343,
+      "realized_pass_oe": 1.4,
+      "realized_epa_rush": -0.15,
+      "regime_tags": [
+        "SLOT_FUNNEL_HIGH",
+        "RUN_GAME_BROKEN"
+      ],
+      "prior_decay_multiplier": 1.0,
+      "slot_te_mu_boost": 1.18,
+      "slot_te_floor_boost": 1.08,
+      "slot_te_ceiling_boost": 1.12,
+      "verdict": "Defense bled elevated MOF EPA (+0.69 realized vs +0.34 previewed) -> Opposing Slot/TE floor & ceiling elevated | Inefficient ground game (Rush EPA -0.15, Rush SR 41.9%)"
+    },
+    "rolling_3wk": {
+      "quick_pressure_rate": 0.212,
+      "mof_epa_allowed": 0.687,
+      "rush_sr_allowed": 0.422,
+      "pressure_rate": 0.42,
+      "mof_pct": 0.205,
+      "weeks_counted": 3,
+      "is_rolling": true
+    },
+    "weekly_ledger": [
+      {
+        "week": 1,
+        "opponent": "MIA",
+        "preview_hypothesis": "Inside/Slot Funnel (48% Man / 52% Zone) \u2014 LV vs MIA: 1-High 48.3% / 2-High 51.7% | Blitz 31.2% | Press 28.5% | Exp MOF EPA +0.53",
+        "review_execution": "LV vs MIA: Pass OE -6.4%, EPA/DB -0.03, Off Press Allowed 30.0% (QP 13.3%), Def MOF EPA Allowed +0.35, Rush SR Allowed 30.8%.",
+        "expected_qpr": 0.178,
+        "realized_qpr": 0.188,
+        "qpr_delta": 0.01,
+        "pressure_rate": 0.434,
+        "expected_mof_epa": 0.53,
+        "realized_mof_epa": 0.35,
+        "mof_epa_delta": -0.18,
+        "pass_oe": -6.4
+      },
+      {
+        "week": 2,
+        "opponent": "LAC",
+        "preview_hypothesis": "Inside/Slot Funnel (28% Man / 72% Zone) \u2014 LV vs LAC: 1-High 28.2% / 2-High 71.8% | Blitz 25.0% | Press 30.8% | Exp MOF EPA -0.20",
+        "review_execution": "Las Vegas Raiders 26, Los Angeles Chargers 14: The Raiders pull off a sweet upset. The Raiders sit at 2-0 after a big division win over the Los Angeles Chargers. Klint Kubiak\u2019s offense had nine play action dropbacks for a 97th percentile 0.80 EPA/dropback. Tre Tucker had seven targets for five catch",
+        "expected_qpr": 0.169,
+        "realized_qpr": 0.248,
+        "qpr_delta": 0.079,
+        "pressure_rate": 0.461,
+        "expected_mof_epa": -0.2,
+        "realized_mof_epa": 0.37,
+        "mof_epa_delta": 0.57,
+        "pass_oe": -1.8
+      },
+      {
+        "week": 3,
+        "opponent": "NO",
+        "preview_hypothesis": "Inside/Slot Funnel (54% Man / 46% Zone) \u2014 LV vs NO: 1-High 53.9% / 2-High 46.1% | Blitz 30.3% | Press 40.8% | Exp MOF EPA +0.63",
+        "review_execution": "Las Vegas Raiders 35, New Orleans Saints 27: The Raiders are 3-0, and Brock Bowers is back in business. The Raiders used 11 personnel on just 4.8% of snaps with Brock Bowers back in the lineup. They used 12 personnel on 28 of 37 dropbacks and had 0.30 EPA/dropback on",
+        "expected_qpr": 0.219,
+        "realized_qpr": 0.157,
+        "qpr_delta": -0.062,
+        "pressure_rate": 0.342,
+        "expected_mof_epa": 0.63,
+        "realized_mof_epa": 0.57,
+        "mof_epa_delta": -0.06,
+        "pass_oe": 4.2
+      },
+      {
+        "week": 4,
+        "opponent": "KC",
+        "preview_hypothesis": "Inside/Slot Funnel (30% Man / 70% Zone) \u2014 Kansas City Chiefs @ Las Vegas Raiders: How does the Raiders offense match up with the Chiefs defense? The Raiders have been a pleasant surprise so far this year, and they rank 15th in EPA/play and 24th in EPA/rush. Kirk Cousins is an astounding 6th in EPA/play when (LV vs KC: 1-High 30.2% / 2-High 69.8% | Blitz 25.0% ",
+        "review_execution": "Kansas City Chiefs 30, Las Vegas Raiders 27: Kenneth Walker is still running. The Kansas City Chiefs were one of a handful of teams that we expected to increase their under center rate during the 2026 season. Through four weeks, the Chiefs are around the middle of the pack in under center rate, but ",
+        "expected_qpr": 0.182,
+        "realized_qpr": 0.237,
+        "qpr_delta": 0.055,
+        "pressure_rate": 0.483,
+        "expected_mof_epa": 0.19,
+        "realized_mof_epa": -0.1,
+        "mof_epa_delta": -0.29,
+        "pass_oe": -0.4
+      },
+      {
+        "week": 5,
+        "opponent": "NE",
+        "preview_hypothesis": "Inside/Slot Funnel (45% Man / 58% Zone) \u2014 Las Vegas Raiders @ New England Patriots: Will Drake Maye and the Patriots offense continue to clean things up? Drake Maye had a -0.18 EPA/dropback in Weeks 1-3 but a 0.30 EPA/dropback in Week 4. He found more success on intermediate throws, and the Patriots play action rate went up. (LV vs NE: 1-High 45.0% / 2-High 58",
+        "review_execution": "New England Patriots 45, Las Vegas Raiders 17: Drake Maye gets back to his old ways. Drake Maye was back to top form against the Raiders in Week 5. He had a 98th percentile EPA/dropback and produced the best game by Total EPA of any quarterback this season. Some of the areas where Maye improved in W",
+        "expected_qpr": 0.256,
+        "realized_qpr": 0.243,
+        "qpr_delta": -0.013,
+        "pressure_rate": 0.435,
+        "expected_mof_epa": 0.21,
+        "realized_mof_epa": 1.59,
+        "mof_epa_delta": 1.38,
+        "pass_oe": 0.3
+      },
+      {
+        "week": 15,
+        "opponent": "NO",
+        "preview_hypothesis": "Standard baseline shell vs NO",
+        "review_execution": "Las Vegas Raiders 35, New Orleans Saints 27: The Raiders are 3-0, and Brock Bowers is back in business. The Raiders used 11 personnel on just 4.8% of snaps with Brock Bowers back in the lineup. They used 12 personnel on 28 of 37 dropbacks and had 0.30 EPA/dropback on",
+        "expected_qpr": 0.138,
+        "realized_qpr": 0.157,
+        "qpr_delta": 0.019,
+        "pressure_rate": 0.342,
+        "expected_mof_epa": 0.5,
+        "realized_mof_epa": 0.57,
+        "mof_epa_delta": 0.068,
+        "pass_oe": 4.2
+      }
+    ]
+  },
+  "MIA": {
+    "team": "MIA",
+    "preseason_expectation": "Balanced NFL Scheme Baseline (Prior QP 18.5%)",
+    "regime_tags": [
+      "SLOT_FUNNEL_HIGH",
+      "RUN_GAME_BROKEN"
+    ],
+    "expectation_delta": {
+      "team": "MIA",
+      "week": 15,
+      "expected_qpr": 0.217,
+      "realized_qpr": 0.229,
+      "qpr_delta": 0.012,
+      "expected_mof_epa": 0.02,
+      "realized_mof_epa": 0.34,
+      "mof_epa_delta": 0.317,
+      "realized_pass_oe": -9.4,
+      "realized_epa_rush": -0.24,
+      "regime_tags": [
+        "SLOT_FUNNEL_HIGH",
+        "RUN_GAME_BROKEN"
+      ],
+      "prior_decay_multiplier": 1.0,
+      "slot_te_mu_boost": 1.18,
+      "slot_te_floor_boost": 1.08,
+      "slot_te_ceiling_boost": 1.12,
+      "verdict": "Defense bled elevated MOF EPA (+0.34 realized vs +0.02 previewed) -> Opposing Slot/TE floor & ceiling elevated | Inefficient ground game (Rush EPA -0.24, Rush SR 43.9%)"
+    },
+    "rolling_3wk": {
+      "quick_pressure_rate": 0.229,
+      "mof_epa_allowed": 0.413,
+      "rush_sr_allowed": 0.439,
+      "pressure_rate": 0.347,
+      "mof_pct": 0.238,
+      "weeks_counted": 3,
+      "is_rolling": true
+    },
+    "weekly_ledger": [
+      {
+        "week": 1,
+        "opponent": "LV",
+        "preview_hypothesis": "Inside/Slot Funnel (36% Man / 64% Zone) \u2014 MIA vs LV: 1-High 35.6% / 2-High 64.4% | Blitz 25.0% | Press 28.9% | Exp MOF EPA +0.15",
+        "review_execution": "MIA vs LV: Pass OE +0.7%, EPA/DB -0.18, Off Press Allowed 56.8% (QP 24.3%), Def MOF EPA Allowed -0.51, Rush SR Allowed 42.4%.",
+        "expected_qpr": 0.159,
+        "realized_qpr": 0.188,
+        "qpr_delta": 0.029,
+        "pressure_rate": 0.434,
+        "expected_mof_epa": 0.15,
+        "realized_mof_epa": -0.51,
+        "mof_epa_delta": -0.66,
+        "pass_oe": 0.7
+      },
+      {
+        "week": 2,
+        "opponent": "SF",
+        "preview_hypothesis": "Inside/Slot Funnel (14% Man / 86% Zone) \u2014 MIA vs SF: 1-High 14.3% / 2-High 85.7% | Blitz 25.0% | Press 37.9% | Exp MOF EPA -0.65",
+        "review_execution": "MIA vs SF: Pass OE -17.7%, EPA/DB +0.04, Off Press Allowed 39.3% (QP 17.9%), Def MOF EPA Allowed +1.13, Rush SR Allowed 27.3%.",
+        "expected_qpr": 0.26,
+        "realized_qpr": 0.18,
+        "qpr_delta": -0.08,
+        "pressure_rate": 0.327,
+        "expected_mof_epa": -0.65,
+        "realized_mof_epa": 1.13,
+        "mof_epa_delta": 1.78,
+        "pass_oe": -17.7
+      },
+      {
+        "week": 3,
+        "opponent": "KC",
+        "preview_hypothesis": "Inside/Slot Funnel (31% Man / 69% Zone) \u2014 MIA vs KC: 1-High 31.2% / 2-High 68.8% | Blitz 25.0% | Press 42.2% | Exp MOF EPA +0.56",
+        "review_execution": "MIA vs KC: Pass OE -5.2%, EPA/DB -0.19, Off Press Allowed 38.1% (QP 21.4%), Def MOF EPA Allowed -0.06, Rush SR Allowed 52.2%.",
+        "expected_qpr": 0.232,
+        "realized_qpr": 0.253,
+        "qpr_delta": 0.021,
+        "pressure_rate": 0.357,
+        "expected_mof_epa": 0.56,
+        "realized_mof_epa": -0.06,
+        "mof_epa_delta": -0.62,
+        "pass_oe": -5.2
+      },
+      {
+        "week": 15,
+        "opponent": "KC",
+        "preview_hypothesis": "Standard baseline shell vs KC",
+        "review_execution": "MIA vs KC: Pass OE -5.2%, EPA/DB -0.19, Off Press Allowed 38.1% (QP 21.4%), Def MOF EPA Allowed -0.06, Rush SR Allowed 52.2%.",
+        "expected_qpr": 0.223,
+        "realized_qpr": 0.253,
+        "qpr_delta": 0.03,
+        "pressure_rate": 0.357,
+        "expected_mof_epa": -0.05,
+        "realized_mof_epa": -0.06,
+        "mof_epa_delta": -0.007,
+        "pass_oe": -5.2
+      }
+    ]
+  },
+  "MIN": {
+    "team": "MIN",
+    "preseason_expectation": "Brian Flores Zero-Blitz / Simulated Pressure Lab & Vertical Play-Action",
+    "regime_tags": [
+      "PASS_PROTECTION_COLLAPSE",
+      "RUN_GAME_BROKEN"
+    ],
+    "expectation_delta": {
+      "team": "MIN",
+      "week": 15,
+      "expected_qpr": 0.203,
+      "realized_qpr": 0.151,
+      "qpr_delta": -0.053,
+      "expected_mof_epa": 0.46,
+      "realized_mof_epa": -0.04,
+      "mof_epa_delta": -0.497,
+      "realized_pass_oe": -4.5,
+      "realized_epa_rush": -0.2,
+      "regime_tags": [
+        "PASS_PROTECTION_COLLAPSE",
+        "RUN_GAME_BROKEN"
+      ],
+      "prior_decay_multiplier": 0.65,
+      "slot_te_mu_boost": 1.0,
+      "slot_te_floor_boost": 1.0,
+      "slot_te_ceiling_boost": 1.0,
+      "verdict": "Quick/overall pressure spiked (QP 15.1%, PR 36.2% realized vs 20.3% previewed) -> Accelerated Bayesian prior decay (0.65x) | Inefficient ground game (Rush EPA -0.20, Rush SR 29.0%)"
+    },
+    "rolling_3wk": {
+      "quick_pressure_rate": 0.203,
+      "mof_epa_allowed": 0.284,
+      "rush_sr_allowed": 0.378,
+      "pressure_rate": 0.362,
+      "mof_pct": 0.194,
+      "weeks_counted": 3,
+      "is_rolling": true
+    },
+    "weekly_ledger": [
+      {
+        "week": 1,
+        "opponent": "GB",
+        "preview_hypothesis": "Inside/Slot Funnel (45% Man / 60% Zone) \u2014 MIN vs GB: 1-High 45.0% / 2-High 59.7% | Blitz 25.0% | Press 34.9% | Exp MOF EPA +0.33",
+        "review_execution": "Minnesota Vikings 39, Green Bay Packers 22: The Vikings lost Kyler Murray but storm back in the 4th quarter. Jordan Love had a 0.36 EPA/dropback in the first three quarters against the Vikings and then produced a -0.75 EPA/dropback in the 4th quarter.",
+        "expected_qpr": 0.198,
+        "realized_qpr": 0.239,
+        "qpr_delta": 0.041,
+        "pressure_rate": 0.479,
+        "expected_mof_epa": 0.33,
+        "realized_mof_epa": 1.75,
+        "mof_epa_delta": 1.42,
+        "pass_oe": -6.6
+      },
+      {
+        "week": 2,
+        "opponent": "CHI",
+        "preview_hypothesis": "Inside/Slot Funnel (38% Man / 62% Zone) \u2014 Minnesota Vikings @ Chicago Bears: Who will win this round of Ben Johnson vs. Brian Flores? Ben Johnson vs. Brian Flores is one of our favorite battles across the NFL. Across six games, Johnson\u2019s offenses have had a 0.30 EPA/dropback versus the blitz and 0.05 (MIN vs CHI: 1-High 38.1% / 2-High 61.9% | Blitz 25.0% | Pre",
+        "review_execution": "Minnesota Vikings 9, Chicago Bears 3: Brian Flores gets the best of a rainy battle. Through bad weather and a Caleb Williams injury, Brian Flores\u2019 Vikings defense held Ben Johnson\u2019s offense to the worst single game offensive success rate since Johnson started calling plays. Flores blitzed the Bears ",
+        "expected_qpr": 0.226,
+        "realized_qpr": 0.168,
+        "qpr_delta": -0.058,
+        "pressure_rate": 0.377,
+        "expected_mof_epa": 0.27,
+        "realized_mof_epa": -0.47,
+        "mof_epa_delta": -0.74,
+        "pass_oe": -11.0
+      },
+      {
+        "week": 3,
+        "opponent": "TB",
+        "preview_hypothesis": "Inside/Slot Funnel (45% Man / 55% Zone) \u2014 MIN vs TB: 1-High 45.0% / 2-High 55.0% | Blitz 25.0% | Press 33.0% | Exp MOF EPA +0.78",
+        "review_execution": "MIN vs TB: Pass OE -1.2%, EPA/DB -0.38, Off Press Allowed 33.3% (QP 6.1%), Def MOF EPA Allowed +0.18, Rush SR Allowed 42.0%.",
+        "expected_qpr": 0.186,
+        "realized_qpr": 0.142,
+        "qpr_delta": -0.044,
+        "pressure_rate": 0.355,
+        "expected_mof_epa": 0.78,
+        "realized_mof_epa": 0.18,
+        "mof_epa_delta": -0.6,
+        "pass_oe": -1.2
+      },
+      {
+        "week": 15,
+        "opponent": "TB",
+        "preview_hypothesis": "Standard baseline shell vs TB",
+        "review_execution": "MIN vs TB: Pass OE -1.2%, EPA/DB -0.38, Off Press Allowed 33.3% (QP 6.1%), Def MOF EPA Allowed +0.18, Rush SR Allowed 11.8%.",
+        "expected_qpr": 0.125,
+        "realized_qpr": 0.142,
+        "qpr_delta": 0.017,
+        "pressure_rate": 0.355,
+        "expected_mof_epa": 0.16,
+        "realized_mof_epa": 0.18,
+        "mof_epa_delta": 0.022,
+        "pass_oe": -1.2
+      }
+    ]
+  },
+  "NE": {
+    "team": "NE",
+    "preseason_expectation": "Balanced NFL Scheme Baseline (Prior QP 16.2%)",
+    "regime_tags": [
+      "SLOT_FUNNEL_HIGH",
+      "RUN_GAME_BROKEN"
+    ],
+    "expectation_delta": {
+      "team": "NE",
+      "week": 15,
+      "expected_qpr": 0.222,
+      "realized_qpr": 0.232,
+      "qpr_delta": 0.01,
+      "expected_mof_epa": 0.01,
+      "realized_mof_epa": 0.26,
+      "mof_epa_delta": 0.253,
+      "realized_pass_oe": -0.3,
+      "realized_epa_rush": -0.22,
+      "regime_tags": [
+        "SLOT_FUNNEL_HIGH",
+        "RUN_GAME_BROKEN"
+      ],
+      "prior_decay_multiplier": 1.0,
+      "slot_te_mu_boost": 1.18,
+      "slot_te_floor_boost": 1.08,
+      "slot_te_ceiling_boost": 1.12,
+      "verdict": "Defense bled elevated MOF EPA (+0.26 realized vs +0.01 previewed) -> Opposing Slot/TE floor & ceiling elevated | Inefficient ground game (Rush EPA -0.22, Rush SR 49.5%)"
+    },
+    "rolling_3wk": {
+      "quick_pressure_rate": 0.232,
+      "mof_epa_allowed": 0.37,
+      "rush_sr_allowed": 0.495,
+      "pressure_rate": 0.453,
+      "mof_pct": 0.34,
+      "weeks_counted": 3,
+      "is_rolling": true
+    },
+    "weekly_ledger": [
+      {
+        "week": 1,
+        "opponent": "SEA",
+        "preview_hypothesis": "Inside/Slot Funnel (15% Man / 85% Zone) \u2014 New England Patriots @ Seattle Seahawks: What will the Patriots pass protection plan look like? The Seahawks defense generated a 49% pressure rate on the Patriots in the Super Bowl through four-man rushes and creative defensive back blitzes. (NE vs SEA: 1-High 15.3% / 2-High 84.7% | Blitz 20.3% | Press 36.2% | Exp MOF ",
+        "review_execution": "Seattle Seahawks 13, New England Patriots 10: Mike Macdonald is still the best of the best. Mike Macdonald was the first every Stats & Scheme defensive play caller of the year a few seasons ago, and he has only elevated his game.",
+        "expected_qpr": 0.193,
+        "realized_qpr": 0.23,
+        "qpr_delta": 0.037,
+        "pressure_rate": 0.449,
+        "expected_mof_epa": -0.03,
+        "realized_mof_epa": -1.45,
+        "mof_epa_delta": -1.42,
+        "pass_oe": -1.7
+      },
+      {
+        "week": 2,
+        "opponent": "PIT",
+        "preview_hypothesis": "Inside/Slot Funnel (20% Man / 80% Zone) \u2014 NE vs PIT: 1-High 20.0% / 2-High 80.0% | Blitz 25.0% | Press 33.0% | Exp MOF EPA +0.15",
+        "review_execution": "NE vs PIT: Pass OE +3.0%, EPA/DB -0.01, Off Press Allowed 32.0% (QP 23.1%), Def MOF EPA Allowed +0.32, Rush SR Allowed 33.3%.",
+        "expected_qpr": 0.185,
+        "realized_qpr": 0.214,
+        "qpr_delta": 0.029,
+        "pressure_rate": 0.366,
+        "expected_mof_epa": 0.15,
+        "realized_mof_epa": 0.32,
+        "mof_epa_delta": 0.17,
+        "pass_oe": 3.0
+      },
+      {
+        "week": 3,
+        "opponent": "JAX",
+        "preview_hypothesis": "Inside/Slot Funnel (44% Man / 56% Zone) \u2014 New England Patriots @ Jacksonville Jaguars: How heavy will the Jaguars go, and can they protect? The Jaguars remain one of the most well-designed offenses in the league. They rank 6th in 12 personnel usage and 12th in 13 personnel usage this season. The have eviscerated (NE vs JAX: 1-High 44.3% / 2-High 55.7% | Blitz ",
+        "review_execution": "Jacksonville Jaguars 35, New England Patriots 6: The Jaguars are the only team in the top five in EPA/play on offense and defense this season. The Jaguars had a 93rd percentile EPA/rush and a diverse run game menu. They ran duo 11 times for 41 yards, outside zone nine times for 39 yards, and inside ",
+        "expected_qpr": 0.226,
+        "realized_qpr": 0.213,
+        "qpr_delta": -0.013,
+        "pressure_rate": 0.462,
+        "expected_mof_epa": 0.15,
+        "realized_mof_epa": 0.08,
+        "mof_epa_delta": -0.07,
+        "pass_oe": -3.8
+      },
+      {
+        "week": 5,
+        "opponent": "LV",
+        "preview_hypothesis": "Inside/Slot Funnel (23% Man / 77% Zone) \u2014 Las Vegas Raiders @ New England Patriots: Will Drake Maye and the Patriots offense continue to clean things up? Drake Maye had a -0.18 EPA/dropback in Weeks 1-3 but a 0.30 EPA/dropback in Week 4. He found more success on intermediate throws, and the Patriots play action rate went up. (NE vs LV: 1-High 22.6% / 2-High 77",
+        "review_execution": "New England Patriots 45, Las Vegas Raiders 17: Drake Maye gets back to his old ways. Drake Maye was back to top form against the Raiders in Week 5. He had a 98th percentile EPA/dropback and produced the best game by Total EPA of any quarterback this season. Some of the areas where Maye improved in W",
+        "expected_qpr": 0.256,
+        "realized_qpr": 0.243,
+        "qpr_delta": -0.013,
+        "pressure_rate": 0.435,
+        "expected_mof_epa": -0.28,
+        "realized_mof_epa": 0.62,
+        "mof_epa_delta": 0.9,
+        "pass_oe": 6.7
+      },
+      {
+        "week": 15,
+        "opponent": "JAX",
+        "preview_hypothesis": "Standard baseline shell vs JAX",
+        "review_execution": "Jacksonville Jaguars 35, New England Patriots 6: The Jaguars are the only team in the top five in EPA/play on offense and defense this season. The Jaguars had a 93rd percentile EPA/rush and a diverse run game menu. They ran duo 11 times for 41 yards, outside zone nine times for 39 yards, and inside ",
+        "expected_qpr": 0.211,
+        "realized_qpr": 0.24,
+        "qpr_delta": 0.029,
+        "pressure_rate": 0.462,
+        "expected_mof_epa": 0.07,
+        "realized_mof_epa": 0.08,
+        "mof_epa_delta": 0.01,
+        "pass_oe": -3.8
+      }
+    ]
+  },
+  "NO": {
+    "team": "NO",
+    "preseason_expectation": "Balanced NFL Scheme Baseline (Prior QP 16.5%)",
+    "regime_tags": [
+      "SLOT_FUNNEL_HIGH"
+    ],
+    "expectation_delta": {
+      "team": "NO",
+      "week": 15,
+      "expected_qpr": 0.198,
+      "realized_qpr": 0.162,
+      "qpr_delta": -0.036,
+      "expected_mof_epa": 0.04,
+      "realized_mof_epa": 0.56,
+      "mof_epa_delta": 0.513,
+      "realized_pass_oe": 3.3,
+      "realized_epa_rush": -0.02,
+      "regime_tags": [
+        "SLOT_FUNNEL_HIGH"
+      ],
+      "prior_decay_multiplier": 1.0,
+      "slot_te_mu_boost": 1.18,
+      "slot_te_floor_boost": 1.08,
+      "slot_te_ceiling_boost": 1.12,
+      "verdict": "Defense bled elevated MOF EPA (+0.56 realized vs +0.04 previewed) -> Opposing Slot/TE floor & ceiling elevated"
+    },
+    "rolling_3wk": {
+      "quick_pressure_rate": 0.162,
+      "mof_epa_allowed": 0.557,
+      "rush_sr_allowed": 0.435,
+      "pressure_rate": 0.352,
+      "mof_pct": 0.185,
+      "weeks_counted": 3,
+      "is_rolling": true
+    },
+    "weekly_ledger": [
+      {
+        "week": 1,
+        "opponent": "DET",
+        "preview_hypothesis": "Inside/Slot Funnel (41% Man / 59% Zone) \u2014 New Orleans Saints @ Detroit Lions: How much play action does Detroit use, and will Brandon Staley match it with base + two high looks? Drew Petzing\u2019s Cardinals ranked 8th in play action usage in 2024 and 13th in 2025. The Lions ranked 1st in play action usage in 2024 and 8th in 2025 while (NO vs DET: 1-High 41.3% / 2-",
+        "review_execution": "NO vs DET: Pass OE +3.4%, EPA/DB +0.00, Off Press Allowed 43.3% (QP 31.7%), Def MOF EPA Allowed +1.42, Rush SR Allowed 53.1%.",
+        "expected_qpr": 0.19,
+        "realized_qpr": 0.248,
+        "qpr_delta": 0.058,
+        "pressure_rate": 0.404,
+        "expected_mof_epa": 0.41,
+        "realized_mof_epa": 1.42,
+        "mof_epa_delta": 1.01,
+        "pass_oe": 3.4
+      },
+      {
+        "week": 2,
+        "opponent": "BAL",
+        "preview_hypothesis": "Inside/Slot Funnel (45% Man / 85% Zone) \u2014 NO vs BAL: 1-High 45.0% / 2-High 85.3% | Blitz 25.0% | Press 33.0% | Exp MOF EPA -0.04",
+        "review_execution": "NO vs BAL: Pass OE -0.3%, EPA/DB +0.20, Off Press Allowed 32.4% (QP 16.2%), Def MOF EPA Allowed +0.63, Rush SR Allowed 42.0%.",
+        "expected_qpr": 0.208,
+        "realized_qpr": 0.172,
+        "qpr_delta": -0.036,
+        "pressure_rate": 0.371,
+        "expected_mof_epa": -0.04,
+        "realized_mof_epa": 0.63,
+        "mof_epa_delta": 0.67,
+        "pass_oe": -0.3
+      },
+      {
+        "week": 3,
+        "opponent": "LV",
+        "preview_hypothesis": "Inside/Slot Funnel (45% Man / 55% Zone) \u2014 NO vs LV: 1-High 45.0% / 2-High 55.0% | Blitz 25.0% | Press 33.0% | Exp MOF EPA -0.24",
+        "review_execution": "Las Vegas Raiders 35, New Orleans Saints 27: The Raiders are 3-0, and Brock Bowers is back in business. The Raiders used 11 personnel on just 4.8% of snaps with Brock Bowers back in the lineup. They used 12 personnel on 28 of 37 dropbacks and had 0.30 EPA/dropback on",
+        "expected_qpr": 0.197,
+        "realized_qpr": 0.157,
+        "qpr_delta": -0.04,
+        "pressure_rate": 0.342,
+        "expected_mof_epa": -0.24,
+        "realized_mof_epa": 0.52,
+        "mof_epa_delta": 0.76,
+        "pass_oe": 5.1
+      },
+      {
+        "week": 15,
+        "opponent": "LV",
+        "preview_hypothesis": "Standard baseline shell vs LV",
+        "review_execution": "Las Vegas Raiders 35, New Orleans Saints 27: The Raiders are 3-0, and Brock Bowers is back in business. The Raiders used 11 personnel on just 4.8% of snaps with Brock Bowers back in the lineup. They used 12 personnel on 28 of 37 dropbacks and had 0.30 EPA/dropback on",
+        "expected_qpr": 0.138,
+        "realized_qpr": 0.157,
+        "qpr_delta": 0.019,
+        "pressure_rate": 0.342,
+        "expected_mof_epa": 0.46,
+        "realized_mof_epa": 0.52,
+        "mof_epa_delta": 0.062,
+        "pass_oe": 5.1
+      }
+    ]
+  },
+  "NYG": {
+    "team": "NYG",
+    "preseason_expectation": "Dexter Lawrence Interior Pass Rush & High-Target Alpha Perimeter Passing",
+    "regime_tags": [],
+    "expectation_delta": {
+      "team": "NYG",
+      "week": 15,
+      "expected_qpr": 0.2,
+      "realized_qpr": 0.163,
+      "qpr_delta": -0.037,
+      "expected_mof_epa": 0.95,
+      "realized_mof_epa": -0.51,
+      "mof_epa_delta": -1.457,
+      "realized_pass_oe": -15.4,
+      "realized_epa_rush": -0.09,
+      "regime_tags": [],
+      "prior_decay_multiplier": 1.0,
+      "slot_te_mu_boost": 1.0,
+      "slot_te_floor_boost": 1.0,
+      "slot_te_ceiling_boost": 1.0,
+      "verdict": "Execution aligned with pre-game preview expectations"
+    },
+    "rolling_3wk": {
+      "quick_pressure_rate": 0.17,
+      "mof_epa_allowed": 0.404,
+      "rush_sr_allowed": 0.461,
+      "pressure_rate": 0.292,
+      "mof_pct": 0.088,
+      "weeks_counted": 2,
+      "is_rolling": true
+    },
+    "weekly_ledger": [
+      {
+        "week": 1,
+        "opponent": "DAL",
+        "preview_hypothesis": "Inside/Slot Funnel (43% Man / 57% Zone) \u2014 NYG vs DAL: 1-High 42.6% / 2-High 57.4% | Blitz 28.3% | Press 36.3% | Exp MOF EPA +0.86",
+        "review_execution": "Pending game review",
+        "expected_qpr": 0.203,
+        "realized_qpr": 0.203,
+        "qpr_delta": 0.0,
+        "pressure_rate": 0.325,
+        "expected_mof_epa": 0.86,
+        "realized_mof_epa": 0.86,
+        "mof_epa_delta": 0.0,
+        "pass_oe": 0.0
+      },
+      {
+        "week": 2,
+        "opponent": "LAR",
+        "preview_hypothesis": "Inside/Slot Funnel (45% Man / 55% Zone) \u2014 NYG vs LAR: 1-High 45.0% / 2-High 55.0% | Blitz 13.9% | Press 33.0% | Exp MOF EPA +1.24",
+        "review_execution": "Pending game review",
+        "expected_qpr": 0.182,
+        "realized_qpr": 0.182,
+        "qpr_delta": 0.0,
+        "pressure_rate": 0.291,
+        "expected_mof_epa": 1.24,
+        "realized_mof_epa": 1.24,
+        "mof_epa_delta": 0.0,
+        "pass_oe": 0.0
+      },
+      {
+        "week": 3,
+        "opponent": "TEN",
+        "preview_hypothesis": "Inside/Slot Funnel (45% Man / 55% Zone) \u2014 NYG vs TEN: 1-High 45.0% / 2-High 55.0% | Blitz 22.1% | Press 39.7% | Exp MOF EPA +0.74",
+        "review_execution": "NYG vs TEN: Pass OE -15.4%, EPA/DB -0.17, Off Press Allowed 38.5% (QP 12.5%), Def MOF EPA Allowed -0.51, Rush SR Allowed 42.9%.",
+        "expected_qpr": 0.214,
+        "realized_qpr": 0.163,
+        "qpr_delta": -0.051,
+        "pressure_rate": 0.292,
+        "expected_mof_epa": 0.74,
+        "realized_mof_epa": -0.51,
+        "mof_epa_delta": -1.25,
+        "pass_oe": -15.4
+      },
+      {
+        "week": 15,
+        "opponent": "TEN",
+        "preview_hypothesis": "Standard baseline shell vs TEN",
+        "review_execution": "NYG vs TEN: Pass OE -15.4%, EPA/DB -0.17, Off Press Allowed 38.5% (QP 12.5%), Def MOF EPA Allowed -0.51, Rush SR Allowed 42.9%.",
+        "expected_qpr": 0.143,
+        "realized_qpr": 0.163,
+        "qpr_delta": 0.02,
+        "pressure_rate": 0.292,
+        "expected_mof_epa": -0.45,
+        "realized_mof_epa": -0.51,
+        "mof_epa_delta": -0.061,
+        "pass_oe": -15.4
+      }
+    ]
+  },
+  "NYJ": {
+    "team": "NYJ",
+    "preseason_expectation": "Balanced NFL Scheme Baseline (Prior QP 21.0%)",
+    "regime_tags": [
+      "RUN_GAME_BROKEN",
+      "GARBAGE_TIME_ALPHA"
+    ],
+    "expectation_delta": {
+      "team": "NYJ",
+      "week": 15,
+      "expected_qpr": 0.2,
+      "realized_qpr": 0.167,
+      "qpr_delta": -0.033,
+      "expected_mof_epa": 0.73,
+      "realized_mof_epa": 0.07,
+      "mof_epa_delta": -0.667,
+      "realized_pass_oe": 4.5,
+      "realized_epa_rush": -0.36,
+      "regime_tags": [
+        "RUN_GAME_BROKEN",
+        "GARBAGE_TIME_ALPHA"
+      ],
+      "prior_decay_multiplier": 1.0,
+      "slot_te_mu_boost": 1.0,
+      "slot_te_floor_boost": 1.0,
+      "slot_te_ceiling_boost": 1.0,
+      "verdict": "Inefficient ground game (Rush EPA -0.36, Rush SR 50.0%) | Elevated Pass Over Expected (+4.5% POE) driving late-game passing volume"
+    },
+    "rolling_3wk": {
+      "quick_pressure_rate": 0.189,
+      "mof_epa_allowed": 0.215,
+      "rush_sr_allowed": 0.5,
+      "pressure_rate": 0.38,
+      "mof_pct": 0.212,
+      "weeks_counted": 3,
+      "is_rolling": true
+    },
+    "weekly_ledger": [
+      {
+        "week": 1,
+        "opponent": "TEN",
+        "preview_hypothesis": "Inside/Slot Funnel (45% Man / 76% Zone) \u2014 NYJ vs TEN: 1-High 45.0% / 2-High 75.7% | Blitz 20.6% | Press 33.0% | Exp MOF EPA +0.54",
+        "review_execution": "NYJ vs TEN: Pass OE +0.0%, EPA/DB +0.34, Off Press Allowed 30.8% (QP 11.5%), Def MOF EPA Allowed +0.35, Rush SR Allowed 30.0%.",
+        "expected_qpr": 0.194,
+        "realized_qpr": 0.198,
+        "qpr_delta": 0.004,
+        "pressure_rate": 0.347,
+        "expected_mof_epa": 0.54,
+        "realized_mof_epa": 0.35,
+        "mof_epa_delta": -0.19,
+        "pass_oe": 0.0
+      },
+      {
+        "week": 2,
+        "opponent": "GB",
+        "preview_hypothesis": "Inside/Slot Funnel (25% Man / 75% Zone) \u2014 NYJ vs GB: 1-High 25.0% / 2-High 75.0% | Blitz 28.6% | Press 39.3% | Exp MOF EPA +1.22",
+        "review_execution": "NYJ vs GB: Pass OE +4.5%, EPA/DB -0.03, Off Press Allowed 39.1% (QP 11.1%), Def MOF EPA Allowed -0.14, Rush SR Allowed 33.3%.",
+        "expected_qpr": 0.216,
+        "realized_qpr": 0.14,
+        "qpr_delta": -0.076,
+        "pressure_rate": 0.357,
+        "expected_mof_epa": 1.22,
+        "realized_mof_epa": -0.14,
+        "mof_epa_delta": -1.36,
+        "pass_oe": 4.5
+      },
+      {
+        "week": 3,
+        "opponent": "DET",
+        "preview_hypothesis": "Inside/Slot Funnel (40% Man / 60% Zone) \u2014 NYJ vs DET: 1-High 39.8% / 2-High 60.2% | Blitz 39.8% | Press 33.0% | Exp MOF EPA +0.44",
+        "review_execution": "NYJ vs DET: Pass OE +4.5%, EPA/DB +0.24, Off Press Allowed 47.7% (QP 27.9%), Def MOF EPA Allowed +0.17, Rush SR Allowed 58.3%.",
+        "expected_qpr": 0.19,
+        "realized_qpr": 0.181,
+        "qpr_delta": -0.009,
+        "pressure_rate": 0.392,
+        "expected_mof_epa": 0.44,
+        "realized_mof_epa": 0.17,
+        "mof_epa_delta": -0.27,
+        "pass_oe": 4.5
+      },
+      {
+        "week": 15,
+        "opponent": "DET",
+        "preview_hypothesis": "Standard baseline shell vs DET",
+        "review_execution": "NYJ vs DET: Pass OE +4.5%, EPA/DB +0.24, Off Press Allowed 47.7% (QP 27.9%), Def MOF EPA Allowed +0.17, Rush SR Allowed 58.3%.",
+        "expected_qpr": 0.159,
+        "realized_qpr": 0.181,
+        "qpr_delta": 0.022,
+        "pressure_rate": 0.392,
+        "expected_mof_epa": 0.15,
+        "realized_mof_epa": 0.17,
+        "mof_epa_delta": 0.02,
+        "pass_oe": 4.5
+      }
+    ]
+  },
+  "PHI": {
+    "team": "PHI",
+    "preseason_expectation": "Fangio Two-High Shell Transition & High-Efficiency RPO / Tush-Push Ground Attack",
+    "regime_tags": [
+      "PASS_PROTECTION_COLLAPSE",
+      "RUN_GAME_BROKEN"
+    ],
+    "expectation_delta": {
+      "team": "PHI",
+      "week": 2,
+      "expected_qpr": 0.186,
+      "realized_qpr": 0.126,
+      "qpr_delta": -0.061,
+      "expected_mof_epa": 0.33,
+      "realized_mof_epa": -0.26,
+      "mof_epa_delta": -0.585,
+      "realized_pass_oe": -2.9,
+      "realized_epa_rush": -0.14,
+      "regime_tags": [
+        "PASS_PROTECTION_COLLAPSE",
+        "RUN_GAME_BROKEN"
+      ],
+      "prior_decay_multiplier": 0.65,
+      "slot_te_mu_boost": 1.0,
+      "slot_te_floor_boost": 1.0,
+      "slot_te_ceiling_boost": 1.0,
+      "verdict": "Quick/overall pressure spiked (QP 12.6%, PR 42.6% realized vs 18.6% previewed) -> Accelerated Bayesian prior decay (0.65x) | Inefficient ground game (Rush EPA -0.14, Rush SR 47.4%)"
+    },
+    "rolling_3wk": {
+      "quick_pressure_rate": 0.205,
+      "mof_epa_allowed": 0.275,
+      "rush_sr_allowed": 0.448,
+      "pressure_rate": 0.426,
+      "mof_pct": 0.096,
+      "weeks_counted": 2,
+      "is_rolling": true
+    },
+    "weekly_ledger": [
+      {
+        "week": 1,
+        "opponent": "WAS",
+        "preview_hypothesis": "Inside/Slot Funnel (45% Man / 55% Zone) \u2014 PHI vs WAS: 1-High 45.0% / 2-High 55.0% | Blitz 25.0% | Press 33.0% | Exp MOF EPA +0.37",
+        "review_execution": "Philadelphia Eagles 24, Washington Commanders 22: The Eagles escape with a win, but some issues linger. The Philadelphia Eagles put together a win in Week 1 that included Jalen Hurts hitting two middle of the field throws, scrambling well, and throwing an under center play action",
+        "expected_qpr": 0.182,
+        "realized_qpr": 0.135,
+        "qpr_delta": -0.047,
+        "pressure_rate": 0.472,
+        "expected_mof_epa": 0.37,
+        "realized_mof_epa": 0.52,
+        "mof_epa_delta": 0.15,
+        "pass_oe": -1.5
+      },
+      {
+        "week": 2,
+        "opponent": "TEN",
+        "preview_hypothesis": "Inside/Slot Funnel (23% Man / 77% Zone) \u2014 PHI vs TEN: 1-High 23.1% / 2-High 76.9% | Blitz 23.1% | Press 30.8% | Exp MOF EPA +0.22",
+        "review_execution": "PHI vs TEN: Pass OE -4.2%, EPA/DB +0.13, Off Press Allowed 42.9% (QP 15.0%), Def MOF EPA Allowed -1.03, Rush SR Allowed 50.0%.",
+        "expected_qpr": 0.169,
+        "realized_qpr": 0.116,
+        "qpr_delta": -0.053,
+        "pressure_rate": 0.381,
+        "expected_mof_epa": 0.22,
+        "realized_mof_epa": -1.03,
+        "mof_epa_delta": -1.25,
+        "pass_oe": -4.2
+      },
+      {
+        "week": 3,
+        "opponent": "CHI",
+        "preview_hypothesis": "Inside/Slot Funnel (38% Man / 62% Zone) \u2014 PHI vs CHI: 1-High 37.9% / 2-High 62.1% | Blitz 25.0% | Press 37.9% | Exp MOF EPA +0.40",
+        "review_execution": "Pending game review",
+        "expected_qpr": 0.208,
+        "realized_qpr": 0.208,
+        "qpr_delta": 0.0,
+        "pressure_rate": 0.333,
+        "expected_mof_epa": 0.4,
+        "realized_mof_epa": 0.4,
+        "mof_epa_delta": 0.0,
+        "pass_oe": 0.0
+      }
+    ]
+  },
+  "PIT": {
+    "team": "PIT",
+    "preseason_expectation": "Balanced NFL Scheme Baseline (Prior QP 22.2%)",
+    "regime_tags": [
+      "PASS_PROTECTION_COLLAPSE",
+      "SLOT_FUNNEL_HIGH",
+      "GARBAGE_TIME_ALPHA"
+    ],
+    "expectation_delta": {
+      "team": "PIT",
+      "week": 15,
+      "expected_qpr": 0.233,
+      "realized_qpr": 0.179,
+      "qpr_delta": -0.054,
+      "expected_mof_epa": 0.2,
+      "realized_mof_epa": 0.62,
+      "mof_epa_delta": 0.417,
+      "realized_pass_oe": 6.5,
+      "realized_epa_rush": 0.12,
+      "regime_tags": [
+        "PASS_PROTECTION_COLLAPSE",
+        "SLOT_FUNNEL_HIGH",
+        "GARBAGE_TIME_ALPHA"
+      ],
+      "prior_decay_multiplier": 0.65,
+      "slot_te_mu_boost": 1.18,
+      "slot_te_floor_boost": 1.08,
+      "slot_te_ceiling_boost": 1.12,
+      "verdict": "Quick/overall pressure spiked (QP 17.9%, PR 34.1% realized vs 23.3% previewed) -> Accelerated Bayesian prior decay (0.65x) | Defense bled elevated MOF EPA (+0.62 realized vs +0.20 previewed) -> Opposing Slot/TE floor & ceiling elevated | Elevated Pass Over Expected (+6.5% POE) driving late-game passing volume"
+    },
+    "rolling_3wk": {
+      "quick_pressure_rate": 0.2,
+      "mof_epa_allowed": 0.617,
+      "rush_sr_allowed": 0.437,
+      "pressure_rate": 0.341,
+      "mof_pct": 0.253,
+      "weeks_counted": 3,
+      "is_rolling": true
+    },
+    "weekly_ledger": [
+      {
+        "week": 1,
+        "opponent": "ATL",
+        "preview_hypothesis": "Inside/Slot Funnel (45% Man / 68% Zone) \u2014 PIT vs ATL: 1-High 45.0% / 2-High 67.7% | Blitz 25.0% | Press 33.0% | Exp MOF EPA +0.40",
+        "review_execution": "PIT vs ATL: Pass OE +11.9%, EPA/DB -0.38, Off Press Allowed 46.5% (QP 17.9%), Def MOF EPA Allowed -0.19, Rush SR Allowed 41.4%.",
+        "expected_qpr": 0.182,
+        "realized_qpr": 0.162,
+        "qpr_delta": -0.02,
+        "pressure_rate": 0.373,
+        "expected_mof_epa": 0.4,
+        "realized_mof_epa": -0.19,
+        "mof_epa_delta": -0.59,
+        "pass_oe": 11.9
+      },
+      {
+        "week": 2,
+        "opponent": "NE",
+        "preview_hypothesis": "Balanced Funnel (45% Man / 48% Zone) \u2014 PIT vs NE: 1-High 45.0% / 2-High 48.1% | Blitz 44.4% | Press 55.6% | Exp MOF EPA +0.13",
+        "review_execution": "PIT vs NE: Pass OE +0.4%, EPA/DB -0.57, Off Press Allowed 41.3% (QP 19.6%), Def MOF EPA Allowed +0.93, Rush SR Allowed 43.5%.",
+        "expected_qpr": 0.306,
+        "realized_qpr": 0.214,
+        "qpr_delta": -0.092,
+        "pressure_rate": 0.366,
+        "expected_mof_epa": 0.13,
+        "realized_mof_epa": 0.93,
+        "mof_epa_delta": 0.8,
+        "pass_oe": 0.4
+      },
+      {
+        "week": 3,
+        "opponent": "CIN",
+        "preview_hypothesis": "Inside/Slot Funnel (33% Man / 67% Zone) \u2014 PIT vs CIN: 1-High 33.3% / 2-High 66.7% | Blitz 25.0% | Press 33.0% | Exp MOF EPA +0.07",
+        "review_execution": "PIT vs CIN: Pass OE +9.6%, EPA/DB +0.21, Off Press Allowed 30.6% (QP 17.1%), Def MOF EPA Allowed +0.46, Rush SR Allowed 43.8%.",
+        "expected_qpr": 0.211,
+        "realized_qpr": 0.161,
+        "qpr_delta": -0.05,
+        "pressure_rate": 0.328,
+        "expected_mof_epa": 0.07,
+        "realized_mof_epa": 0.46,
+        "mof_epa_delta": 0.39,
+        "pass_oe": 9.6
+      },
+      {
+        "week": 15,
+        "opponent": "CIN",
+        "preview_hypothesis": "Standard baseline shell vs CIN",
+        "review_execution": "PIT vs CIN: Pass OE +9.6%, EPA/DB +0.21, Off Press Allowed 30.6% (QP 17.1%), Def MOF EPA Allowed +0.46, Rush SR Allowed 43.8%.",
+        "expected_qpr": 0.142,
+        "realized_qpr": 0.161,
+        "qpr_delta": 0.019,
+        "pressure_rate": 0.328,
+        "expected_mof_epa": 0.4,
+        "realized_mof_epa": 0.46,
+        "mof_epa_delta": 0.055,
+        "pass_oe": 9.6
+      }
+    ]
+  },
+  "SEA": {
+    "team": "SEA",
+    "preseason_expectation": "Balanced NFL Scheme Baseline (Prior QP 18.0%)",
+    "regime_tags": [
+      "SLOT_FUNNEL_HIGH",
+      "RUN_GAME_BROKEN",
+      "GARBAGE_TIME_ALPHA"
+    ],
+    "expectation_delta": {
+      "team": "SEA",
+      "week": 15,
+      "expected_qpr": 0.221,
+      "realized_qpr": 0.194,
+      "qpr_delta": -0.027,
+      "expected_mof_epa": 0.92,
+      "realized_mof_epa": 0.45,
+      "mof_epa_delta": -0.473,
+      "realized_pass_oe": 6.2,
+      "realized_epa_rush": -0.6,
+      "regime_tags": [
+        "SLOT_FUNNEL_HIGH",
+        "RUN_GAME_BROKEN",
+        "GARBAGE_TIME_ALPHA"
+      ],
+      "prior_decay_multiplier": 1.0,
+      "slot_te_mu_boost": 1.18,
+      "slot_te_floor_boost": 1.08,
+      "slot_te_ceiling_boost": 1.12,
+      "verdict": "Defense bled elevated MOF EPA (+0.45 realized vs +0.92 previewed) -> Opposing Slot/TE floor & ceiling elevated | Inefficient ground game (Rush EPA -0.60, Rush SR 35.9%) | Elevated Pass Over Expected (+6.2% POE) driving late-game passing volume"
+    },
+    "rolling_3wk": {
+      "quick_pressure_rate": 0.194,
+      "mof_epa_allowed": 0.447,
+      "rush_sr_allowed": 0.427,
+      "pressure_rate": 0.439,
+      "mof_pct": 0.331,
+      "weeks_counted": 3,
+      "is_rolling": true
+    },
+    "weekly_ledger": [
+      {
+        "week": 1,
+        "opponent": "NE",
+        "preview_hypothesis": "Inside/Slot Funnel (45% Man / 60% Zone) \u2014 New England Patriots @ Seattle Seahawks: What will the Patriots pass protection plan look like? The Seahawks defense generated a 49% pressure rate on the Patriots in the Super Bowl through four-man rushes and creative defensive back blitzes. (SEA vs NE: 1-High 45.0% / 2-High 59.8% | Blitz 31.6% | Press 36.2% | Exp MOF ",
+        "review_execution": "Seattle Seahawks 13, New England Patriots 10: Mike Macdonald is still the best of the best. Mike Macdonald was the first every Stats & Scheme defensive play caller of the year a few seasons ago, and he has only elevated his game.",
+        "expected_qpr": 0.189,
+        "realized_qpr": 0.23,
+        "qpr_delta": 0.041,
+        "pressure_rate": 0.449,
+        "expected_mof_epa": 0.02,
+        "realized_mof_epa": -0.21,
+        "mof_epa_delta": -0.23,
+        "pass_oe": -3.8
+      },
+      {
+        "week": 2,
+        "opponent": "ARI",
+        "preview_hypothesis": "Inside/Slot Funnel (20% Man / 80% Zone) \u2014 SEA vs ARI: 1-High 20.0% / 2-High 80.0% | Blitz 17.1% | Press 33.0% | Exp MOF EPA +0.52",
+        "review_execution": "SEA vs ARI: Pass OE -9.0%, EPA/DB +0.61, Off Press Allowed 40.7% (QP 23.1%), Def MOF EPA Allowed -0.61, Rush SR Allowed 31.2%.",
+        "expected_qpr": 0.244,
+        "realized_qpr": 0.229,
+        "qpr_delta": -0.015,
+        "pressure_rate": 0.413,
+        "expected_mof_epa": 0.52,
+        "realized_mof_epa": -0.61,
+        "mof_epa_delta": -1.13,
+        "pass_oe": -9.0
+      },
+      {
+        "week": 3,
+        "opponent": "WAS",
+        "preview_hypothesis": "Inside/Slot Funnel (21% Man / 79% Zone) \u2014 SEA vs WAS: 1-High 20.6% / 2-High 79.4% | Blitz 42.6% | Press 38.2% | Exp MOF EPA +1.29",
+        "review_execution": "SEA vs WAS: Pass OE +11.6%, EPA/DB +0.07, Off Press Allowed 41.3% (QP 10.9%), Def MOF EPA Allowed +0.66, Rush SR Allowed 21.4%.",
+        "expected_qpr": 0.237,
+        "realized_qpr": 0.173,
+        "qpr_delta": -0.064,
+        "pressure_rate": 0.435,
+        "expected_mof_epa": 1.29,
+        "realized_mof_epa": 0.66,
+        "mof_epa_delta": -0.63,
+        "pass_oe": 11.6
+      },
+      {
+        "week": 5,
+        "opponent": "SF",
+        "preview_hypothesis": "Inside/Slot Funnel (36% Man / 64% Zone) \u2014 San Francisco 49ers @ Seattle Seahawks: Can the Seahawks slow down Brock Purdy? In the first three meetings between Mike Macdonald and Brock Purdy, Purdy had 87th, 65th, and 87th percentile performances by EPA/dropback. In the last two, Macdonald\u2019s swarming Seahawks held Purdy to a 10th and 5th perc (SEA vs SF: 1-High ",
+        "review_execution": "San Francisco 49ers 32, Seattle Seahawks 29: The 49ers sit atop the NFC West after a slugfest in Seattle. The 49ers run game produced the highest designed rush success rate in any game against a Mike Macdonald defense. They had an 80% success rate on outside zone and",
+        "expected_qpr": 0.182,
+        "realized_qpr": 0.188,
+        "qpr_delta": 0.006,
+        "pressure_rate": 0.448,
+        "expected_mof_epa": 0.95,
+        "realized_mof_epa": 0.02,
+        "mof_epa_delta": -0.93,
+        "pass_oe": -4.6
+      },
+      {
+        "week": 15,
+        "opponent": "WAS",
+        "preview_hypothesis": "Standard baseline shell vs WAS",
+        "review_execution": "SEA vs WAS: Pass OE +11.6%, EPA/DB +0.07, Off Press Allowed 41.3% (QP 10.9%), Def MOF EPA Allowed +0.66, Rush SR Allowed 21.4%.",
+        "expected_qpr": 0.194,
+        "realized_qpr": 0.221,
+        "qpr_delta": 0.027,
+        "pressure_rate": 0.435,
+        "expected_mof_epa": 0.58,
+        "realized_mof_epa": 0.66,
+        "mof_epa_delta": 0.079,
+        "pass_oe": 11.6
+      }
+    ]
+  },
+  "SF": {
+    "team": "SF",
+    "preseason_expectation": "Wide-9 4-Man Rush & Shanahan Motion/YAC Middle-Field Dominance",
+    "regime_tags": [
+      "RUN_GAME_BROKEN"
+    ],
+    "expectation_delta": {
+      "team": "SF",
+      "week": 15,
+      "expected_qpr": 0.195,
+      "realized_qpr": 0.156,
+      "qpr_delta": -0.038,
+      "expected_mof_epa": 0.14,
+      "realized_mof_epa": -0.36,
+      "mof_epa_delta": -0.503,
+      "realized_pass_oe": 3.3,
+      "realized_epa_rush": -0.1,
+      "regime_tags": [
+        "RUN_GAME_BROKEN"
+      ],
+      "prior_decay_multiplier": 1.0,
+      "slot_te_mu_boost": 1.0,
+      "slot_te_floor_boost": 1.0,
+      "slot_te_ceiling_boost": 1.0,
+      "verdict": "Inefficient ground game (Rush EPA -0.10, Rush SR 42.1%)"
+    },
+    "rolling_3wk": {
+      "quick_pressure_rate": 0.184,
+      "mof_epa_allowed": 0.189,
+      "rush_sr_allowed": 0.421,
+      "pressure_rate": 0.393,
+      "mof_pct": 0.091,
+      "weeks_counted": 3,
+      "is_rolling": true
+    },
+    "weekly_ledger": [
+      {
+        "week": 1,
+        "opponent": "LAR",
+        "preview_hypothesis": "Inside/Slot Funnel (32% Man / 68% Zone) \u2014 San Francisco 49ers @ Los Angeles Rams (Melbourne, Australia): How will the 49ers try to protect against the Rams\u2019 new defensive front? The Rams ranked 2nd in pressure rate last season despite blitzing at the 31st highest rate in the league. Adding Defensive Player of the Year Myles Garrett (SF vs LAR: 1-High 31.8% / 2",
+        "review_execution": "San Francisco 49ers 27, Los Angeles Rams 7: Kyle Shanahan put together another masterpiece. The 49ers had a fantastic plan for Myles Garrett including quick throws, chips, screens, and high-level tackle play. Every player was up for the task including Brock Purdy whose",
+        "expected_qpr": 0.181,
+        "realized_qpr": 0.08,
+        "qpr_delta": -0.101,
+        "pressure_rate": 0.315,
+        "expected_mof_epa": 0.09,
+        "realized_mof_epa": -0.5,
+        "mof_epa_delta": -0.59,
+        "pass_oe": 7.2
+      },
+      {
+        "week": 2,
+        "opponent": "MIA",
+        "preview_hypothesis": "Balanced Funnel (53% Man / 47% Zone) \u2014 SF vs MIA: 1-High 53.3% / 2-High 46.7% | Blitz 25.0% | Press 30.0% | Exp MOF EPA -0.02",
+        "review_execution": "SF vs MIA: Pass OE +6.3%, EPA/DB +0.00, Off Press Allowed 26.1% (QP 18.2%), Def MOF EPA Allowed -0.07, Rush SR Allowed 33.3%.",
+        "expected_qpr": 0.151,
+        "realized_qpr": 0.18,
+        "qpr_delta": 0.029,
+        "pressure_rate": 0.327,
+        "expected_mof_epa": -0.02,
+        "realized_mof_epa": -0.07,
+        "mof_epa_delta": -0.05,
+        "pass_oe": 6.3
+      },
+      {
+        "week": 3,
+        "opponent": "ARI",
+        "preview_hypothesis": "Inside/Slot Funnel (26% Man / 74% Zone) \u2014 SF vs ARI: 1-High 25.8% / 2-High 74.2% | Blitz 21.0% | Press 33.9% | Exp MOF EPA +0.68",
+        "review_execution": "SF vs ARI: Pass OE +3.1%, EPA/DB +0.82, Off Press Allowed 37.0% (QP 11.1%), Def MOF EPA Allowed +0.57, Rush SR Allowed 59.3%.",
+        "expected_qpr": 0.186,
+        "realized_qpr": 0.123,
+        "qpr_delta": -0.063,
+        "pressure_rate": 0.317,
+        "expected_mof_epa": 0.68,
+        "realized_mof_epa": 0.57,
+        "mof_epa_delta": -0.11,
+        "pass_oe": 3.1
+      },
+      {
+        "week": 4,
+        "opponent": "DEN",
+        "preview_hypothesis": "Balanced Funnel (49% Man / 51% Zone) \u2014 Denver Broncos @ San Francisco 49ers: Can the Broncos slow down Brock Purdy\u2019s incredible start? Brock Purdy has gotten off to an insane start to the season. He is 1st in EPA/dropback, has not taken a sack this year, and Kyle Shanahan has dialed up a 5.7% pass rate over (SF vs DEN: 1-High 49.2% / 2-High 50.8% | Blitz 25",
+        "review_execution": "San Francisco 49ers 24, Denver Broncos 14: Brock Purdy still hasn\u2019t been sacked yet this season. Though the 49ers pulled away at the end of this game, the Broncos defense did make life hard on San Francisco\u2019s offense. Brock Purdy was 3/5 for 11 yards against man coverage",
+        "expected_qpr": 0.216,
+        "realized_qpr": 0.158,
+        "qpr_delta": -0.058,
+        "pressure_rate": 0.413,
+        "expected_mof_epa": 0.04,
+        "realized_mof_epa": -0.61,
+        "mof_epa_delta": -0.65,
+        "pass_oe": 2.7
+      },
+      {
+        "week": 5,
+        "opponent": "SEA",
+        "preview_hypothesis": "Inside/Slot Funnel (18% Man / 82% Zone) \u2014 San Francisco 49ers @ Seattle Seahawks: Can the Seahawks slow down Brock Purdy? In the first three meetings between Mike Macdonald and Brock Purdy, Purdy had 87th, 65th, and 87th percentile performances by EPA/dropback. In the last two, Macdonald\u2019s swarming Seahawks held Purdy to a 10th and 5th perc (SF vs SEA: 1-High ",
+        "review_execution": "San Francisco 49ers 32, Seattle Seahawks 29: The 49ers sit atop the NFC West after a slugfest in Seattle. The 49ers run game produced the highest designed rush success rate in any game against a Mike Macdonald defense. They had an 80% success rate on outside zone and",
+        "expected_qpr": 0.182,
+        "realized_qpr": 0.188,
+        "qpr_delta": 0.006,
+        "pressure_rate": 0.448,
+        "expected_mof_epa": -0.29,
+        "realized_mof_epa": -1.04,
+        "mof_epa_delta": -0.75,
+        "pass_oe": 4.1
+      },
+      {
+        "week": 15,
+        "opponent": "ARI",
+        "preview_hypothesis": "Standard baseline shell vs ARI",
+        "review_execution": "SF vs ARI: Pass OE +3.1%, EPA/DB +0.82, Off Press Allowed 37.0% (QP 11.1%), Def MOF EPA Allowed +0.57, Rush SR Allowed 59.3%.",
+        "expected_qpr": 0.108,
+        "realized_qpr": 0.123,
+        "qpr_delta": 0.015,
+        "pressure_rate": 0.317,
+        "expected_mof_epa": 0.5,
+        "realized_mof_epa": 0.57,
+        "mof_epa_delta": 0.068,
+        "pass_oe": 3.1
+      }
+    ]
+  },
+  "TB": {
+    "team": "TB",
+    "preseason_expectation": "Todd Bowles Exotic Blitz Package & High-Volume Interior Slot/Play-Action Passing",
+    "regime_tags": [
+      "SLOT_FUNNEL_HIGH",
+      "RUN_GAME_BROKEN"
+    ],
+    "expectation_delta": {
+      "team": "TB",
+      "week": 15,
+      "expected_qpr": 0.177,
+      "realized_qpr": 0.153,
+      "qpr_delta": -0.023,
+      "expected_mof_epa": 0.37,
+      "realized_mof_epa": 0.15,
+      "mof_epa_delta": -0.217,
+      "realized_pass_oe": 2.1,
+      "realized_epa_rush": -0.24,
+      "regime_tags": [
+        "SLOT_FUNNEL_HIGH",
+        "RUN_GAME_BROKEN"
+      ],
+      "prior_decay_multiplier": 1.0,
+      "slot_te_mu_boost": 1.18,
+      "slot_te_floor_boost": 1.08,
+      "slot_te_ceiling_boost": 1.12,
+      "verdict": "Defense bled elevated MOF EPA (+0.15 realized vs +0.37 previewed) -> Opposing Slot/TE floor & ceiling elevated | Inefficient ground game (Rush EPA -0.24, Rush SR 26.9%)"
+    },
+    "rolling_3wk": {
+      "quick_pressure_rate": 0.164,
+      "mof_epa_allowed": 0.464,
+      "rush_sr_allowed": 0.4,
+      "pressure_rate": 0.354,
+      "mof_pct": 0.174,
+      "weeks_counted": 3,
+      "is_rolling": true
+    },
+    "weekly_ledger": [
+      {
+        "week": 1,
+        "opponent": "CIN",
+        "preview_hypothesis": "Inside/Slot Funnel (40% Man / 60% Zone) \u2014 TB vs CIN: 1-High 39.5% / 2-High 60.5% | Blitz 25.0% | Press 32.1% | Exp MOF EPA +0.18",
+        "review_execution": "Cincinnati Bengals 33, Tampa Bay Buccaneers 27: The Bengals defense turns it over again and again. The Bengals defense forced four turnovers, which produced -22.1 total EPA for the Buccaneers offense. On every other play, the Buccaneers had a 0.23 EPA/play. We will be",
+        "expected_qpr": 0.177,
+        "realized_qpr": 0.182,
+        "qpr_delta": 0.005,
+        "pressure_rate": 0.329,
+        "expected_mof_epa": 0.18,
+        "realized_mof_epa": -0.07,
+        "mof_epa_delta": -0.25,
+        "pass_oe": 3.9
+      },
+      {
+        "week": 2,
+        "opponent": "CLE",
+        "preview_hypothesis": "Inside/Slot Funnel (46% Man / 54% Zone) \u2014 TB vs CLE: 1-High 45.8% / 2-High 54.2% | Blitz 25.0% | Press 20.8% | Exp MOF EPA +0.99",
+        "review_execution": "TB vs CLE: Pass OE +3.0%, EPA/DB -0.32, Off Press Allowed 41.0% (QP 20.5%), Def MOF EPA Allowed +0.52, Rush SR Allowed 23.5%.",
+        "expected_qpr": 0.156,
+        "realized_qpr": 0.176,
+        "qpr_delta": 0.02,
+        "pressure_rate": 0.352,
+        "expected_mof_epa": 0.99,
+        "realized_mof_epa": 0.52,
+        "mof_epa_delta": -0.47,
+        "pass_oe": 3.0
+      },
+      {
+        "week": 3,
+        "opponent": "MIN",
+        "preview_hypothesis": "Inside/Slot Funnel (45% Man / 55% Zone) \u2014 TB vs MIN: 1-High 45.0% / 2-High 55.3% | Blitz 25.0% | Press 33.0% | Exp MOF EPA -0.06",
+        "review_execution": "TB vs MIN: Pass OE +1.6%, EPA/DB -0.37, Off Press Allowed 37.8% (QP 22.2%), Def MOF EPA Allowed -0.03, Rush SR Allowed 28.6%.",
+        "expected_qpr": 0.197,
+        "realized_qpr": 0.142,
+        "qpr_delta": -0.055,
+        "pressure_rate": 0.355,
+        "expected_mof_epa": -0.06,
+        "realized_mof_epa": -0.03,
+        "mof_epa_delta": 0.03,
+        "pass_oe": 1.6
+      },
+      {
+        "week": 15,
+        "opponent": "MIN",
+        "preview_hypothesis": "Standard baseline shell vs MIN",
+        "review_execution": "TB vs MIN: Pass OE +1.6%, EPA/DB -0.37, Off Press Allowed 37.8% (QP 22.2%), Def MOF EPA Allowed -0.03, Rush SR Allowed 28.6%.",
+        "expected_qpr": 0.125,
+        "realized_qpr": 0.142,
+        "qpr_delta": 0.017,
+        "pressure_rate": 0.355,
+        "expected_mof_epa": -0.03,
+        "realized_mof_epa": -0.03,
+        "mof_epa_delta": -0.004,
+        "pass_oe": 1.6
+      }
+    ]
+  },
+  "TEN": {
+    "team": "TEN",
+    "preseason_expectation": "Balanced NFL Scheme Baseline (Prior QP 17.0%)",
+    "regime_tags": [],
+    "expectation_delta": {
+      "team": "TEN",
+      "week": 15,
+      "expected_qpr": 0.201,
+      "realized_qpr": 0.147,
+      "qpr_delta": -0.054,
+      "expected_mof_epa": 0.31,
+      "realized_mof_epa": 0.27,
+      "mof_epa_delta": -0.037,
+      "realized_pass_oe": -12.6,
+      "realized_epa_rush": 0.03,
+      "regime_tags": [],
+      "prior_decay_multiplier": 1.0,
+      "slot_te_mu_boost": 1.0,
+      "slot_te_floor_boost": 1.0,
+      "slot_te_ceiling_boost": 1.0,
+      "verdict": "Execution aligned with pre-game preview expectations"
+    },
+    "rolling_3wk": {
+      "quick_pressure_rate": 0.153,
+      "mof_epa_allowed": 0.387,
+      "rush_sr_allowed": 0.398,
+      "pressure_rate": 0.322,
+      "mof_pct": 0.188,
+      "weeks_counted": 3,
+      "is_rolling": true
+    },
+    "weekly_ledger": [
+      {
+        "week": 1,
+        "opponent": "NYJ",
+        "preview_hypothesis": "Inside/Slot Funnel (52% Man / 48% Zone) \u2014 TEN vs NYJ: 1-High 52.0% / 2-High 48.0% | Blitz 25.0% | Press 26.5% | Exp MOF EPA +0.17",
+        "review_execution": "TEN vs NYJ: Pass OE +8.2%, EPA/DB -0.20, Off Press Allowed 38.5% (QP 28.2%), Def MOF EPA Allowed -0.35, Rush SR Allowed 50.0%.",
+        "expected_qpr": 0.177,
+        "realized_qpr": 0.198,
+        "qpr_delta": 0.021,
+        "pressure_rate": 0.347,
+        "expected_mof_epa": 0.17,
+        "realized_mof_epa": -0.35,
+        "mof_epa_delta": -0.52,
+        "pass_oe": 8.2
+      },
+      {
+        "week": 2,
+        "opponent": "PHI",
+        "preview_hypothesis": "Inside/Slot Funnel (18% Man / 82% Zone) \u2014 TEN vs PHI: 1-High 18.4% / 2-High 81.6% | Blitz 25.0% | Press 47.4% | Exp MOF EPA +0.60",
+        "review_execution": "TEN vs PHI: Pass OE -16.0%, EPA/DB +0.00, Off Press Allowed 33.3% (QP 8.3%), Def MOF EPA Allowed +0.97, Rush SR Allowed 35.7%.",
+        "expected_qpr": 0.236,
+        "realized_qpr": 0.116,
+        "qpr_delta": -0.12,
+        "pressure_rate": 0.381,
+        "expected_mof_epa": 0.6,
+        "realized_mof_epa": 0.97,
+        "mof_epa_delta": 0.37,
+        "pass_oe": -16.0
+      },
+      {
+        "week": 3,
+        "opponent": "NYG",
+        "preview_hypothesis": "Inside/Slot Funnel (33% Man / 67% Zone) \u2014 TEN vs NYG: 1-High 32.8% / 2-High 67.2% | Blitz 20.9% | Press 33.0% | Exp MOF EPA +0.15",
+        "review_execution": "TEN vs NYG: Pass OE -10.9%, EPA/DB -0.17, Off Press Allowed 20.0% (QP 20.0%), Def MOF EPA Allowed -0.08, Rush SR Allowed 41.9%.",
+        "expected_qpr": 0.191,
+        "realized_qpr": 0.163,
+        "qpr_delta": -0.028,
+        "pressure_rate": 0.292,
+        "expected_mof_epa": 0.15,
+        "realized_mof_epa": -0.08,
+        "mof_epa_delta": -0.23,
+        "pass_oe": -10.9
+      },
+      {
+        "week": 15,
+        "opponent": "NYG",
+        "preview_hypothesis": "Standard baseline shell vs NYG",
+        "review_execution": "TEN vs NYG: Pass OE -10.9%, EPA/DB -0.17, Off Press Allowed 20.0% (QP 20.0%), Def MOF EPA Allowed -0.08, Rush SR Allowed 41.9%.",
+        "expected_qpr": 0.143,
+        "realized_qpr": 0.163,
+        "qpr_delta": 0.02,
+        "pressure_rate": 0.292,
+        "expected_mof_epa": -0.07,
+        "realized_mof_epa": -0.08,
+        "mof_epa_delta": -0.01,
+        "pass_oe": -10.9
+      }
+    ]
+  },
+  "WAS": {
+    "team": "WAS",
+    "preseason_expectation": "Balanced NFL Scheme Baseline (Prior QP 15.5%)",
+    "regime_tags": [
+      "SLOT_FUNNEL_HIGH",
+      "RUN_GAME_BROKEN"
+    ],
+    "expectation_delta": {
+      "team": "WAS",
+      "week": 15,
+      "expected_qpr": 0.199,
+      "realized_qpr": 0.179,
+      "qpr_delta": -0.02,
+      "expected_mof_epa": 0.19,
+      "realized_mof_epa": 0.62,
+      "mof_epa_delta": 0.433,
+      "realized_pass_oe": -1.6,
+      "realized_epa_rush": -0.23,
+      "regime_tags": [
+        "SLOT_FUNNEL_HIGH",
+        "RUN_GAME_BROKEN"
+      ],
+      "prior_decay_multiplier": 1.0,
+      "slot_te_mu_boost": 1.18,
+      "slot_te_floor_boost": 1.08,
+      "slot_te_ceiling_boost": 1.12,
+      "verdict": "Defense bled elevated MOF EPA (+0.62 realized vs +0.19 previewed) -> Opposing Slot/TE floor & ceiling elevated | Inefficient ground game (Rush EPA -0.23, Rush SR 41.2%)"
+    },
+    "rolling_3wk": {
+      "quick_pressure_rate": 0.179,
+      "mof_epa_allowed": 0.623,
+      "rush_sr_allowed": 0.454,
+      "pressure_rate": 0.405,
+      "mof_pct": 0.252,
+      "weeks_counted": 3,
+      "is_rolling": true
+    },
+    "weekly_ledger": [
+      {
+        "week": 1,
+        "opponent": "PHI",
+        "preview_hypothesis": "Inside/Slot Funnel (45% Man / 55% Zone) \u2014 WAS vs PHI: 1-High 45.0% / 2-High 55.0% | Blitz 25.0% | Press 35.3% | Exp MOF EPA -0.20",
+        "review_execution": "Philadelphia Eagles 24, Washington Commanders 22: The Eagles escape with a win, but some issues linger. The Philadelphia Eagles put together a win in Week 1 that included Jalen Hurts hitting two middle of the field throws, scrambling well, and throwing an under center play action",
+        "expected_qpr": 0.191,
+        "realized_qpr": 0.135,
+        "qpr_delta": -0.056,
+        "pressure_rate": 0.472,
+        "expected_mof_epa": -0.2,
+        "realized_mof_epa": 0.15,
+        "mof_epa_delta": 0.35,
+        "pass_oe": -6.7
+      },
+      {
+        "week": 2,
+        "opponent": "DAL",
+        "preview_hypothesis": "Inside/Slot Funnel (45% Man / 88% Zone) \u2014 WAS vs DAL: 1-High 45.0% / 2-High 88.2% | Blitz 38.2% | Press 33.0% | Exp MOF EPA +1.01",
+        "review_execution": "WAS vs DAL: Pass OE +0.6%, EPA/DB +0.11, Off Press Allowed 40.5% (QP 17.5%), Def MOF EPA Allowed +1.19, Rush SR Allowed 41.2%.",
+        "expected_qpr": 0.182,
+        "realized_qpr": 0.144,
+        "qpr_delta": -0.038,
+        "pressure_rate": 0.346,
+        "expected_mof_epa": 1.01,
+        "realized_mof_epa": 1.19,
+        "mof_epa_delta": 0.18,
+        "pass_oe": 0.6
+      },
+      {
+        "week": 3,
+        "opponent": "SEA",
+        "preview_hypothesis": "Inside/Slot Funnel (22% Man / 78% Zone) \u2014 WAS vs SEA: 1-High 22.2% / 2-High 77.8% | Blitz 25.0% | Press 37.5% | Exp MOF EPA -0.24",
+        "review_execution": "WAS vs SEA: Pass OE -2.7%, EPA/DB +0.02, Off Press Allowed 45.7% (QP 23.8%), Def MOF EPA Allowed +0.34, Rush SR Allowed 41.2%.",
+        "expected_qpr": 0.224,
+        "realized_qpr": 0.173,
+        "qpr_delta": -0.051,
+        "pressure_rate": 0.435,
+        "expected_mof_epa": -0.24,
+        "realized_mof_epa": 0.34,
+        "mof_epa_delta": 0.58,
+        "pass_oe": -2.7
+      },
+      {
+        "week": 15,
+        "opponent": "SEA",
+        "preview_hypothesis": "Standard baseline shell vs SEA",
+        "review_execution": "WAS vs SEA: Pass OE -2.7%, EPA/DB +0.02, Off Press Allowed 45.7% (QP 33.3%), Def MOF EPA Allowed +0.34, Rush SR Allowed 41.2%.",
+        "expected_qpr": 0.194,
+        "realized_qpr": 0.221,
+        "qpr_delta": 0.027,
+        "pressure_rate": 0.435,
+        "expected_mof_epa": 0.3,
+        "realized_mof_epa": 0.34,
+        "mof_epa_delta": 0.041,
+        "pass_oe": -2.7
+      }
+    ]
+  },
+  "WSH": {
+    "team": "WSH",
+    "preseason_expectation": "Balanced NFL Scheme Baseline (Prior QP 15.5%)",
+    "regime_tags": [
+      "SLOT_FUNNEL_HIGH"
+    ],
+    "expectation_delta": {
+      "team": "WSH",
+      "week": 1,
+      "expected_qpr": 0.155,
+      "realized_qpr": 0.155,
+      "qpr_delta": 0.0,
+      "expected_mof_epa": 0.52,
+      "realized_mof_epa": 0.52,
+      "mof_epa_delta": 0.0,
+      "realized_pass_oe": 0.0,
+      "realized_epa_rush": -0.05,
+      "regime_tags": [
+        "SLOT_FUNNEL_HIGH"
+      ],
+      "prior_decay_multiplier": 1.0,
+      "slot_te_mu_boost": 1.18,
+      "slot_te_floor_boost": 1.08,
+      "slot_te_ceiling_boost": 1.12,
+      "verdict": "Baseline Prior"
+    },
+    "rolling_3wk": {
+      "quick_pressure_rate": 0.155,
+      "mof_epa_allowed": 0.52,
+      "rush_sr_allowed": 0.468,
+      "pressure_rate": 0.248,
+      "mof_pct": 0.4,
+      "weeks_counted": 0,
+      "is_rolling": false
+    },
+    "weekly_ledger": []
+  }
+}

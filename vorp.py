@@ -14,6 +14,20 @@ import pandas as pd
 from typing import Dict, List, Any, Optional, Tuple
 from simulation import sample_player, simulate_matchup, summarize_distribution
 
+# Shared starter injury hazard rates for high-upside contingent RB stashes (handcuffs)
+HANDCUFF_HAZARD_RATES: Dict[str, float] = {
+    "Jerome Ford": 0.20,
+    "Jaylen Warren": 0.22,
+    "Rico Dowdle": 0.25,
+    "Isaac Guerendo": 0.25,
+    "Braelon Allen": 0.18,
+    "Tyler Allgeier": 0.18,
+    "Blake Corum": 0.18,
+    "Ray Davis": 0.15,
+    "Zach Charbonnet": 0.20,
+    "Chuba Hubbard": 0.22,
+}
+
 
 def calculate_waiver_baselines(
     waiver_pool: List[Dict[str, Any]],
@@ -121,6 +135,8 @@ def calculate_roster_vorp(
 ) -> pd.DataFrame:
     """
     Evaluate active roster players against their positional and flex baselines.
+    Uses vectorized counterfactual array arithmetic on the base matchup simulation
+    instead of re-simulating full matchups in a loop.
     Returns a DataFrame with:
       - Player Name, Position, Slot
       - Projected Score E[Player], Floor (P10), Ceiling (P90)
@@ -128,7 +144,6 @@ def calculate_roster_vorp(
       - Points VORP
       - Win-Rate VORP (Delta P(Win)) if opponent_roster is provided
     """
-    # Baseline matchup win rate if opponent provided
     base_matchup = None
     if opponent_roster:
         base_matchup = simulate_matchup(active_roster, opponent_roster, n_simulations=n_simulations)
@@ -145,8 +160,11 @@ def calculate_roster_vorp(
         sigma = float(player.get("sigma", 5.0))
         p_active = float(player.get("p_active", 1.0))
 
-        # Sample player
-        p_sim = sample_player(pos, mu, sigma, n=n_simulations, p_active=p_active)
+        # Reuse correlated matchup sample if available, otherwise sample standalone
+        if base_matchup and name in base_matchup.get("players_a_samples", {}):
+            p_sim = base_matchup["players_a_samples"][name]
+        else:
+            p_sim = sample_player(pos, mu, sigma, n=n_simulations, p_active=p_active)
         summary = summarize_distribution(p_sim)
 
         # Determine relevant replacement baseline
@@ -155,27 +173,21 @@ def calculate_roster_vorp(
         else:
             baseline_info = baselines.get(pos, baselines.get("FLEX", {}))
 
-        baseline_mean = baseline_info.get("baseline_mean", 8.0)
+        baseline_mean = float(baseline_info.get("baseline_mean", 8.0))
         baseline_name = baseline_info.get("player_name", "Waiver Baseline")
 
         # 1. Expected Points VORP
         pts_vorp = round(summary["mean"] - baseline_mean, 2)
 
-        # 2. Win-Rate VORP (Delta P(Win))
+        # 2. Vectorized Win-Rate VORP (Delta P(Win))
         delta_p_win = 0.0
         if opponent_roster and base_matchup:
-            # Create counterfactual roster replacing this player with waiver baseline
-            replacement_player = {
-                "name": baseline_name,
-                "position": baseline_info.get("position", pos),
-                "slot": slot,
-                "mu": baseline_mean,
-                "sigma": baseline_mean * 0.4,
-                "p_active": 1.0
-            }
-            counterfactual_roster = [p for i, p in enumerate(active_roster) if i != idx] + [replacement_player]
-            cf_matchup = simulate_matchup(counterfactual_roster, opponent_roster, n_simulations=n_simulations)
-            cf_win_rate = cf_matchup["p_win_a"]
+            base_sim = baseline_info.get("sim")
+            if base_sim is None or len(base_sim) != n_simulations:
+                base_pos = baseline_info.get("position", pos)
+                base_sim = sample_player(base_pos, baseline_mean, baseline_mean * 0.4, n=n_simulations, p_active=1.0)
+            cf_scores_a = base_matchup["team_a_scores"] - p_sim + base_sim
+            cf_win_rate = float(np.mean(cf_scores_a > base_matchup["team_b_scores"]))
             delta_p_win = round((team_win_rate - cf_win_rate) * 100.0, 2)
 
         records.append({
@@ -216,19 +228,6 @@ def calculate_contingency_leverage(
     Ranks bench assets by their 90th percentile contingency upside rather than standalone median.
     """
     records = []
-    # Known lead backs vs backup handcuffs mapping / hazard rates
-    handcuff_hazard_rates = {
-        "Jerome Ford": 0.20,
-        "Jaylen Warren": 0.22,
-        "Rico Dowdle": 0.25,
-        "Isaac Guerendo": 0.25,
-        "Braelon Allen": 0.18,
-        "Tyler Allgeier": 0.18,
-        "Blake Corum": 0.18,
-        "Ray Davis": 0.15,
-        "Zach Charbonnet": 0.20,
-        "Chuba Hubbard": 0.22
-    }
 
     for player in players_pool:
         pos = player.get("position", "WR").upper()
@@ -240,12 +239,12 @@ def calculate_contingency_leverage(
         standalone_mu = float(player.get("mu", 8.0))
         standalone_sigma = float(player.get("sigma", 4.0))
 
-        # Check if player is a backup / rotational back (standalone mu <= 13.0)
-        is_handcuff = standalone_mu <= 13.5 or name in handcuff_hazard_rates
+        # Check if player is a backup / rotational back (standalone mu <= 13.5)
+        is_handcuff = standalone_mu <= 13.5 or name in HANDCUFF_HAZARD_RATES
 
         if is_handcuff:
             # Baseline injury hazard rate of starter
-            p_starter_injury = handcuff_hazard_rates.get(name, 0.18)
+            p_starter_injury = HANDCUFF_HAZARD_RATES.get(name, 0.18)
 
             # Conditional RB1 workload: inherits bellcow role (~15.8 projected points, 6.2 sigma)
             conditional_mu = max(14.5, standalone_mu * 1.55)
@@ -337,25 +336,11 @@ def rank_waiver_wire_pool(
     Rank dynamic waiver wire pickups by their expected fantasy points,
     upside ceiling relative to the positional replacement baseline,
     and High-Probability Streamer Outperformance Score (OS = P(Score >= 12.0)).
-    Also annotates 2-QB league roster context against rostered quarterbacks.
+    Also annotates 2-QB League roster context against rostered quarterbacks.
     Supports mode='streamer' vs mode='stash'.
     """
     records = []
     min_qb = min(roster_qbs, key=lambda q: float(q.get("mu", 0.0))) if roster_qbs else None
-
-    # Known contingent hazard rates for stashes
-    handcuff_rates = {
-        "Jerome Ford": 0.20,
-        "Jaylen Warren": 0.22,
-        "Rico Dowdle": 0.25,
-        "Isaac Guerendo": 0.25,
-        "Braelon Allen": 0.18,
-        "Tyler Allgeier": 0.18,
-        "Blake Corum": 0.18,
-        "Ray Davis": 0.15,
-        "Zach Charbonnet": 0.20,
-        "Chuba Hubbard": 0.22
-    }
 
     for player in waiver_pool:
         pos = player.get("position", "WR").upper()
@@ -367,9 +352,8 @@ def rank_waiver_wire_pool(
         sigma = float(player.get("sigma", 4.0))
         p_active = float(player.get("p_active", 1.0))
 
-        if mode == "stash" and (pos == "RB" or name in handcuff_rates):
+        if mode == "stash" and (pos == "RB" or name in HANDCUFF_HAZARD_RATES):
             # Evaluate under contingent injury scenario
-            p_haz = handcuff_rates.get(name, 0.18)
             cond_mu = max(14.5, mu * 1.55)
             cond_sig = max(5.5, cond_mu * 0.40)
             sim = sample_player(pos, cond_mu, cond_sig, n=n_simulations, p_active=1.0)
@@ -427,7 +411,7 @@ def calculate_waiver_roster_upgrades(
     """
     Evaluates top available waiver wire free agents against the user's current bench and roster.
     Identifies clear net-positive Add/Drop transactions formatted as Atomic Transaction Pairs:
-      "[Priority #] Add [Target] ➔ Drop [Worst Bench Asset] | Net Gain | Suggested FAAB: $X (Y%)"
+      "[Priority #] Add [Target] ➔ Drop [Worst Bench Asset] | Win% Leverage | Suggested FAAB: $X (Y%)"
 
     Supports:
       - mode='streamer': 1-Week Spot Streamers (prioritizes immediate median projected points).
@@ -479,8 +463,8 @@ def calculate_waiver_roster_upgrades(
             "p10": summ_q["p10"],
             "p90": summ_q["p90"]
         })
-    # Sort rostered QBs ascending by projected mean (lowest projected rostered QB first)
-    evaluated_qbs.sort(key=lambda x: x["mean"])
+    # Sort rostered QBs ascending by projected expected points (lowest projected rostered QB first)
+    evaluated_qbs.sort(key=lambda x: (float(x.get("mu", x["mean"])), x["mean"]))
 
     # 2. Calculate distributions for user bench
     bench_evaluated = []
@@ -503,20 +487,6 @@ def calculate_waiver_roster_upgrades(
     bench_evaluated.sort(key=lambda x: x["mean"])
     non_qb_bench = [b for b in bench_evaluated if b.get("position", "").upper() != "QB"]
 
-    # Known contingent hazard rates for stashes
-    handcuff_rates = {
-        "Jerome Ford": 0.20,
-        "Jaylen Warren": 0.22,
-        "Rico Dowdle": 0.25,
-        "Isaac Guerendo": 0.25,
-        "Braelon Allen": 0.18,
-        "Tyler Allgeier": 0.18,
-        "Blake Corum": 0.18,
-        "Ray Davis": 0.15,
-        "Zach Charbonnet": 0.20,
-        "Chuba Hubbard": 0.22
-    }
-
     # 3. Evaluate waiver targets
     upgrades = []
     is_stash_mode = (mode == "stash")
@@ -530,7 +500,7 @@ def calculate_waiver_roster_upgrades(
         w_act = float(w.get("p_active", 1.0))
         w_name = w.get("name", "Unknown")
 
-        if is_stash_mode and (w_pos == "RB" or w_name in handcuff_rates):
+        if is_stash_mode and (w_pos == "RB" or w_name in HANDCUFF_HAZARD_RATES):
             # Model high-upside injury contingency: bellcow upside if starter is sidelined
             cond_mu = max(14.8, w_mu * 1.55)
             cond_sig = max(5.5, cond_mu * 0.40)
@@ -691,9 +661,10 @@ def calculate_waiver_roster_upgrades(
     else:
         df = df.sort_values(by=["Net Proj Gain", "Add Proj"], ascending=[False, False]).reset_index(drop=True)
 
-    # Calculate dynamic FAAB bid & format Atomic Transaction Pairs
+    # Calculate dynamic FAAB bid, Win% Leverage, & format Atomic Transaction Pairs
     atomic_pairs = []
     faab_displays = []
+    win_leverages = []
     cut_counts: Dict[str, int] = {}
     for idx, row in df.iterrows():
         p_rank = idx + 1
@@ -701,9 +672,18 @@ def calculate_waiver_roster_upgrades(
         cut_counts[cut_c] = cut_counts.get(cut_c, 0) + 1
         alt_suffix = "" if cut_counts[cut_c] == 1 else f" (Alternate Claim #{cut_counts[cut_c]-1})"
 
+        # Marginal Win% Leverage (in fraction and percentage points)
+        if row.get("is_stash", False):
+            haz = HANDCUFF_HAZARD_RATES.get(row["Target Waiver Add"], 0.18)
+            win_lev_frac = max(0.005, float(row["Net P90 Gain"]) * 0.014 * haz * 2.5)
+        else:
+            win_lev_frac = float(row["Net Proj Gain"]) * 0.016
+        win_lev_pct = round(win_lev_frac * 100.0, 1)
+        win_leverages.append(f"{win_lev_pct:+.1f}%")
+
         faab_val, faab_pct, faab_str = calculate_suggested_faab(
             net_pts_gain=float(row["Net Proj Gain"]),
-            win_leverage=float(row["Net Proj Gain"]) * 0.015,
+            win_leverage=win_lev_frac,
             remaining_faab=remaining_faab,
             priority_rank=p_rank,
             is_stash=row.get("is_stash", False),
@@ -711,11 +691,20 @@ def calculate_waiver_roster_upgrades(
         )
         faab_displays.append(faab_str)
         if row.get("is_stash", False):
-            pair_str = f"[Priority #{p_rank}] Add {row['Target Waiver Add']} ➔ Drop {cut_c}{alt_suffix} | Net Ceiling +{row['Net P90 Gain']:.1f} pts | Suggested FAAB: {faab_str}"
+            pair_str = (
+                f"[Priority #{p_rank}] Add {row['Target Waiver Add']} ➔ Drop {cut_c}{alt_suffix} "
+                f"| Win% Leverage: {win_lev_pct:+.1f}% (Net Ceiling +{row['Net P90 Gain']:.1f} pts) "
+                f"| Suggested FAAB: {faab_str}"
+            )
         else:
-            pair_str = f"[Priority #{p_rank}] Add {row['Target Waiver Add']} ➔ Drop {cut_c}{alt_suffix} | Net Gain {row['Net Proj Gain']:+.1f} pts | Suggested FAAB: {faab_str}"
+            pair_str = (
+                f"[Priority #{p_rank}] Add {row['Target Waiver Add']} ➔ Drop {cut_c}{alt_suffix} "
+                f"| Win% Leverage: {win_lev_pct:+.1f}% (Net Gain {row['Net Proj Gain']:+.1f} pts) "
+                f"| Suggested FAAB: {faab_str}"
+            )
         atomic_pairs.append(pair_str)
 
+    df["Win% Leverage"] = win_leverages
     df["Suggested FAAB"] = faab_displays
     df["Atomic Transaction Pair"] = atomic_pairs
     df["Priority"] = [f"#{i+1}" for i in range(len(df))]
