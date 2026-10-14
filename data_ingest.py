@@ -395,7 +395,7 @@ CURATED_NFL_PROPS: Dict[str, Dict[str, Any]] = {
     "puka nacua": {"rec_yds": 84.5, "receptions": 7.2, "rush_yds": 1.5, "anytime_td_prob": 0.35, "team_implied": 24.5},
     "tee higgins": {"rec_yds": 64.5, "receptions": 5.0, "rush_yds": 0.0, "anytime_td_prob": 0.30, "team_implied": 26.0},
     "wandale robinson": {"rec_yds": 46.5, "receptions": 5.5, "rush_yds": 3.0, "anytime_td_prob": 0.19, "team_implied": 18.5},
-    "demario douglas": {"rec_yds": 52.5, "receptions": 4.8, "rush_yds": 2.0, "anytime_td_prob": 0.20, "team_implied": 19.0},
+    "demario douglas": {"rec_yds": 38.5, "receptions": 3.4, "rush_yds": 1.5, "anytime_td_prob": 0.14, "team_implied": 19.0},
     "jalen coker": {"rec_yds": 46.5, "receptions": 3.8, "rush_yds": 0.0, "anytime_td_prob": 0.20, "team_implied": 19.0},
     "adonai mitchell": {"rec_yds": 38.5, "receptions": 2.8, "rush_yds": 0.0, "anytime_td_prob": 0.18, "team_implied": 21.5},
     "jack bech": {"rec_yds": 32.5, "receptions": 2.5, "rush_yds": 0.0, "anytime_td_prob": 0.14, "team_implied": 19.5},
@@ -413,11 +413,12 @@ CURATED_NFL_PROPS: Dict[str, Dict[str, Any]] = {
 def build_all_player_props_cache(api_key: Optional[str] = None) -> Dict[str, Dict[str, Any]]:
     """
     Build a comprehensive player props cache combining live markets from The Odds API
-    with curated high-fidelity consensus lines.
+    with curated high-fidelity consensus lines as fallback.
+    Live market lines strictly take precedence over static curated fallback priors.
     Aggregates the consensus median across bookmakers for every prop line and de-vigs
     raw Anytime TD market odds using the game's Vegas O/U total. Cached for 4 hours (14400s).
     """
-    cache: Dict[str, Dict[str, Any]] = {k: dict(v) for k, v in CURATED_NFL_PROPS.items()}
+    cache: Dict[str, Dict[str, Any]] = {k: {**v, "is_live_odds": False} for k, v in CURATED_NFL_PROPS.items()}
 
     raw_odds = fetch_nfl_odds(api_key=api_key)
     if not raw_odds:
@@ -474,8 +475,9 @@ def build_all_player_props_cache(api_key: Optional[str] = None) -> Dict[str, Dic
                         raw_td_lists.setdefault(norm_name, []).append(american_odds_to_prob(price_val))
 
         for norm_name, prop_lists in event_player_lines.items():
-            if norm_name not in cache:
-                cache[norm_name] = {}
+            if norm_name not in cache or not cache[norm_name].get("is_live_odds"):
+                prior_implied = cache.get(norm_name, {}).get("team_implied", round(game_total / 2.0, 1))
+                cache[norm_name] = {"team_implied": prior_implied, "is_live_odds": True}
             for prop_field, vals in prop_lists.items():
                 if vals:
                     cache[norm_name][prop_field] = round(float(statistics.median(vals)), 1)
@@ -486,11 +488,9 @@ def build_all_player_props_cache(api_key: Optional[str] = None) -> Dict[str, Dic
             devigged_tds = devig_anytime_td_probabilities(raw_td_median, realistic_td_total=realistic_game_tds)
             for p_name, devig_p in devigged_tds.items():
                 if p_name not in cache:
-                    cache[p_name] = {}
+                    cache[p_name] = {"team_implied": round(game_total / 2.0, 1), "is_live_odds": True}
                 cache[p_name]["anytime_td_prob"] = devig_p
-
-    for k, v in CURATED_NFL_PROPS.items():
-        cache[k] = {**cache.get(k, {}), **v}
+                cache[p_name]["is_live_odds"] = True
 
     return cache
 
@@ -1109,7 +1109,12 @@ def calculate_projection_params(
             try:
                 hist = scheme_db.get_player_usage_history(player_name)
                 if not hist.empty and "adot" in hist.columns:
-                    player_adot = float(hist["adot"].iloc[-1])
+                    # Use median across recorded weeks rather than a single-game outlier spike
+                    raw_adot = float(hist["adot"].median())
+                    if align_tag == "Slot Primary" and (slot_pct or 0.0) >= 0.65:
+                        player_adot = min(8.2, raw_adot)
+                    else:
+                        player_adot = raw_adot
             except Exception:
                 pass
 
@@ -1131,6 +1136,7 @@ def calculate_projection_params(
         float(props.get(k, 0.0) or 0.0) > 0
         for k in ["pass_yds", "rush_yds", "receptions", "rec_yds", "anytime_td_prob", "opp_implied_pts"]
     ))
+    is_live_vegas = bool(props and props.get("is_live_odds", True))
 
     ath_entry = get_matched_athletic_projection(player_name, position=position) if player_name else {}
 
@@ -1147,9 +1153,13 @@ def calculate_projection_params(
         )
 
         if has_vegas_props:
-            # 50% Vegas Implied / 50% Athletic Custom Mu Blend
-            mu = round(0.50 * vegas_mu + 0.50 * ath_mu, 2)
-            sigma_base = 0.50 * vegas_sigma + 0.50 * ath_sigma
+            # If props come from live sportsbook markets (or explicitly passed in tests), use 50/50 blend.
+            # If props are static fallback priors and diverge sharply from The Athletic's weekly sheet,
+            # anchor 75% on The Athletic's fresh weekly projection and 25% on the static prior.
+            w_vegas = 0.50 if (is_live_vegas or abs(vegas_mu - ath_mu) <= 3.0) else 0.25
+            w_ath = 1.0 - w_vegas
+            mu = round(w_vegas * vegas_mu + w_ath * ath_mu, 2)
+            sigma_base = w_vegas * vegas_sigma + w_ath * ath_sigma
             breakdown = {**ath_breakdown, **vegas_breakdown}
             breakdown["source"] = "Hybrid (50% Vegas / 50% Athletic)"
             breakdown["vegas_mu"] = round(vegas_mu, 2)
