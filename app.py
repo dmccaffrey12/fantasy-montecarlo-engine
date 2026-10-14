@@ -1209,7 +1209,8 @@ with tab_feeds:
         team_a_roster=team_a_roster,
         team_a_bench=team_a_bench,
         team_b_roster=team_b_roster,
-        matchup_result=matchup_result
+        matchup_result=matchup_result,
+        waiver_upgrades_df=df_upgrades
     )
 
     inv_col1, inv_col2, inv_col3, inv_col4 = st.columns(4)

@@ -970,7 +970,8 @@ def analyze_matchup_inversion(
     team_a_roster: List[Dict[str, Any]],
     team_a_bench: List[Dict[str, Any]],
     team_b_roster: List[Dict[str, Any]],
-    matchup_result: Optional[Dict[str, Any]] = None
+    matchup_result: Optional[Dict[str, Any]] = None,
+    waiver_upgrades_df: Optional[pd.DataFrame] = None
 ) -> Dict[str, Any]:
     """
     Game-Theoretic Matchup Inversion Solver.
@@ -979,6 +980,9 @@ def analyze_matchup_inversion(
     to mathematically determine whether to:
       1. Compress variance & block opponent stacks (High-Floor / Positive Correlation Hedge), or
       2. Expand variance & stack ceiling assets (High-Volatility / Anti-Correlated Upside Swing).
+    Strictly synchronizes with Tab 3's Waiver Claim Sheet so bench players designated as
+    Cut Candidates are never pitched as tactical starting subs, and requires actual statistical
+    P90 ceiling or P10 floor improvement over an eligible starter.
 
     Mathematical Foundation:
       P(Win) ~ Phi((mu_A - mu_B) / sqrt(sigma_A^2 + sigma_B^2 - 2 * rho_AB * sigma_A * sigma_B))
@@ -1026,33 +1030,120 @@ def analyze_matchup_inversion(
         for p in team_a_roster if str(p.get("position", "")).upper() == "QB"
     }
 
+    # Synchronize with Tab 3 Waiver Claim Sheet: identify bench cut candidates & their top waiver replacements
+    cut_candidate_map: Dict[str, Dict[str, Any]] = {}
+    if waiver_upgrades_df is not None and not waiver_upgrades_df.empty and "Cut Candidate" in waiver_upgrades_df.columns:
+        for _, u_row in waiver_upgrades_df.iterrows():
+            c_name = str(u_row.get("Cut Candidate", "")).strip()
+            if c_name and c_name not in cut_candidate_map:
+                cut_candidate_map[c_name] = {
+                    "target_add": u_row.get("Target Waiver Add", ""),
+                    "add_pos": u_row.get("Pos", ""),
+                    "add_p90": float(u_row.get("Ceiling (P90)", u_row.get("Add P90", 0.0)) or 0.0),
+                    "add_p10": float(u_row.get("Floor (P10)", u_row.get("Add P10", 0.0)) or 0.0),
+                    "add_med": float(u_row.get("Projected (Med)", u_row.get("Add Proj", 0.0)) or 0.0),
+                    "net_gain": float(u_row.get("Net Proj Gain", 0.0) or 0.0),
+                    "faab": u_row.get("Suggested FAAB", "")
+                }
+
+    # Precompute starter percentiles to verify bench recommendations actually improve floor or ceiling
+    starter_profiles = []
+    for s in team_a_roster:
+        if s.get("is_inactive") or float(s.get("p_active", 1.0)) <= 0:
+            continue
+        s_pos = str(s.get("position", "WR")).upper()
+        s_slot = str(s.get("slot", s_pos)).upper()
+        s_mu = float(s.get("mu", 0.0))
+        s_sig = float(s.get("sigma", 0.0))
+        s_act = float(s.get("p_active", 1.0))
+        s_pcts = get_analytical_percentiles(s_pos, s_mu, s_sig, s_act)
+        starter_profiles.append({
+            "name": s.get("name", ""),
+            "pos": s_pos,
+            "slot": s_slot,
+            "mu": s_mu,
+            "sigma": s_sig,
+            "cv": (s_sig / s_mu) if s_mu > 0 else 0.40,
+            "p10": s_pcts["p10"],
+            "p90": s_pcts["p90"],
+            "median": s_pcts["median"],
+        })
+
+    def _get_eligible_starters_for_bench(b_pos: str) -> List[Dict[str, Any]]:
+        eligible = []
+        for sp in starter_profiles:
+            sl = sp["slot"]
+            if sl == "OP" and b_pos in ["QB", "RB", "WR", "TE"]:
+                eligible.append(sp)
+            elif ("QB" in sl or sp["pos"] == "QB") and b_pos == "QB":
+                eligible.append(sp)
+            elif sl == "TE" and b_pos == "TE":
+                eligible.append(sp)
+            elif ("FLEX" in sl or "WR/TE" in sl or "RB/WR/TE" in sl) and b_pos in ["RB", "WR", "TE"]:
+                eligible.append(sp)
+            elif ("RB" in sl or sp["pos"] == "RB") and b_pos == "RB":
+                eligible.append(sp)
+            elif ("WR" in sl or sp["pos"] == "WR") and b_pos == "WR":
+                eligible.append(sp)
+        return eligible
+
     tactical_moves = []
     for b in team_a_bench:
-        if b.get("is_inactive") or float(b.get("p_active", 1.0)) <= 0:
+        if b.get("is_inactive") or float(b.get("p_active", 1.0)) <= 0 or b.get("is_on_bye"):
             continue
+        b_name = b.get("name", "")
         b_team = str(b.get("team", "")).upper()
         b_pos = str(b.get("position", "")).upper()
         b_arch = str(b.get("alignment_tag", ""))
+        b_mu = float(b.get("mu", 0.0))
+        b_sig = float(b.get("sigma", 0.0))
+        b_act = float(b.get("p_active", 1.0))
+        b_pcts = get_analytical_percentiles(b_pos, b_mu, b_sig, b_act)
+        b_p10 = b_pcts["p10"]
+        b_p90 = b_pcts["p90"]
+        b_cv = (b_sig / b_mu) if b_mu > 0 else 0.40
+
+        # 1. If this bench player is flagged as a Waiver Cut Candidate on Tab 3, DO NOT recommend starting them!
+        if b_name in cut_candidate_map:
+            cut_info = cut_candidate_map[b_name]
+            tactical_moves.append(
+                f"🔄 **Waiver Cut Synergy ({b_name} ➔ {cut_info['target_add']})**: {b_name} projects for a low ceiling "
+                f"(P90: {b_p90:.1f} pts, Med: {b_pcts['median']:.1f} pts) and is designated as a **Tab 3 Cut Candidate**. "
+                f"Claim **{cut_info['target_add']}** ({cut_info['add_pos']}, P90 Ceiling: {cut_info['add_p90']:.1f} pts, "
+                f"Net +{cut_info['net_gain']:.1f} pts | FAAB {cut_info['faab']}) to upgrade your roster."
+            )
+            continue
+
+        eligible_starters = _get_eligible_starters_for_bench(b_pos)
+        weakest_ceiling_starter = min(eligible_starters, key=lambda x: x["p90"]) if eligible_starters else None
+        weakest_floor_starter = min(eligible_starters, key=lambda x: x["p10"]) if eligible_starters else None
 
         if spread >= 0:
             # We are the Favorite (dP/dSigma_M < 0): want variance compression OR positive correlation blocking
-            if b_team in opp_qb_teams and b_pos in ["WR", "TE"]:
+            if b_team in opp_qb_teams and b_pos in ["WR", "TE"] and b_mu >= 8.5:
                 tactical_moves.append(
-                    f"🛡️ **Correlation Block ({b['name']})**: Starting {b['name']} ({b_team}) correlates positively (ρ = +0.40) with opponent QB {opp_qb_teams[b_team]}, neutralizing their comeback ceiling."
+                    f"🛡️ **Correlation Block ({b_name})**: Starting {b_name} ({b_team}, Med {b_pcts['median']:.1f} pts) "
+                    f"correlates positively (ρ = +0.40) with opponent QB {opp_qb_teams[b_team]}, neutralizing their comeback ceiling."
                 )
-            elif "Slot" in b_arch:
+            elif weakest_floor_starter and b_p10 >= weakest_floor_starter["p10"] + 0.5 and ("Slot" in b_arch or b_cv <= 0.42):
                 tactical_moves.append(
-                    f"🔒 **Variance Compression ({b['name']})**: {b['name']} ({b_arch}) tightens lineup floor (low CV) to protect your {spread:+.1f} pt cushion."
+                    f"🔒 **Variance Compression ({b_name} over {weakest_floor_starter['name']})**: {b_name} ({b_arch}) "
+                    f"raises your {weakest_floor_starter['slot']} floor (P10: {b_p10:.1f} vs {weakest_floor_starter['p10']:.1f} pts) "
+                    f"to protect your {spread:+.1f} pt cushion."
                 )
         else:
-            # We are the Underdog (dP/dSigma_M > 0): want variance expansion & self-stacking
-            if b_team in own_qb_teams and b_pos in ["WR", "TE"]:
+            # We are the Underdog (dP/dSigma_M > 0): want variance expansion, true P90 ceiling upgrades, & self-stacking
+            if b_team in own_qb_teams and b_pos in ["WR", "TE"] and b_p90 >= 13.0:
                 tactical_moves.append(
-                    f"⚡ **Double-Stack Leverage ({b['name']})**: Pairing {b['name']} with your QB {own_qb_teams[b_team]} injects +0.40 covariance to overcome a {spread:.1f} pt deficit."
+                    f"⚡ **Double-Stack Leverage ({b_name})**: Pairing {b_name} (P90: {b_p90:.1f} pts) with your QB "
+                    f"{own_qb_teams[b_team]} injects +0.40 covariance to overcome a {spread:.1f} pt deficit."
                 )
-            elif "Boundary" in b_arch:
+            elif weakest_ceiling_starter and (b_p90 >= weakest_ceiling_starter["p90"] + 1.0 or (b_cv >= 0.48 and b_p90 >= 14.5)):
+                gain_p90 = b_p90 - weakest_ceiling_starter["p90"]
                 tactical_moves.append(
-                    f"🚀 **Right-Tail Swing ({b['name']})**: {b['name']} ({b_arch}) maximizes P90/P95 right-tail skewness."
+                    f"🚀 **Right-Tail Swing ({b_name} over {weakest_ceiling_starter['name']})**: {b_name} ({b_pos}) "
+                    f"elevates {weakest_ceiling_starter['slot']} 90th-percentile ceiling to **{b_p90:.1f} pts** "
+                    f"({gain_p90:+.1f} P90 over {weakest_ceiling_starter['name']}'s {weakest_ceiling_starter['p90']:.1f} pts)."
                 )
 
     if spread >= 3.0:

@@ -451,10 +451,10 @@ def calculate_waiver_roster_upgrades(
     evaluated_qbs = []
     for qb in roster_qbs:
         q_pos = "QB"
-        q_mu = float(qb.get("mu", 16.0))
-        q_sig = float(qb.get("sigma", 4.8))
-        q_act = float(qb.get("p_active", 1.0))
-        sim_q = sample_player(q_pos, q_mu, q_sig, n=n_simulations, p_active=q_act)
+        q_mu = float(qb.get("ros_mu") or qb.get("mu", 16.0) or 16.0)
+        q_sig = float(qb.get("ros_sigma") or qb.get("sigma", 4.8) or 4.8)
+        q_act = 1.0 if qb.get("is_on_bye") else float(qb.get("p_active", 1.0))
+        sim_q = sample_player(q_pos, q_mu, q_sig, n=n_simulations, p_active=max(0.5, q_act))
         summ_q = summarize_distribution(sim_q)
         evaluated_qbs.append({
             **qb,
@@ -464,15 +464,19 @@ def calculate_waiver_roster_upgrades(
             "p90": summ_q["p90"]
         })
     # Sort rostered QBs ascending by projected expected points (lowest projected rostered QB first)
-    evaluated_qbs.sort(key=lambda x: (float(x.get("mu", x["mean"])), x["mean"]))
+    evaluated_qbs.sort(key=lambda x: (float(x.get("ros_mu") or x.get("mu", x["mean"])), x["mean"]))
 
-    # 2. Calculate distributions for user bench
+    # 2. Calculate distributions for user bench (protecting Bye-Week studs via ros_mu)
     bench_evaluated = []
     for b in user_bench:
         pos = b.get("position", "WR").upper()
-        mu = float(b.get("mu", 8.0))
-        sigma = float(b.get("sigma", 4.0))
-        p_act = float(b.get("p_active", 1.0))
+        is_bye = bool(b.get("is_on_bye", False) or str(b.get("injury_status", "")).upper() == "BYE")
+        mu = float(b.get("ros_mu") if is_bye and b.get("ros_mu") else b.get("mu", 8.0))
+        sigma = float(b.get("ros_sigma") if is_bye and b.get("ros_sigma") else b.get("sigma", 4.0))
+        p_act = 1.0 if is_bye else float(b.get("p_active", 1.0))
+        # Never cut a high-value starter resting on their Bye Week
+        if is_bye and mu >= 11.5:
+            continue
         sim = sample_player(pos, mu, sigma, n=n_simulations, p_active=p_act)
         summ = summarize_distribution(sim)
         bench_evaluated.append({

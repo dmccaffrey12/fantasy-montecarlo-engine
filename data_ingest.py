@@ -1310,8 +1310,23 @@ def sync_espn_league(
             matched_props = get_matched_player_props(p.name, props_cache, p.position)
             p_act_poly, poly_source = get_polymarket_player_probability(p.name, clean_status, default_p=p_active)
 
-            # Determine baseline projected points (inactive players strictly 0.0)
-            if is_inactive:
+            # Resolve actual NFL opponent & detect Bye Week for the current week
+            p_pro_team = getattr(p, "proTeam", "NFL")
+            opp_team = ""
+            is_on_bye = False
+            if hasattr(p, "schedule") and isinstance(p.schedule, dict) and len(p.schedule) > 0:
+                w_str = str(current_week)
+                if w_str in p.schedule and isinstance(p.schedule[w_str], dict):
+                    opp_team = str(p.schedule[w_str].get("team", "")).upper()
+                elif str(p_pro_team).upper() not in ["FA", "NFL", ""]:
+                    # Player has a valid NFL schedule dict, but no entry for current_week -> ON BYE
+                    is_on_bye = True
+                    opp_team = "BYE"
+            if not opp_team and not is_on_bye and p_pro_team:
+                opp_team = CURRENT_NFL_SCHEDULE.get(str(p_pro_team).upper(), "")
+
+            # Determine baseline projected points (inactive or bye-week players strictly 0.0 for this week)
+            if is_inactive or is_on_bye:
                 proj = 0.0
             else:
                 proj = float(getattr(p, "projected_avg_points", 0.0) or getattr(p, "avg_points", 0.0) or getattr(p, "projected_points", 10.0) or 10.0)
@@ -1319,27 +1334,25 @@ def sync_espn_league(
                     proj = float(getattr(p, "avg_points", 10.0) or 10.0)
 
             # Parameter synthesis under user's idiosyncratic league scoring rules
-            mu, sigma, p_act, breakdown = calculate_projection_params(
+            ros_mu, ros_sigma, ros_p_act, breakdown = calculate_projection_params(
                 position=p.position,
                 props=matched_props if matched_props else None,
-                default_proj=proj,
+                default_proj=max(10.0, float(getattr(p, "avg_points", 10.0) or 10.0)) if is_on_bye else proj,
                 ppr=ppr,
-                polymarket_prob=p_act_poly,
+                polymarket_prob=1.0 if is_on_bye else p_act_poly,
                 is_inactive=is_inactive,
                 scoring_cfg=scoring_cfg,
                 return_breakdown=True,
                 player_name=p.name
             )
 
-            # Resolve actual NFL opponent for the current week
-            p_pro_team = getattr(p, "proTeam", "NFL")
-            opp_team = ""
-            if hasattr(p, "schedule") and p.schedule:
-                w_str = str(current_week)
-                if w_str in p.schedule and isinstance(p.schedule[w_str], dict):
-                    opp_team = str(p.schedule[w_str].get("team", "")).upper()
-            if not opp_team and p_pro_team:
-                opp_team = CURRENT_NFL_SCHEDULE.get(str(p_pro_team).upper(), "")
+            if is_on_bye:
+                mu, sigma, p_act = 0.0, 0.0, 0.0
+                clean_status = "BYE"
+                poly_source = f"Week {current_week} Bye (0% active)"
+                breakdown = {**breakdown, "source": f"Week {current_week} BYE (ROS μ={ros_mu:.1f})"}
+            else:
+                mu, sigma, p_act = ros_mu, ros_sigma, ros_p_act
 
             p_info = {
                 "name": p.name,
@@ -1350,9 +1363,12 @@ def sync_espn_league(
                 "opponent_team": opp_team,
                 "mu": mu,
                 "sigma": sigma,
+                "ros_mu": ros_mu,
+                "ros_sigma": ros_sigma,
                 "p_active": p_act,
                 "injury_status": clean_status,
-                "is_inactive": is_inactive,
+                "is_inactive": is_inactive or is_on_bye,
+                "is_on_bye": is_on_bye,
                 "avg_points": float(getattr(p, "avg_points", 0.0) or 0.0),
                 "proj_points": proj,
                 "prop_source": breakdown.get("source", "Idiosyncratic Baseline"),
