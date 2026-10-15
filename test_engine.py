@@ -17,6 +17,7 @@ import vorp
 import pdf_parser
 import scheme_db
 import scoring_config
+import trade_analyzer
 
 
 def test_data_ingest():
@@ -822,39 +823,47 @@ def test_copula_and_next_horizon():
 def test_athletic_excel_and_hybrid_blending():
     print("\n=== Testing 12: The Athletic Multi-Block Excel Parser & 50/50 Hybrid Blending ===")
 
-    # Test 12.1: Multi-Block Excel Parsing (186 Skill Players + 30 D/STs)
+    # Test 12.1: Multi-Block Excel Parsing (Week6_Proj_1015.xlsx: 183 Skill Players + 28 D/STs with 4 Bye teams)
     summary = data_ingest.get_athletic_projection_summary()
     counts = summary["counts"]
-    assert counts["QB"] == 30, f"Expected 30 QBs, got {counts['QB']}"
+    assert counts["QB"] == 28, f"Expected 28 QBs, got {counts['QB']}"
     assert counts["RB"] == 60, f"Expected 60 RBs, got {counts['RB']}"
-    assert counts["WR"] == 71, f"Expected 71 WRs, got {counts['WR']}"
+    assert counts["WR"] == 70, f"Expected 70 WRs, got {counts['WR']}"
     assert counts["TE"] == 25, f"Expected 25 TEs, got {counts['TE']}"
-    assert summary["skill_total"] == 186, f"Expected 186 skill players, got {summary['skill_total']}"
-    assert summary["dst_total"] == 30, f"Expected 30 DSTs, got {summary['dst_total']}"
-    print(f"  [PASS] Multi-Block Excel Parser: Extracted {summary['skill_total']} Skill Players (30 QB, 60 RB, 71 WR, 25 TE) + {summary['dst_total']} D/STs.")
+    assert summary["skill_total"] == 183, f"Expected 183 skill players, got {summary['skill_total']}"
+    assert summary["dst_total"] == 28, f"Expected 28 DSTs, got {summary['dst_total']}"
+    print(f"  [PASS] Multi-Block Excel Parser ({summary['filename']}): Extracted {summary['skill_total']} Skill Players (28 QB, 60 RB, 70 WR, 25 TE) + {summary['dst_total']} D/STs.")
 
     # Test 12.2: Custom ESPN Multipliers on Raw Stat Columns (Ignoring Default 'Proj')
-    goff_ath = data_ingest.get_matched_athletic_projection("Jared Goff", position="QB")
-    assert goff_ath["athletic_proj"] == 21.1
-    # Custom Mu: 287.8*0.04 (11.512) + 2.5*6.0 (15.0) + 0.5*(-1.0) (-0.5) + 5.0*0.10 (0.5) = 26.51
-    assert abs(goff_ath["custom_mu"] - 26.51) < 0.05, f"Expected Goff custom_mu=26.51, got {goff_ath['custom_mu']}"
-    print(f"  [PASS] Custom Stat Multiplier Scoring: Jared Goff Default Proj=21.1 -> Custom League Mu={goff_ath['custom_mu']:.2f} pts.")
+    dak_ath = data_ingest.get_matched_athletic_projection("Dak Prescott", position="QB")
+    assert dak_ath["athletic_proj"] > 15.0
+    expected_dak_mu = round(
+        dak_ath["pass_yds"] * 0.04
+        + dak_ath["pass_tds"] * 6.0
+        + dak_ath["ints"] * (-1.0)
+        + dak_ath["rush_yds"] * 0.10
+        + dak_ath["rush_tds"] * 6.0,
+        2,
+    )
+    assert abs(dak_ath["custom_mu"] - expected_dak_mu) < 0.05, f"Expected Dak custom_mu={expected_dak_mu}, got {dak_ath['custom_mu']}"
+    print(f"  [PASS] Custom Stat Multiplier Scoring: Dak Prescott Default Proj={dak_ath['athletic_proj']} -> Custom League Mu={dak_ath['custom_mu']:.2f} pts.")
 
     # Test 12.3: 50% Vegas Implied / 50% Athletic Custom Mu Hybrid Blending
     props_cache = data_ingest.build_all_player_props_cache()
-    goff_props = data_ingest.get_matched_player_props("Jared Goff", props_cache, "QB")
+    dak_props = data_ingest.get_matched_player_props("Dak Prescott", props_cache, "QB")
     mu_blend, sig_blend, _, bk_blend = data_ingest.calculate_projection_params(
         position="QB",
-        props=goff_props,
-        player_name="Jared Goff",
+        props=dak_props,
+        player_name="Dak Prescott",
         return_breakdown=True
     )
     assert bk_blend["source"] == "Hybrid (50% Vegas / 50% Athletic)"
     expected_blend = round(0.50 * bk_blend["vegas_mu"] + 0.50 * bk_blend["athletic_custom_mu"], 2)
     assert abs(mu_blend - expected_blend) < 0.05, f"Expected 50/50 blend {expected_blend}, got {mu_blend}"
-    print(f"  [PASS] 50/50 Hybrid Blending: Goff Vegas({bk_blend['vegas_mu']}) + Athletic({bk_blend['athletic_custom_mu']}) -> Blended Mu={mu_blend:.2f}, Calibrated Sigma={sig_blend:.2f}.")
+    print(f"  [PASS] 50/50 Hybrid Blending: Dak Vegas({bk_blend['vegas_mu']}) + Athletic({bk_blend['athletic_custom_mu']}) -> Blended Mu={mu_blend:.2f}, Calibrated Sigma={sig_blend:.2f}.")
 
     # Test 12.4: Universal Baseline for Players Without Vegas Props
+    bowers_ath = data_ingest.get_matched_athletic_projection("Brock Bowers", position="TE")
     mu_bowers, sig_bowers, _, bk_bowers = data_ingest.calculate_projection_params(
         position="TE",
         props=None,
@@ -862,7 +871,7 @@ def test_athletic_excel_and_hybrid_blending():
         return_breakdown=True
     )
     assert bk_bowers["source"] == "The Athletic Custom Baseline"
-    assert abs(mu_bowers - (6.5 * 1.0 + 62.3 * 0.1 + 0.5 * 6.0)) < 0.05
+    assert abs(mu_bowers - bowers_ath["custom_mu"]) < 0.05
     print(f"  [PASS] Universal Athletic Baseline (No Vegas Props): Brock Bowers Mu={mu_bowers:.2f} pts, Sigma={sig_bowers:.2f} ({bk_bowers['source']}).")
 
 
@@ -926,6 +935,40 @@ def test_dual_newsletter_and_longitudinal_narratives():
     print(f"  [PASS] Longitudinal Deep Dive & Bayesian Decay: CLE {len(cle_dive['timeline_df'])}-Week Timeline Built; CLE WR Prior Weight={meta_cle['prior_weight']} vs Standard={meta_std['prior_weight']} (Mu: {mu_cle:.2f} vs {mu_std:.2f}).")
 
 
+def test_idiosyncratic_trade_analyzer():
+    print("\n=== Testing 14: Idiosyncratic Trade Analyzer & Bilateral 9-Slot Lineup Engine ===")
+
+    rosters = trade_analyzer.get_default_bodhizafa_trade_rosters()
+    eatin_roster = rosters["Eatin TDs like Groceries"]
+    bodhizafa_roster = rosters["BODHIZAFA"]
+
+    eval_res = trade_analyzer.evaluate_trade_package(
+        team_a_name="Eatin TDs like Groceries",
+        team_a_roster=eatin_roster,
+        team_b_name="BODHIZAFA",
+        team_b_roster=bodhizafa_roster,
+        team_a_gives_names=["DJ Moore", "Chase Brown", "Jalen Coker"],
+        team_a_receives_names=["Jonathan Taylor", "Dontayvion Wicks", "Devaughn Vele", "Seth McGowan"],
+        n_simulations=5000,
+    )
+
+    m = eval_res["metrics"]
+    assert m["wk6_starter_delta"] > 6.5, f"Expected Wk6 starter delta > +6.5 pts, got {m['wk6_starter_delta']}"
+    assert m["ros_model_effective_delta"] > 2.0, f"Expected positive ROS model effective delta, got {m['ros_model_effective_delta']}"
+    assert abs(m["fs_incoming_active_vorp"] - 163.14) < 0.5, f"Expected Taylor FS active VORP ~163.14, got {m['fs_incoming_active_vorp']}"
+    assert abs(m["fs_outgoing_active_vorp"] - 336.66) < 0.5, f"Expected Outgoing FS active VORP ~336.66, got {m['fs_outgoing_active_vorp']}"
+    assert abs(m["fs_incoming_auc"] - 27.40) < 0.2, f"Expected Taylor FS Auction ~$27.40, got {m['fs_incoming_auc']}"
+    assert abs(m["fs_outgoing_auc"] - 56.54) < 0.2, f"Expected Outgoing FS Auction ~$56.54, got {m['fs_outgoing_auc']}"
+    assert m["bayes_ros_starter_delta"] < 0, f"Expected negative Bayesian 50/50 ROS starter delta for 4-for-3, got {m['bayes_ros_starter_delta']}"
+    assert len(eval_res["synergies_a"]["handcuff_pairs"]) == 1, "Expected IND Backfield Handcuff pair (Taylor + McGowan)"
+    assert eval_res["synergies_a"]["handcuff_pairs"][0]["handcuff_rb"] == "Seth McGowan"
+    assert eval_res["dropped_players_a"][0]["name"] == "Rico Dowdle", f"Expected pre-existing bench drop 'Rico Dowdle', got {eval_res['dropped_players_a'][0]['name']}"
+
+    clean_verdict = eval_res["verdict"].encode("ascii", errors="ignore").decode("ascii").strip()
+    print(f"  [PASS] 4-for-3 Trade Evaluation: Verdict='{clean_verdict}' (Grade {eval_res['grade']}), Wk6 Delta={m['wk6_starter_delta']:+.2f}, FS Active VORP Delta={m['fs_net_active_vorp_delta']:+.1f} (${m['fs_net_auc_delta']:+.2f} Auc), Bayes 50/50 Delta={m['bayes_ros_starter_delta']:+.2f} PPG.")
+
+
+
 if __name__ == "__main__":
     print("==================================================")
     print("RUNNING FANTASY MONTE CARLO ENGINE TEST SUITE")
@@ -943,9 +986,11 @@ if __name__ == "__main__":
     test_copula_and_next_horizon()
     test_athletic_excel_and_hybrid_blending()
     test_dual_newsletter_and_longitudinal_narratives()
+    test_idiosyncratic_trade_analyzer()
     print("\n==================================================")
     print("ALL TESTS PASSED SUCCESSFULLY! (100% HEALTHY)")
     print("==================================================")
+
 
 
 

@@ -102,12 +102,12 @@
     "expectation_delta": {
       "team": "ATL",
       "week": 15,
-      "expected_qpr": 0.193,
+      "expected_qpr": 0.212,
       "realized_qpr": 0.171,
-      "qpr_delta": -0.021,
-      "expected_mof_epa": 0.64,
+      "qpr_delta": -0.041,
+      "expected_mof_epa": 0.61,
       "realized_mof_epa": 0.01,
-      "mof_epa_delta": -0.633,
+      "mof_epa_delta": -0.603,
       "realized_pass_oe": -10.0,
       "realized_epa_rush": 0.11,
       "regime_tags": [
@@ -170,6 +170,20 @@
         "realized_mof_epa": -0.05,
         "mof_epa_delta": -1.31,
         "pass_oe": -11.6
+      },
+      {
+        "week": 6,
+        "opponent": "CHI",
+        "preview_hypothesis": "Inside/Slot Funnel (41% Man / 59% Zone) \u2014 Chicago Bears @ Atlanta Falcons: What will the Bears offensive rebound look like? We are sending this before we have official word on if Caleb Williams will be back in this game, but we can still look at the offense with and without Williams in the lineup. The passing offense, perhaps unsurprisingly (ATL vs CHI: 1-High",
+        "review_execution": "Pending game review",
+        "expected_qpr": 0.235,
+        "realized_qpr": 0.235,
+        "qpr_delta": 0.0,
+        "pressure_rate": 0.376,
+        "expected_mof_epa": 0.19,
+        "realized_mof_epa": 0.19,
+        "mof_epa_delta": 0.0,
+        "pass_oe": 0.0
       },
       {
         "week": 15,
@@ -395,12 +409,12 @@
     "expectation_delta": {
       "team": "CAR",
       "week": 15,
-      "expected_qpr": 0.192,
+      "expected_qpr": 0.209,
       "realized_qpr": 0.22,
-      "qpr_delta": 0.028,
-      "expected_mof_epa": 0.51,
+      "qpr_delta": 0.011,
+      "expected_mof_epa": 0.45,
       "realized_mof_epa": -0.17,
-      "mof_epa_delta": -0.677,
+      "mof_epa_delta": -0.617,
       "realized_pass_oe": 3.7,
       "realized_epa_rush": -0.18,
       "regime_tags": [
@@ -411,7 +425,7 @@
       "slot_te_mu_boost": 1.18,
       "slot_te_floor_boost": 1.08,
       "slot_te_ceiling_boost": 1.12,
-      "verdict": "Defense bled elevated MOF EPA (-0.17 realized vs +0.51 previewed) -> Opposing Slot/TE floor & ceiling elevated | Inefficient ground game (Rush EPA -0.18, Rush SR 35.1%)"
+      "verdict": "Defense bled elevated MOF EPA (-0.17 realized vs +0.45 previewed) -> Opposing Slot/TE floor & ceiling elevated | Inefficient ground game (Rush EPA -0.18, Rush SR 35.1%)"
     },
     "rolling_3wk": {
       "quick_pressure_rate": 0.22,
@@ -466,6 +480,20 @@
         "pass_oe": 1.7
       },
       {
+        "week": 6,
+        "opponent": "PHI",
+        "preview_hypothesis": "Inside/Slot Funnel (45% Man / 55% Zone) \u2014 Carolina Panthers @ Philadelphia Eagles: Will Bryce Young continue his hot start? Bryce Young has improved in multiple areas to start the season. Here is how Young ranked in 2025 compared to 2026 across a few metrics: EPA/dropback: 30th to 9th (CAR vs PHI: 1-High 45.0% / 2-High 55.0% | Blitz 25.0% | Press 33.0% | Exp M",
+        "review_execution": "Pending game review",
+        "expected_qpr": 0.234,
+        "realized_qpr": 0.234,
+        "qpr_delta": 0.0,
+        "pressure_rate": 0.374,
+        "expected_mof_epa": 0.29,
+        "realized_mof_epa": 0.29,
+        "mof_epa_delta": 0.0,
+        "pass_oe": 0.0
+      },
+      {
         "week": 15,
         "opponent": "CLE",
         "preview_hypothesis": "Standard baseline shell vs CLE",
@@ -490,12 +518,12 @@
     "expectation_delta": {
       "team": "CHI",
       "week": 5,
-      "expected_qpr": 0.208,
+      "expected_qpr": 0.227,
       "realized_qpr": 0.186,
-      "qpr_delta": -0.022,
-      "expected_mof_epa": 0.09,
+      "qpr_delta": -0.041,
+      "expected_mof_epa": 0.0,
       "realized_mof_epa": 0.82,
-      "mof_epa_delta": 0.73,
+      "mof_epa_delta": 0.82,
       "realized_pass_oe": -0.4,
       "realized_epa_rush": -0.03,
       "regime_tags": [
@@ -505,7 +533,7 @@
       "slot_te_mu_boost": 1.18,
       "slot_te_floor_boost": 1.08,
       "slot_te_ceiling_boost": 1.12,
-      "verdict": "Defense bled elevated MOF EPA (+0.82 realized vs +0.09 previewed) -> Opposing Slot/TE floor & ceiling elevated"
+      "verdict": "Defense bled elevated MOF EPA (+0.82 realized vs +0.00 previewed) -> Opposing Slot/TE floor & ceiling elevated"
     },
     "rolling_3wk": {
       "quick_pressure_rate": 0.186,
@@ -572,6 +600,20 @@
         "realized_mof_epa": 1.65,
         "mof_epa_delta": 0.198,
         "pass_oe": 3.1
+      },
+      {
+        "week": 6,
+        "opponent": "ATL",
+        "preview_hypothesis": "Inside/Slot Funnel (38% Man / 62% Zone) \u2014 Chicago Bears @ Atlanta Falcons: What will the Bears offensive rebound look like? We are sending this before we have official word on if Caleb Williams will be back in this game, but we can still look at the offense with and without Williams in the lineup. The passing offense, perhaps unsurprisingly (CHI vs ATL: 1-High",
+        "review_execution": "Pending game review",
+        "expected_qpr": 0.235,
+        "realized_qpr": 0.235,
+        "qpr_delta": 0.0,
+        "pressure_rate": 0.376,
+        "expected_mof_epa": -0.03,
+        "realized_mof_epa": -0.03,
+        "mof_epa_delta": 0.0,
+        "pass_oe": 0.0
       }
     ]
   },
@@ -1193,12 +1235,12 @@
     "expectation_delta": {
       "team": "HOU",
       "week": 15,
-      "expected_qpr": 0.196,
+      "expected_qpr": 0.209,
       "realized_qpr": 0.248,
-      "qpr_delta": 0.052,
-      "expected_mof_epa": 0.41,
+      "qpr_delta": 0.039,
+      "expected_mof_epa": 0.63,
       "realized_mof_epa": 0.63,
-      "mof_epa_delta": 0.213,
+      "mof_epa_delta": -0.007,
       "realized_pass_oe": -1.0,
       "realized_epa_rush": -0.13,
       "regime_tags": [
@@ -1209,7 +1251,7 @@
       "slot_te_mu_boost": 1.18,
       "slot_te_floor_boost": 1.08,
       "slot_te_ceiling_boost": 1.12,
-      "verdict": "Defense bled elevated MOF EPA (+0.63 realized vs +0.41 previewed) -> Opposing Slot/TE floor & ceiling elevated | Inefficient ground game (Rush EPA -0.13, Rush SR 33.6%)"
+      "verdict": "Defense bled elevated MOF EPA (+0.63 realized vs +0.63 previewed) -> Opposing Slot/TE floor & ceiling elevated | Inefficient ground game (Rush EPA -0.13, Rush SR 33.6%)"
     },
     "rolling_3wk": {
       "quick_pressure_rate": 0.248,
@@ -1262,6 +1304,20 @@
         "realized_mof_epa": 0.75,
         "mof_epa_delta": 0.33,
         "pass_oe": -6.4
+      },
+      {
+        "week": 6,
+        "opponent": "JAX",
+        "preview_hypothesis": "Inside/Slot Funnel (34% Man / 66% Zone) \u2014 Houston Texans @ Jacksonville Jaguars (London): Will the Texans defense or Jaguars offense win the battle in London? Liam Coen is one of our favorite play callers and is a former Stats & Scheme Offensive Coordinator of the Year (trademark application in progress). His Jaguars offense has only (HOU vs JAX: 1-High 33.5% ",
+        "review_execution": "Pending game review",
+        "expected_qpr": 0.223,
+        "realized_qpr": 0.223,
+        "qpr_delta": 0.0,
+        "pressure_rate": 0.357,
+        "expected_mof_epa": 0.69,
+        "realized_mof_epa": 0.69,
+        "mof_epa_delta": 0.0,
+        "pass_oe": 0.0
       },
       {
         "week": 15,
@@ -1420,12 +1476,12 @@
     "expectation_delta": {
       "team": "JAX",
       "week": 15,
-      "expected_qpr": 0.176,
+      "expected_qpr": 0.199,
       "realized_qpr": 0.213,
-      "qpr_delta": 0.036,
-      "expected_mof_epa": 0.11,
+      "qpr_delta": 0.014,
+      "expected_mof_epa": 0.42,
       "realized_mof_epa": 0.04,
-      "mof_epa_delta": -0.067,
+      "mof_epa_delta": -0.38,
       "realized_pass_oe": -1.4,
       "realized_epa_rush": 0.14,
       "regime_tags": [
@@ -1436,7 +1492,7 @@
       "slot_te_mu_boost": 1.18,
       "slot_te_floor_boost": 1.08,
       "slot_te_ceiling_boost": 1.12,
-      "verdict": "Defense bled elevated MOF EPA (+0.04 realized vs +0.11 previewed) -> Opposing Slot/TE floor & ceiling elevated | Inefficient ground game (Rush EPA +0.14, Rush SR 20.3%)"
+      "verdict": "Defense bled elevated MOF EPA (+0.04 realized vs +0.42 previewed) -> Opposing Slot/TE floor & ceiling elevated | Inefficient ground game (Rush EPA +0.14, Rush SR 20.3%)"
     },
     "rolling_3wk": {
       "quick_pressure_rate": 0.213,
@@ -1503,6 +1559,20 @@
         "realized_mof_epa": -0.05,
         "mof_epa_delta": -0.51,
         "pass_oe": -7.3
+      },
+      {
+        "week": 6,
+        "opponent": "HOU",
+        "preview_hypothesis": "Inside/Slot Funnel (40% Man / 60% Zone) \u2014 Houston Texans @ Jacksonville Jaguars (London): Will the Texans defense or Jaguars offense win the battle in London? Liam Coen is one of our favorite play callers and is a former Stats & Scheme Offensive Coordinator of the Year (trademark application in progress). His Jaguars offense has only (JAX vs HOU: 1-High 39.5% ",
+        "review_execution": "Pending game review",
+        "expected_qpr": 0.223,
+        "realized_qpr": 0.223,
+        "qpr_delta": 0.0,
+        "pressure_rate": 0.357,
+        "expected_mof_epa": 0.41,
+        "realized_mof_epa": 0.41,
+        "mof_epa_delta": 0.0,
+        "pass_oe": 0.0
       },
       {
         "week": 15,
@@ -2534,12 +2604,12 @@
     "expectation_delta": {
       "team": "PHI",
       "week": 2,
-      "expected_qpr": 0.186,
+      "expected_qpr": 0.221,
       "realized_qpr": 0.126,
-      "qpr_delta": -0.061,
-      "expected_mof_epa": 0.33,
+      "qpr_delta": -0.096,
+      "expected_mof_epa": 0.41,
       "realized_mof_epa": -0.26,
-      "mof_epa_delta": -0.585,
+      "mof_epa_delta": -0.665,
       "realized_pass_oe": -2.9,
       "realized_epa_rush": -0.14,
       "regime_tags": [
@@ -2550,7 +2620,7 @@
       "slot_te_mu_boost": 1.0,
       "slot_te_floor_boost": 1.0,
       "slot_te_ceiling_boost": 1.0,
-      "verdict": "Quick/overall pressure spiked (QP 12.6%, PR 42.6% realized vs 18.6% previewed) -> Accelerated Bayesian prior decay (0.65x) | Inefficient ground game (Rush EPA -0.14, Rush SR 47.4%)"
+      "verdict": "Quick/overall pressure spiked (QP 12.6%, PR 42.6% realized vs 22.1% previewed) -> Accelerated Bayesian prior decay (0.65x) | Inefficient ground game (Rush EPA -0.14, Rush SR 47.4%)"
     },
     "rolling_3wk": {
       "quick_pressure_rate": 0.205,
@@ -2601,6 +2671,20 @@
         "pressure_rate": 0.333,
         "expected_mof_epa": 0.4,
         "realized_mof_epa": 0.4,
+        "mof_epa_delta": 0.0,
+        "pass_oe": 0.0
+      },
+      {
+        "week": 6,
+        "opponent": "CAR",
+        "preview_hypothesis": "Inside/Slot Funnel (46% Man / 54% Zone) \u2014 Carolina Panthers @ Philadelphia Eagles: Will Bryce Young continue his hot start? Bryce Young has improved in multiple areas to start the season. Here is how Young ranked in 2025 compared to 2026 across a few metrics: EPA/dropback: 30th to 9th (PHI vs CAR: 1-High 46.3% / 2-High 53.7% | Blitz 26.6% | Press 52.0% | Exp M",
+        "review_execution": "Pending game review",
+        "expected_qpr": 0.286,
+        "realized_qpr": 0.286,
+        "qpr_delta": 0.0,
+        "pressure_rate": 0.458,
+        "expected_mof_epa": 0.61,
+        "realized_mof_epa": 0.61,
         "mof_epa_delta": 0.0,
         "pass_oe": 0.0
       }

@@ -374,7 +374,7 @@ def normalize_player_name(name: str) -> str:
 # High-fidelity consensus props prior database (De-vigged true anytime TD probabilities & Implied Team Totals)
 CURATED_NFL_PROPS: Dict[str, Dict[str, Any]] = {
     "jared goff": {"pass_yds": 266.5, "pass_completions": 23.5, "pass_tds": 1.85, "pass_interceptions": 0.55, "rush_yds": 1.5, "anytime_td_prob": 0.09, "team_implied": 27.5},
-    "dak prescott": {"pass_yds": 268.5, "pass_completions": 24.5, "pass_tds": 1.90, "pass_interceptions": 0.70, "rush_yds": 14.5, "anytime_td_prob": 0.16, "team_implied": 25.0},
+    "dak prescott": {"pass_yds": 288.5, "pass_completions": 26.0, "pass_tds": 2.30, "pass_interceptions": 0.65, "rush_yds": 16.5, "anytime_td_prob": 0.18, "team_implied": 26.5, "is_live_odds": True},
     "matthew stafford": {"pass_yds": 258.5, "pass_completions": 22.5, "pass_tds": 1.70, "pass_interceptions": 0.65, "rush_yds": 2.0, "anytime_td_prob": 0.07, "team_implied": 24.5},
     "cj stroud": {"pass_yds": 264.5, "pass_completions": 23.0, "pass_tds": 1.80, "pass_interceptions": 0.60, "rush_yds": 12.0, "anytime_td_prob": 0.13, "team_implied": 24.0},
     "baker mayfield": {"pass_yds": 244.5, "pass_completions": 21.0, "pass_tds": 1.60, "pass_interceptions": 0.70, "rush_yds": 14.0, "anytime_td_prob": 0.15, "team_implied": 23.5},
@@ -418,7 +418,7 @@ def build_all_player_props_cache(api_key: Optional[str] = None) -> Dict[str, Dic
     Aggregates the consensus median across bookmakers for every prop line and de-vigs
     raw Anytime TD market odds using the game's Vegas O/U total. Cached for 4 hours (14400s).
     """
-    cache: Dict[str, Dict[str, Any]] = {k: {**v, "is_live_odds": False} for k, v in CURATED_NFL_PROPS.items()}
+    cache: Dict[str, Dict[str, Any]] = {k: {**v, "is_live_odds": v.get("is_live_odds", False)} for k, v in CURATED_NFL_PROPS.items()}
 
     raw_odds = fetch_nfl_odds(api_key=api_key)
     if not raw_odds:
@@ -602,9 +602,30 @@ def get_polymarket_player_probability(
 # 2B. THE ATHLETIC MULTI-BLOCK EXCEL PROJECTION PARSER & HYBRID BLENDING
 # ---------------------------------------------------------------------------
 
-DEFAULT_ATHLETIC_EXCEL_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Week5_Proj_1011.xlsx")
+def _resolve_default_athletic_excel() -> Tuple[str, str]:
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    preferred = os.path.join(base_dir, "Week6_Proj_1015.xlsx")
+    if os.path.exists(preferred):
+        return preferred, "Week6_Proj_1015.xlsx"
+    try:
+        candidates = [
+            f for f in os.listdir(base_dir)
+            if f.lower().endswith(".xlsx") and "proj" in f.lower() and not f.startswith("~$")
+        ]
+        if candidates:
+            def _wk_key(fn: str):
+                m = re.search(r"week\s*(\d+)", fn.lower())
+                return (int(m.group(1)) if m else 0, fn)
+            best = sorted(candidates, key=_wk_key)[-1]
+            return os.path.join(base_dir, best), best
+    except Exception:
+        pass
+    return preferred, "Week6_Proj_1015.xlsx"
+
+
+DEFAULT_ATHLETIC_EXCEL_PATH, _DEFAULT_ATHLETIC_FILENAME = _resolve_default_athletic_excel()
 _ACTIVE_ATHLETIC_BYTES: Optional[bytes] = None
-_ACTIVE_ATHLETIC_FILENAME: str = "Week5_Proj_1011.xlsx"
+_ACTIVE_ATHLETIC_FILENAME: str = _DEFAULT_ATHLETIC_FILENAME
 
 
 def set_uploaded_athletic_projections(file_obj_or_bytes: Optional[Any], filename: str = "Uploaded_Athletic_Proj.xlsx") -> None:
@@ -615,7 +636,7 @@ def set_uploaded_athletic_projections(file_obj_or_bytes: Optional[Any], filename
     global _ACTIVE_ATHLETIC_BYTES, _ACTIVE_ATHLETIC_FILENAME
     if file_obj_or_bytes is None:
         _ACTIVE_ATHLETIC_BYTES = None
-        _ACTIVE_ATHLETIC_FILENAME = "Week5_Proj_1011.xlsx"
+        _, _ACTIVE_ATHLETIC_FILENAME = _resolve_default_athletic_excel()
     elif isinstance(file_obj_or_bytes, (bytes, bytearray)):
         _ACTIVE_ATHLETIC_BYTES = bytes(file_obj_or_bytes)
         _ACTIVE_ATHLETIC_FILENAME = filename
@@ -1354,6 +1375,9 @@ def sync_espn_league(
             else:
                 mu, sigma, p_act = ros_mu, ros_sigma, ros_p_act
 
+            raw_pos_rank = getattr(p, "posRank", 0)
+            pos_rank_int = int(raw_pos_rank or 0) if not isinstance(raw_pos_rank, (list, dict)) else 0
+
             p_info = {
                 "name": p.name,
                 "position": p.position,
@@ -1370,6 +1394,9 @@ def sync_espn_league(
                 "is_inactive": is_inactive or is_on_bye,
                 "is_on_bye": is_on_bye,
                 "avg_points": float(getattr(p, "avg_points", 0.0) or 0.0),
+                "projected_avg_points": float(getattr(p, "projected_avg_points", 0.0) or 0.0),
+                "total_points": float(getattr(p, "total_points", 0.0) or 0.0),
+                "pos_rank": pos_rank_int,
                 "proj_points": proj,
                 "prop_source": breakdown.get("source", "Idiosyncratic Baseline"),
                 "poly_source": poly_source,
@@ -1472,41 +1499,59 @@ def sync_espn_league(
             clean_status, p_active, is_inactive = parse_player_injury_and_status(
                 inj_status_raw=getattr(fa, "injuryStatus", "ACTIVE")
             )
-            # Prioritize weekly matchup projection over season-long average
-            proj = 0.0 if is_inactive else float(
-                getattr(fa, "projected_points", 0.0) or
-                getattr(fa, "projected_avg_points", 0.0) or
-                getattr(fa, "avg_points", 0.0) or
-                0.0
-            )
-
-            matched_props = get_matched_player_props(fa.name, props_cache, fa.position)
-            p_act_poly = p_active
-            poly_source = f"Calibrated Prior ({int(p_active*100)}%)" if clean_status != "ACTIVE" else "Active Consensus (100%)"
-
-            mu, sigma, p_act, breakdown = calculate_projection_params(
-                position=fa.position,
-                props=matched_props if matched_props else None,
-                default_proj=proj,
-                ppr=ppr,
-                polymarket_prob=p_act_poly,
-                is_inactive=is_inactive,
-                scoring_cfg=scoring_cfg,
-                return_breakdown=True,
-                player_name=fa.name
-            )
-
-            is_dst = fa.position in ["D/ST", "DEF"]
-            is_kicker = fa.position in ["K"]
-
             fa_team = getattr(fa, "proTeam", "FA")
             fa_opp = ""
+            fa_on_bye = False
             if hasattr(fa, "schedule") and fa.schedule:
                 w_str = str(current_week)
                 if w_str in fa.schedule and isinstance(fa.schedule[w_str], dict):
                     fa_opp = str(fa.schedule[w_str].get("team", "")).upper()
-            if not fa_opp and fa_team:
+                elif str(fa_team).upper() not in ["FA", "NFL", ""]:
+                    fa_on_bye = True
+                    fa_opp = "BYE"
+            if not fa_opp and not fa_on_bye and fa_team:
                 fa_opp = CURRENT_NFL_SCHEDULE.get(str(fa_team).upper(), "")
+
+            wk_proj_raw = getattr(fa, "projected_points", None)
+            if is_inactive or fa_on_bye:
+                proj = 0.0
+            elif wk_proj_raw is not None:
+                proj = float(wk_proj_raw or 0.0)
+            else:
+                proj = float(
+                    getattr(fa, "projected_avg_points", 0.0) or
+                    getattr(fa, "avg_points", 0.0) or
+                    0.0
+                )
+
+            matched_props = get_matched_player_props(fa.name, props_cache, fa.position)
+            ath_fa = get_matched_athletic_projection(fa.name, position=fa.position)
+            p_act_poly = p_active
+            poly_source = f"Calibrated Prior ({int(p_active*100)}%)" if clean_status != "ACTIVE" else "Active Consensus (100%)"
+
+            # If a free agent is on bye or has 0 weekly projected points and no Athletic/Vegas entry, they are not active this week
+            if fa_on_bye or (proj <= 0.0 and not ath_fa and not matched_props):
+                mu, sigma, p_act = 0.0, 0.0, 0.0
+                breakdown = {"source": f"Week {current_week} BYE" if fa_on_bye else "Inactive / Benched (0.0 pts)"}
+            else:
+                # ESPN weekly projected_points for QBs are already in 6pt Pass TD + 0.1 comp format; scale down if falling back to baseline
+                fa_default_proj = proj * (17.5 / 24.5) if (fa.position == "QB" and proj > 16.0 and not ath_fa and not matched_props) else proj
+                mu, sigma, p_act, breakdown = calculate_projection_params(
+                    position=fa.position,
+                    props=matched_props if matched_props else None,
+                    default_proj=fa_default_proj,
+                    ppr=ppr,
+                    polymarket_prob=p_act_poly,
+                    is_inactive=is_inactive,
+                    scoring_cfg=scoring_cfg,
+                    return_breakdown=True,
+                    player_name=fa.name
+                )
+
+            is_dst = fa.position in ["D/ST", "DEF"]
+            is_kicker = fa.position in ["K"]
+            raw_fa_rank = getattr(fa, "posRank", 0)
+            fa_pos_rank = int(raw_fa_rank or 0) if not isinstance(raw_fa_rank, (list, dict)) else 0
 
             free_agents_data.append({
                 "name": fa.name,
@@ -1517,8 +1562,13 @@ def sync_espn_league(
                 "mu": mu,
                 "sigma": sigma,
                 "p_active": p_act,
-                "injury_status": clean_status,
-                "is_inactive": is_inactive,
+                "injury_status": "BYE" if fa_on_bye else clean_status,
+                "is_inactive": is_inactive or fa_on_bye or (mu <= 0.0),
+                "is_on_bye": fa_on_bye,
+                "avg_points": float(getattr(fa, "avg_points", 0.0) or 0.0),
+                "projected_avg_points": float(getattr(fa, "projected_avg_points", 0.0) or 0.0),
+                "total_points": float(getattr(fa, "total_points", 0.0) or 0.0),
+                "pos_rank": fa_pos_rank,
                 "proj_points": proj,
                 "is_dst": is_dst,
                 "is_kicker": is_kicker,

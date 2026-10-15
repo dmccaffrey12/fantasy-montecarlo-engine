@@ -631,6 +631,7 @@ def score_athletic_stat_line(
         pts_rush_tds = rush_tds * cfg.rush_td
 
         mu = pts_pass_yds + pts_pass_tds + pts_ints + pts_rush_yds + pts_rush_tds
+        ev_milestones = calculate_pass_milestone_ev(pass_yds, max(30.0, pass_yds * 0.18), cfg)
         ev_long_tds = calculate_long_pass_td_ev(pass_tds, cfg)
         sigma = max(3.5, mu * 0.25 + (ev_long_tds * 0.5))
 
@@ -646,6 +647,8 @@ def score_athletic_stat_line(
             "pts_ints": round(pts_ints, 2),
             "pts_rush_yds": round(pts_rush_yds, 2),
             "pts_rush_tds": round(pts_rush_tds, 2),
+            "ev_milestones": round(ev_milestones, 2),
+            "ev_long_tds": round(ev_long_tds, 2),
         })
 
     elif pos == "RB":
@@ -664,6 +667,10 @@ def score_athletic_stat_line(
         pts_rec_tds = rec_tds * cfg.rec_td
 
         mu = pts_rush_yds + pts_rush_tds + pts_recs + pts_rec_yds + pts_rec_tds
+        ev_milestones = (
+            calculate_rush_milestone_ev(rush_yds, max(18.0, rush_yds * 0.38), cfg)
+            + calculate_rec_milestone_ev(rec_yds, max(12.0, rec_yds * 0.42), cfg)
+        )
         ev_long_tds = calculate_long_rush_rec_td_ev(total_tds, is_rec=False, cfg=cfg)
         sigma = max(2.5, mu * 0.38 + (ev_long_tds * 0.4))
 
@@ -679,6 +686,8 @@ def score_athletic_stat_line(
             "pts_recs": round(pts_recs, 2),
             "pts_rec_yds": round(pts_rec_yds, 2),
             "pts_tds": round(pts_rush_tds + pts_rec_tds, 2),
+            "ev_milestones": round(ev_milestones, 2),
+            "ev_long_tds": round(ev_long_tds, 2),
         })
 
     elif pos in ["WR", "TE"]:
@@ -697,6 +706,7 @@ def score_athletic_stat_line(
         pts_rec_tds = rec_tds * cfg.rec_td
 
         mu = pts_rush_yds + pts_rush_tds + pts_recs + pts_rec_yds + pts_rec_tds
+        ev_milestones = calculate_rec_milestone_ev(rec_yds, max(18.0, rec_yds * 0.42), cfg)
         ev_long_tds = calculate_long_rush_rec_td_ev(total_tds, is_rec=True, cfg=cfg)
 
         if is_te:
@@ -742,6 +752,7 @@ def score_athletic_stat_line(
             "pts_rec_yds": round(pts_rec_yds, 2),
             "pts_rush_yds": round(pts_rush_yds, 2),
             "pts_tds": round(pts_rush_tds + pts_rec_tds, 2),
+            "ev_milestones": round(ev_milestones, 2),
             "ev_long_tds": round(ev_long_tds, 2),
             "cv": round(cv, 3),
             "volatility_class": vol_class,

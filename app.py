@@ -26,6 +26,7 @@ import vorp
 import pdf_parser
 import scheme_db
 import scoring_config
+import trade_analyzer
 
 # Page setup
 st.set_page_config(
@@ -460,10 +461,11 @@ team_a_bench = [
 # ---------------------------------------------------------------------------
 # MAIN INTERFACE TABS
 # ---------------------------------------------------------------------------
-tab_matchup, tab_startsit, tab_vorp, tab_feeds, tab_scheme = st.tabs([
+tab_matchup, tab_startsit, tab_vorp, tab_trade, tab_feeds, tab_scheme = st.tabs([
     "⚡ Sunday Morning Command Center",
     "⚖️ Start / Sit Comparative Engine",
     "📋 Tuesday Waiver & FAAB Claim Sheet",
+    "🤝 Idiosyncratic Trade Analyzer",
     "🔮 Next-Horizon Strategy & Market Feed",
     "🔬 Scheme Lab & Newsletter Upload"
 ])
@@ -1784,3 +1786,372 @@ with tab_scheme:
         })
 
     st.dataframe(pd.DataFrame(scheme_impact_rows), use_container_width=True, hide_index=True)
+
+
+# ===========================================================================
+# TAB 4: IDIOSYNCRATIC TRADE ANALYZER & BILATERAL VALUATION TERMINAL
+# ===========================================================================
+with tab_trade:
+    st.markdown("### 🤝 Idiosyncratic Trade Analyzer & Bilateral Lineup Simulator")
+    st.caption(
+        "Calibrated specifically to your ESPN league's idiosyncratic scoring rules "
+        "(6.0 pt Pass TD, +0.1/comp, 1.0 Full PPR, stacking +1/+2 pt 100/200-Yd Gamma/Log-Normal milestones, "
+        "stacking +1/+2/+4 pt 40/50-Yd TD bonuses) and 9-Starter 2-QB/OP Superflex roster structure."
+    )
+
+    # Resolve available league teams & rosters (Live ESPN sync or calibrated Week 6 fallback)
+    if is_espn_active and st.session_state.get("espn_league"):
+        trade_team_map = {
+            t["team_name"]: t.get("roster", t.get("starters", []) + t.get("bench", []) + t.get("ir", []))
+            for t in st.session_state.espn_league.get("teams", [])
+        }
+    else:
+        trade_team_map = trade_analyzer.get_default_bodhizafa_trade_rosters(scoring_cfg=active_scoring_cfg)
+        if team_a_name not in trade_team_map:
+            trade_team_map[team_a_name] = team_a_roster + raw_bench_a
+        if team_b_name not in trade_team_map:
+            trade_team_map[team_b_name] = team_b_roster
+
+    trade_team_names = list(trade_team_map.keys())
+
+    # Default Team A to Eatin TDs like Groceries, Team B to BODHIZAFA
+    def_ta_idx = 0
+    for idx_t, t_nm in enumerate(trade_team_names):
+        if "eatin" in t_nm.lower() or t_nm == team_a_name:
+            def_ta_idx = idx_t
+            break
+
+    t_col_a, t_col_b = st.columns(2)
+    with t_col_a:
+        trade_team_a = st.selectbox(
+            "🏠 Your Franchise (Team A)",
+            trade_team_names,
+            index=def_ta_idx,
+            key="trade_team_a_select",
+        )
+    with t_col_b:
+        partner_options = [t for t in trade_team_names if t != trade_team_a] or trade_team_names
+        def_tb_idx = 0
+        for idx_t, t_nm in enumerate(partner_options):
+            if "bodhizafa" in t_nm.lower():
+                def_tb_idx = idx_t
+                break
+        trade_team_b = st.selectbox(
+            "🤝 Trade Partner Franchise (Team B)",
+            partner_options,
+            index=def_tb_idx,
+            key="trade_team_b_select",
+        )
+
+    roster_a_full = trade_team_map.get(trade_team_a, [])
+    roster_b_full = trade_team_map.get(trade_team_b, [])
+
+    a_player_names = [p["name"] for p in roster_a_full]
+    b_player_names = [p["name"] for p in roster_b_full]
+
+    default_gives = [n for n in ["DJ Moore", "Chase Brown", "Jalen Coker"] if n in a_player_names]
+    default_receives = [
+        n for n in ["Jonathan Taylor", "Dontayvion Wicks", "Devaughn Vele", "Seth McGowan"]
+        if n in b_player_names
+    ]
+
+    sel_col_out, sel_col_in = st.columns(2)
+    with sel_col_out:
+        selected_gives = st.multiselect(
+            f"📤 {trade_team_a} Trades Away (Sends to {trade_team_b})",
+            options=a_player_names,
+            default=default_gives,
+            key="trade_gives_multiselect",
+        )
+    with sel_col_in:
+        selected_receives = st.multiselect(
+            f"📥 {trade_team_a} Acquires (Receives from {trade_team_b})",
+            options=b_player_names,
+            default=default_receives,
+            key="trade_receives_multiselect",
+        )
+
+    # Optional Forced Roster Drop Override if receiving more players than sending
+    forced_drop_choice = None
+    if len(selected_receives) > len(selected_gives):
+        n_extra = len(selected_receives) - len(selected_gives)
+        remaining_bench_names = [
+            p["name"] for p in roster_a_full
+            if p["name"] not in selected_gives
+            and str(p.get("position", "")).upper() not in ["QB", "D/ST", "DEF"]
+            and str(p.get("slot", "")).upper() not in ["IR", "IR_ELIGIBLE"]
+        ]
+        default_drop_idx = 0
+        for idx_d, d_nm in enumerate(remaining_bench_names):
+            if "dowdle" in d_nm.lower():
+                default_drop_idx = idx_d
+                break
+        drop_opts = remaining_bench_names + [n for n in selected_receives if n not in remaining_bench_names] + ["None (Wait / Use Open Slot)"]
+        forced_drop_choice = st.selectbox(
+            f"⚠️ Uneven Trade ({len(selected_receives)}-for-{len(selected_gives)}): Select {n_extra} Bench Player to Drop for Roster Compliance",
+            options=drop_opts,
+            index=default_drop_idx if default_drop_idx < len(drop_opts) else 0,
+            key="trade_forced_drop_select",
+        )
+
+    if not selected_gives or not selected_receives:
+        st.info("Select at least one outgoing and one incoming player above to run the 10,000-iteration Idiosyncratic Trade Evaluation.")
+    else:
+        with st.spinner("Running 10,000-iteration Dual-Horizon Monte Carlo Trade Evaluation..."):
+            trade_eval = trade_analyzer.evaluate_trade_package(
+                team_a_name=trade_team_a,
+                team_a_roster=roster_a_full,
+                team_b_name=trade_team_b,
+                team_b_roster=roster_b_full,
+                team_a_gives_names=selected_gives,
+                team_a_receives_names=selected_receives,
+                week6_opponent_name=team_b_name,
+                week6_opponent_starters=team_b_roster,
+                waiver_pool=waiver_pool,
+                scoring_cfg=active_scoring_cfg,
+                n_simulations=n_iterations,
+                forced_drop_override=forced_drop_choice,
+            )
+
+        tm = trade_eval["metrics"]
+        verdict_color = "#10b981" if trade_eval["composite_edge_pts"] >= 1.0 else ("#f59e0b" if trade_eval["composite_edge_pts"] >= -1.25 else "#ef4444")
+
+        # Executive Verdict Banner
+        st.markdown(f"""
+        <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border: 2px solid {verdict_color}; border-radius: 12px; padding: 16px 22px; margin: 12px 0 18px 0;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                <div>
+                    <div style="font-size: 0.78rem; color: #94a3b8; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;">
+                        Idiosyncratic League Trade Verdict · {len(selected_receives)}-for-{len(selected_gives)} Package
+                    </div>
+                    <div style="font-size: 1.35rem; font-weight: 800; color: {verdict_color}; margin-top: 2px;">
+                        {trade_eval['verdict']}
+                    </div>
+                </div>
+                <div style="text-align: right;">
+                    <span style="background: rgba(16, 185, 129, 0.15); border: 1px solid {verdict_color}; color: {verdict_color}; font-size: 1.35rem; font-weight: 900; padding: 6px 16px; border-radius: 10px;">
+                        Grade: {trade_eval['grade']} ({trade_eval['composite_edge_pts']:+.2f} Composite Index)
+                    </span>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Top 4 KPI Metric Cards
+        k1, k2, k3, k4 = st.columns(4)
+        with k1:
+            wk_col = "green-val" if tm["wk6_starter_delta"] >= 0 else "amber-val"
+            st.markdown(f"""
+            <div class="metric-card">
+                <div class="metric-title">Immediate Week 6 Starter Δ</div>
+                <div class="metric-value {wk_col}">{tm['wk6_starter_delta']:+.2f} pts</div>
+                <div class="metric-sub">{tm['wk6_starter_pre']:.1f} ➔ {tm['wk6_starter_post']:.1f} pts (P10 Floor: {tm['wk6_p10_pre']:.1f} ➔ {tm['wk6_p10_post']:.1f})</div>
+            </div>
+            """, unsafe_allow_html=True)
+        with k2:
+            wp_col = "green-val" if tm["wk6_win_prob_delta"] >= 0 else "amber-val"
+            st.markdown(f"""
+            <div class="metric-card">
+                <div class="metric-title">Week 6 Win Prob Δ vs {trade_eval['week6_opponent_name']}</div>
+                <div class="metric-value {wp_col}">{tm['wk6_win_prob_delta']:+.1f}%</div>
+                <div class="metric-sub">{tm['wk6_win_prob_pre']:.1f}% ➔ {tm['wk6_win_prob_post']:.1f}% (More than 2x Win Odds!)</div>
+            </div>
+            """, unsafe_allow_html=True)
+        with k3:
+            rm_col = "green-val" if tm["ros_model_effective_delta"] >= 0 else "amber-val"
+            st.markdown(f"""
+            <div class="metric-card">
+                <div class="metric-title">ROS Model Starter Δ (+Handcuff EV)</div>
+                <div class="metric-value {rm_col}">{tm['ros_model_effective_delta']:+.2f} PPG</div>
+                <div class="metric-sub">Lineup Δ: {tm['ros_model_starter_delta']:+.2f} + IND Cuff Insurance: +{trade_eval['synergies_a']['total_handcuff_insurance_ev']:.2f}</div>
+            </div>
+            """, unsafe_allow_html=True)
+        with k4:
+            po_col = "green-val" if tm["playoff_w15_17_starter_delta"] >= 0 else "amber-val"
+            st.markdown(f"""
+            <div class="metric-card">
+                <div class="metric-title">🏆 Fantasy Playoffs Δ (Wks 15–17)</div>
+                <div class="metric-value {po_col}">{tm['playoff_w15_17_starter_delta']:+.2f} PPG</div>
+                <div class="metric-sub">{tm['playoff_w15_17_pre_avg']:.1f} ➔ {tm['playoff_w15_17_post_avg']:.1f} PPG | Wks 7–14 Avg Δ: {tm['w7_14_starter_delta']:+.2f}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        # Season-Long & Championship Horizon Callout Banner
+        if tm["wk6_starter_delta"] > 0 and tm["playoff_w15_17_starter_delta"] < -1.5:
+            st.error(
+                f"🚨 **Season-Long & Championship Warning ('Week 6 Mirage' Alert)**: "
+                f"While this trade boosts your **Week 6** lineup by **`{tm['wk6_starter_delta']:+.2f}` pts** (because `Chase Brown` is on his Week 6 Bye and `Jonathan Taylor` faces `TEN`), "
+                f"it **reduces** your optimal starting lineup by **`{tm['w7_14_starter_delta']:+.2f}` PPG across Weeks 7–14** (due to trading away two starting WRs with completed/early byes while absorbing `Jonathan Taylor`'s Week 13 Bye) "
+                f"and **reduces your Fantasy Playoff (Weeks 15–17) lineup by `{tm['playoff_w15_17_starter_delta']:+.2f}` PPG** (`{tm['playoff_w15_17_pre_avg']:.2f}` ➔ `{tm['playoff_w15_17_post_avg']:.2f}` PPG). "
+                f"**Counter-Offer Fix**: Keep `Jalen Coker` (2-for-2: `Chase Brown + DJ Moore` for `Jonathan Taylor + Seth McGowan`) or demand `Sam LaPorta` / `Denzel Boston` instead of bench WRs `Devaughn Vele + Dontayvion Wicks`!"
+            )
+
+        # Structural Synergies & Uneven Drop Callouts
+        if trade_eval["synergies_a"]["synergy_notes"] or trade_eval["dropped_players_a"]:
+            st.markdown("#### 🔬 Structural Synergies, Handcuff Insurance & Roster-Slot Adjustments")
+            for s_note in trade_eval["synergies_a"]["synergy_notes"]:
+                st.success(s_note)
+                if trade_eval["dropped_players_a"]:
+                    d_p = trade_eval["dropped_players_a"][0]
+                    st.warning(
+                        f"⚖️ **4-for-3 Roster Compliance Drop (`{d_p['name']}`, {d_p.get('position')} - {d_p.get('team')})**: "
+                        f"Because you receive {len(selected_receives)} players and send {len(selected_gives)}, you must clear 1 active roster spot. "
+                        f"Dropping `{d_p['name']}` (`{d_p.get('avg_points', 0.0):.2f}` Season PPG, `{d_p.get('ros_blended_mu', 0.0):.2f}` ROS Blended, "
+                        f"`{d_p.get('ros_vorp', 0.0):+.2f}` VORP) preserves your newly acquired `IND` handcuff `Seth McGowan`."
+                    )
+
+        # Full-Season Projections Board (`2026-FFB-Projections-0812.xlsx`) Consolidation vs. Dispersion Audit
+        st.info(
+            f"📐 **Full-Season Projections (`2026-FFB-Projections-0812.xlsx`) & Bayesian 50/50 Consolidation Audit**: "
+            f"Incoming Active VORP: **`+{tm['fs_incoming_active_vorp']:.1f}`** (`${tm['fs_incoming_auc']:.2f}` Auction Value) vs. "
+            f"Outgoing Active VORP: **`+{tm['fs_outgoing_active_vorp']:.1f}`** (`${tm['fs_outgoing_auc']:.2f}` Auction Value) · "
+            f"Net Active VORP Δ: **`{tm['fs_net_active_vorp_delta']:+.1f}`** (`{tm['fs_net_auc_delta']:+.2f}` Auction $) · "
+            f"Full-Season Model 9-Starter Δ: **`{tm['fs_starter_delta']:+.2f}` PPG** (`{tm['fs_starter_pre']:.2f}` → `{tm['fs_starter_post']:.2f}`) · "
+            f"Bayesian 50/50 ROS 9-Starter Δ: **`{tm['bayes_ros_starter_delta']:+.2f}` PPG** (`{tm['bayes_ros_starter_pre']:.2f}` → `{tm['bayes_ros_starter_post']:.2f}`)."
+        )
+
+        # Side-by-Side Asset Valuation & Bonus Decomposition Tables
+        st.markdown("#### 📊 Idiosyncratic Asset Valuation, Full-Season VORP/Auction & Playoff Schedule (Wks 15–17)")
+        st.caption(
+            "Compares Full-Season Projections (`FS Rank`, `FS PPG`, `FS VORP`, `FS Auc $` from `2026-FFB-Projections-0812.xlsx`), "
+            "Realized Season PPG, ESPN League ROS PPG, True In-Season ROS (`True ROS PPG`), Bayesian 50/50 Blend (`Bayes 50/50 PPG`), "
+            "and SumerSports Scheme-Adjusted Fantasy Playoff Average (`Playoffs W15-17`)."
+        )
+        st.markdown(f"**📥 Assets Acquired by {trade_team_a}**")
+        st.dataframe(trade_eval["tables"]["incoming_df"], use_container_width=True, hide_index=True)
+
+        st.markdown(f"**📤 Assets Sent to {trade_team_b}**")
+        st.dataframe(trade_eval["tables"]["outgoing_df"], use_container_width=True, hide_index=True)
+
+        # Interactive Plotly Charts: Week-by-Week Championship Trajectory (Wks 6-17) + Slot-by-Slot Net Delta
+        chart_col1, chart_col2 = st.columns(2)
+        with chart_col1:
+            st.markdown("#### 🗓️ Week-by-Week Season & Playoff Lineup Trajectory (Wks 6–17)")
+            traj_df = trade_eval["tables"]["weekly_trajectory_df"]
+            fig_traj = go.Figure()
+            fig_traj.add_trace(go.Scatter(
+                x=traj_df["Week"],
+                y=traj_df["Pre-Trade Lineup"],
+                mode="lines+markers",
+                name="Pre-Trade Optimal Lineup",
+                line=dict(color="#94a3b8", width=2.5, dash="dot"),
+            ))
+            fig_traj.add_trace(go.Scatter(
+                x=traj_df["Week"],
+                y=traj_df["Post-Trade Lineup"],
+                mode="lines+markers",
+                name="Post-Trade Optimal Lineup",
+                line=dict(color="#10b981", width=3),
+            ))
+            fig_traj.update_layout(
+                template="plotly_dark",
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(30,41,59,0.5)",
+                xaxis_title="NFL Week (W6–W14 Reg. Season Byes · W15–W17 Fantasy Playoffs)",
+                yaxis_title="Optimal 9-Starter Projected Points",
+                height=340,
+                margin=dict(l=20, r=20, t=30, b=20),
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+            )
+            st.plotly_chart(fig_traj, use_container_width=True)
+
+        with chart_col2:
+            st.markdown("#### ⚖️ Multi-Horizon Slot-by-Slot Lineup Net Delta")
+            wk_df_chart = trade_eval["tables"]["wk6_lineup_diff_df"]
+            po_df_chart = trade_eval["tables"]["playoff_lineup_diff_df"]
+            by_df_chart = trade_eval["tables"]["bayes_lineup_diff_df"]
+            fig_slot_delta = go.Figure()
+            fig_slot_delta.add_trace(go.Bar(
+                x=by_df_chart["Slot"],
+                y=by_df_chart["Delta_Num"],
+                name=f"Bayes 50/50 ROS Δ ({tm['bayes_ros_starter_delta']:+.2f} PPG)",
+                marker_color="#a78bfa",
+            ))
+            fig_slot_delta.add_trace(go.Bar(
+                x=po_df_chart["Slot"],
+                y=po_df_chart["Delta_Num"],
+                name=f"Playoffs W15-17 Net Δ ({tm['playoff_w15_17_starter_delta']:+.2f} PPG)",
+                marker_color="#f59e0b",
+            ))
+            fig_slot_delta.add_trace(go.Bar(
+                x=wk_df_chart["Slot"],
+                y=wk_df_chart["Delta_Num"],
+                name=f"Week 6 Net Δ ({tm['wk6_starter_delta']:+.2f} pts)",
+                marker_color="#38bdf8",
+            ))
+            fig_slot_delta.update_layout(
+                barmode="group",
+                template="plotly_dark",
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(30,41,59,0.5)",
+                xaxis_title="9-Starter Roster Slot",
+                yaxis_title="Net Points Delta (Post - Pre)",
+                height=340,
+                margin=dict(l=20, r=20, t=30, b=20),
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+            )
+            st.plotly_chart(fig_slot_delta, use_container_width=True)
+
+        # Multi-Horizon Lineup & Schedule Audits
+        st.markdown("#### 🗂️ Optimal 9-Starter Lineup & Championship Schedule Audits")
+        sub_traj, sub_bayes, sub_fs, sub_playoffs, sub_true_ros, sub_wk6, sub_ros_model, sub_partner = st.tabs([
+            "🗓️ Wks 6–17 Weekly Schedule & Byes",
+            f"⚖️ Bayesian 50/50 ROS ({tm['bayes_ros_starter_delta']:+.2f} PPG)",
+            f"📐 Full-Season Sheet ({tm['fs_starter_delta']:+.2f} PPG)",
+            f"🏆 Playoffs W15–17 Lineup ({tm['playoff_w15_17_starter_delta']:+.2f} PPG)",
+            f"📅 In-Season True ROS ({tm['true_ros_starter_delta']:+.2f} PPG)",
+            f"⚡ Week 6 Lineup ({tm['wk6_starter_delta']:+.2f} pts)",
+            f"🔮 Athletic Model ROS ({tm['ros_model_starter_delta']:+.2f} PPG)",
+            f"🤝 Partner ({trade_team_b}) ROS ({tm['partner_ros_starter_delta']:+.2f} PPG)",
+        ])
+        with sub_traj:
+            st.dataframe(
+                trade_eval["tables"]["weekly_trajectory_df"].drop(columns=["Delta_Num"]),
+                use_container_width=True,
+                hide_index=True,
+            )
+        with sub_bayes:
+            st.dataframe(
+                trade_eval["tables"]["bayes_lineup_diff_df"].drop(columns=["Delta_Num"]),
+                use_container_width=True,
+                hide_index=True,
+            )
+        with sub_fs:
+            st.dataframe(
+                trade_eval["tables"]["fs_lineup_diff_df"].drop(columns=["Delta_Num"]),
+                use_container_width=True,
+                hide_index=True,
+            )
+        with sub_playoffs:
+            st.dataframe(
+                trade_eval["tables"]["playoff_lineup_diff_df"].drop(columns=["Delta_Num"]),
+                use_container_width=True,
+                hide_index=True,
+            )
+        with sub_true_ros:
+            st.dataframe(
+                trade_eval["tables"]["true_ros_lineup_diff_df"].drop(columns=["Delta_Num"]),
+                use_container_width=True,
+                hide_index=True,
+            )
+        with sub_wk6:
+            st.dataframe(
+                trade_eval["tables"]["wk6_lineup_diff_df"].drop(columns=["Delta_Num"]),
+                use_container_width=True,
+                hide_index=True,
+            )
+        with sub_ros_model:
+            st.dataframe(
+                trade_eval["tables"]["model_lineup_diff_df"].drop(columns=["Delta_Num"]),
+                use_container_width=True,
+                hide_index=True,
+            )
+        with sub_partner:
+            st.dataframe(
+                trade_eval["tables"]["partner_ros_diff_df"].drop(columns=["Delta_Num"]),
+                use_container_width=True,
+                hide_index=True,
+            )
+
+
+
