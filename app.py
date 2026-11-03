@@ -19,6 +19,7 @@ import plotly.express as px
 from scipy.stats import gaussian_kde
 
 import os
+import re
 import json
 import html
 import hashlib
@@ -43,6 +44,11 @@ st.set_page_config(
 def _html_safe(val: Any) -> str:
     """Escape dynamic strings (such as custom ESPN team names) for safe HTML interpolation."""
     return html.escape(str(val or ""), quote=True)
+
+
+def _html_inline_bold(val: Any) -> str:
+    """Escape HTML in dynamic strings while preserving **bold** spans as <b>...</b>."""
+    return re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", _html_safe(val))
 
 
 def _md_safe(val: Any) -> str:
@@ -211,7 +217,7 @@ def _cached_trade_evaluation(sig: str, _kwargs: Dict[str, Any]) -> Dict[str, Any
     return trade_analyzer.evaluate_trade_package(**_kwargs)
 
 # Custom styling
-st.markdown("""
+st.html("""
 <style>
     .league-banner {
         background: linear-gradient(135deg, #064e3b 0%, #0f172a 100%);
@@ -261,13 +267,14 @@ st.markdown("""
     .blue-val { color: #38bdf8; }
     .amber-val { color: #f59e0b; }
     .purple-val { color: #c084fc; }
+    .red-val { color: #ef4444; }
     .stTabs [data-baseweb="tab-list"] { gap: 12px; }
     .stTabs [data-baseweb="tab"] {
         padding: 10px 20px;
         font-weight: 600;
     }
 </style>
-""", unsafe_allow_html=True)
+""")
 
 
 # ---------------------------------------------------------------------------
@@ -486,7 +493,7 @@ active_mode_selection = st.sidebar.radio(
     key="active_data_source"
 )
 
-APP_BUILD_VERSION = "2026.11.03-v3.4"
+APP_BUILD_VERSION = "2026.11.03-v3.5"
 st.sidebar.caption(f"⚡ Engine Build: `{APP_BUILD_VERSION}`")
 
 # ESPN Sync Management in Sidebar
@@ -599,14 +606,14 @@ if is_espn_active:
     fa_count = len(espn_info.get("free_agents", []))
 
     # Top League Banner
-    st.markdown(f"""
+    st.html(f"""
     <div class="league-banner">
         <div>
             <div class="league-title">🏆 {_html_safe(espn_info.get('league_name'))} ({espn_info.get('year')})</div>
             <div class="league-subtitle">● SYNCED LIVE &nbsp;·&nbsp; {len(teams_list)} TEAMS &nbsp;·&nbsp; {fa_count} WAIVER FREE AGENTS &nbsp;·&nbsp; WEEK {espn_info.get('current_week', 1)}</div>
         </div>
     </div>
-    """, unsafe_allow_html=True)
+    """)
 
     # Matchup Selection Bar
     st.markdown("### ⚔️ Select Matchup")
@@ -673,14 +680,14 @@ if is_espn_active:
 
 else:
     # Standalone / Curated User Mode
-    st.markdown("""
+    st.html("""
     <div class="league-banner">
         <div>
             <div class="league-title">🏈 Curated Matchup: Eatin TDs like Groceries vs Puka Shell Queen</div>
             <div class="league-subtitle">ACTIVE ROSTER MODE &nbsp;·&nbsp; VEGAS PROPS &nbsp;·&nbsp; POLYMARKET RISK &nbsp;·&nbsp; DYNAMIC WAIVER WIRE</div>
         </div>
     </div>
-    """, unsafe_allow_html=True)
+    """)
     current_data = data_ingest.get_default_matchup_and_waivers(ppr=ppr_val, scoring_cfg=active_scoring_cfg)
 
 
@@ -738,40 +745,40 @@ with tab_matchup:
     # Top KPI Metrics Bar
     m_col1, m_col2, m_col3, m_col4 = st.columns(4)
     with m_col1:
-        st.markdown(f"""
+        st.html(f"""
         <div class="metric-card">
             <div class="metric-title">{_html_safe(team_a_name)} P(Win)</div>
             <div class="metric-value green-val">{p_win_a * 100:.1f}%</div>
             <div class="metric-sub">Implied Moneyline: {ml_str}</div>
         </div>
-        """, unsafe_allow_html=True)
+        """)
 
     with m_col2:
-        st.markdown(f"""
+        st.html(f"""
         <div class="metric-card">
             <div class="metric-title">{_html_safe(team_a_name)} Projected (Med)</div>
             <div class="metric-value blue-val">{a_summary['median']:.1f}</div>
             <div class="metric-sub">Floor (P10): {a_summary['p10']:.1f} · Ceiling (P90): {a_summary['p90']:.1f}</div>
         </div>
-        """, unsafe_allow_html=True)
+        """)
 
     with m_col3:
-        st.markdown(f"""
+        st.html(f"""
         <div class="metric-card">
             <div class="metric-title">{_html_safe(team_b_name)} Projected (Med)</div>
             <div class="metric-value amber-val">{b_summary['median']:.1f}</div>
             <div class="metric-sub">Floor (P10): {b_summary['p10']:.1f} · Ceiling (P90): {b_summary['p90']:.1f}</div>
         </div>
-        """, unsafe_allow_html=True)
+        """)
 
     with m_col4:
-        st.markdown(f"""
+        st.html(f"""
         <div class="metric-card">
             <div class="metric-title">Expected Margin of Victory</div>
             <div class="metric-value purple-val">{m_summary['mean']:+0.1f}</div>
             <div class="metric-sub">Median Margin: {m_summary['median']:+0.1f} · Volatility: ±{m_summary['std']:.1f}</div>
         </div>
-        """, unsafe_allow_html=True)
+        """)
 
     # 1. Centered Win% Gauge + High-Contrast Margin of Victory Distribution
     col_gauge, col_margin = st.columns([1, 1.85])
@@ -862,21 +869,21 @@ with tab_matchup:
                 win_lev_sign = "+" if item["win_leverage"] >= 0 else ""
 
                 vegas_strip = (
-                    f"<b>{item['challenger_name']}</b> ({item.get('challenger_vegas_tag', 'NFL')})"
-                    f" &nbsp;vs&nbsp; <b>{item['starter_name']}</b> ({item.get('starter_vegas_tag', 'NFL')})"
+                    f"<b>{_html_safe(item['challenger_name'])}</b> ({_html_safe(item.get('challenger_vegas_tag', 'NFL'))})"
+                    f" &nbsp;vs&nbsp; <b>{_html_safe(item['starter_name'])}</b> ({_html_safe(item.get('starter_vegas_tag', 'NFL'))})"
                 )
                 stack_tags = " &nbsp; ".join(
-                    [t for t in [item.get("challenger_stack", ""), item.get("starter_stack", "")] if t]
+                    [_html_safe(t) for t in [item.get("challenger_stack", ""), item.get("starter_stack", "")] if t]
                 )
 
                 card_html = f"""
                 <div style="background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 14px 18px; margin-bottom: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
                         <span style="font-weight: 800; font-size: 1.02rem; color: #f8fafc;">
-                            Slot: <span style="color: #38bdf8;">{item['slot']}</span> &nbsp;·&nbsp; {item['starter_name']} vs {item['challenger_name']}
+                            Slot: <span style="color: #38bdf8;">{_html_safe(item['slot'])}</span> &nbsp;·&nbsp; {_html_safe(item['starter_name'])} vs {_html_safe(item['challenger_name'])}
                         </span>
                         <span style="background: {item['badge_bg']}; color: {item['badge_color']}; border: 1px solid {item['badge_color']}; padding: 3px 11px; border-radius: 20px; font-size: 0.78rem; font-weight: 800;">
-                            {item['badge']}
+                            {_html_safe(item['badge'])}
                         </span>
                     </div>
                     <div style="font-size: 0.76rem; color: #94a3b8; margin-bottom: 10px; display: flex; justify-content: space-between; flex-wrap: wrap;">
@@ -906,13 +913,13 @@ with tab_matchup:
                         </div>
                     </div>
                     <div style="font-size: 0.80rem; color: #cbd5e1; background: rgba(15, 23, 42, 0.75); padding: 8px 12px; border-radius: 6px; border-left: 3px solid {item['badge_color']};">
-                        💡 <b>Sunday Rationale:</b> {item['rationale']}
+                        💡 <b>Sunday Rationale:</b> {_html_safe(item['rationale'])}
                     </div>
                 </div>
                 """
-                st.markdown(card_html, unsafe_allow_html=True)
+                st.html(card_html)
     else:
-        st.success(f"✅ **No Contested Slots:** All starters for **{team_a_name}** hold at least a +2.5 projected point cushion over your bench depth.")
+        st.success(f"✅ **No Contested Slots:** All starters for **{_md_safe(team_a_name)}** hold at least a +2.5 projected point cushion over your bench depth.")
 
     # 3. Starting Rosters & Correlated Stack Matrix Breakdown
     st.markdown("---")
@@ -920,18 +927,17 @@ with tab_matchup:
         detected_corrs = matchup_result.get("stacks", [])
         if detected_corrs:
             corr_badges = " &nbsp;·&nbsp; ".join([
-                f"<b>{c['player_1']} ↔ {c['player_2']}</b> ({c['stack_type']}, ρ={c['rho']:+.2f})"
+                f"<b>{_html_safe(c['player_1'])} ↔ {_html_safe(c['player_2'])}</b> ({_html_safe(c['stack_type'])}, ρ={c['rho']:+.2f})"
                 for c in detected_corrs[:6]
             ])
-            st.markdown(
+            st.html(
                 f"<div style='background:#0f172a;border:1px solid #334155;padding:8px 14px;border-radius:8px;margin-bottom:12px;font-size:0.82rem;color:#cbd5e1;'>"
-                f"🔗 <b>Active Gaussian Copula Covariance Pairs:</b> {corr_badges}</div>",
-                unsafe_allow_html=True
+                f"🔗 <b>Active Gaussian Copula Covariance Pairs:</b> {corr_badges}</div>"
             )
 
         col_la, col_lb = st.columns(2)
         with col_la:
-            st.markdown(f"**{team_a_name} Starters**")
+            st.markdown(f"**{_md_safe(team_a_name)} Starters**")
             df_a = pd.DataFrame(team_a_roster)
             cols_show_a = [c for c in ["slot", "name", "position", "mu", "sigma", "p_active", "prop_source", "injury_status"] if c in df_a.columns]
             df_display_a = df_a[cols_show_a].rename(columns={
@@ -941,7 +947,7 @@ with tab_matchup:
             st.dataframe(df_display_a, width="stretch", hide_index=True)
 
         with col_lb:
-            st.markdown(f"**{team_b_name} Starters**")
+            st.markdown(f"**{_md_safe(team_b_name)} Starters**")
             df_b = pd.DataFrame(team_b_roster)
             cols_show_b = [c for c in ["slot", "name", "position", "mu", "sigma", "p_active", "prop_source", "injury_status"] if c in df_b.columns]
             df_display_b = df_b[cols_show_b].rename(columns={
@@ -955,7 +961,7 @@ with tab_matchup:
 # TAB 2: START / SIT DECISION ENGINE
 # ===========================================================================
 with tab_startsit:
-    st.subheader(f"Start / Sit Comparative Decision Engine ({team_a_name})")
+    st.subheader(f"Start / Sit Comparative Decision Engine ({_md_safe(team_a_name)})")
     st.caption("Select any auto-detected Contested Lineup Slot below for instant 1-click comparison, or choose a custom player pair.")
 
     # Candidate 1 options (all starters + bench on Team A if ESPN connected)
@@ -1040,9 +1046,9 @@ with tab_startsit:
 
     # Inactive Player Alert Warnings
     if cand_a.get("is_inactive") or cand_a.get("p_active", 1.0) <= 0.0 or cand_a.get("slot") in ["IR", "IR_ELIGIBLE"]:
-        st.error(f"🚨 **CRITICAL LINEUP WARNING**: **{cand_a_name}** is designated **{cand_a.get('injury_status', 'IR')}** (0.0 projected pts, 0% active). This player CANNOT be started!")
+        st.error(f"🚨 **CRITICAL LINEUP WARNING**: **{_md_safe(cand_a_name)}** is designated **{cand_a.get('injury_status', 'IR')}** (0.0 projected pts, 0% active). This player CANNOT be started!")
     if cand_b.get("is_inactive") or cand_b.get("p_active", 1.0) <= 0.0 or cand_b.get("slot") in ["IR", "IR_ELIGIBLE"]:
-        st.error(f"🚨 **CRITICAL LINEUP WARNING**: **{cand_b_name}** is designated **{cand_b.get('injury_status', 'IR')}** (0.0 projected pts, 0% active). This player CANNOT be started!")
+        st.error(f"🚨 **CRITICAL LINEUP WARNING**: **{_md_safe(cand_b_name)}** is designated **{cand_b.get('injury_status', 'IR')}** (0.0 projected pts, 0% active). This player CANNOT be started!")
 
     # Run Start/Sit Comparative Simulation (cached across unrelated widget reruns)
     ss_sig = _sim_cache_sig("startsit", cand_a, cand_b, team_a_roster, team_b_roster, cand_a.get("slot", "FLEX"), n_iterations)
@@ -1070,29 +1076,29 @@ with tab_startsit:
     vol_a = cand_a.get("volatility_class") or cand_a.get("score_breakdown", {}).get("volatility_class", "Standard Volume")
     vol_b = cand_b.get("volatility_class") or cand_b.get("score_breakdown", {}).get("volatility_class", "Standard Volume")
 
-    st.markdown(f"""
+    st.html(f"""
     <div style="background: rgba(15, 23, 42, 0.85); border: 1px solid #3b82f6; border-radius: 10px; padding: 12px 16px; margin-bottom: 14px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <span style="font-weight: 800; color: #60a5fa; font-size: 0.95rem;">🎯 SCHEME MATCHUP & DEFENSIVE FUNNEL BREAKDOWN</span>
+            <span style="font-weight: 800; color: #60a5fa; font-size: 0.95rem;">🎯 SCHEME MATCHUP &amp; DEFENSIVE FUNNEL BREAKDOWN</span>
             <span style="font-size: 0.75rem; background: #1e3a8a; color: #93c5fd; padding: 2px 8px; border-radius: 4px; font-weight: 600;">SumerSports Synergy</span>
         </div>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 8px;">
             <div style="background: #1e293b; padding: 8px 12px; border-radius: 6px; border-left: 3px solid #38bdf8;">
-                <div style="font-weight: 700; color: #f8fafc; font-size: 0.92rem;">{cand_a_name} <span style="font-size: 0.8rem; color: #94a3b8; font-weight: normal;">({cand_a.get('position', 'WR')})</span></div>
-                <div style="font-size: 0.80rem; color: #cbd5e1; margin-top: 2px;">Alignment: <b style="color: #38bdf8;">{align_a.get('alignment_tag', 'WR')}</b> (Slot: {align_a.get('slot_snap_pct', 0)*100:.0f}% | Wide: {align_a.get('wide_snap_pct', 0)*100:.0f}%) · Archetype: <b style="color: #38bdf8;">{vol_a}</b></div>
-                <div style="font-size: 0.80rem; color: #e2e8f0; margin-top: 3px;">Opp: <b>{funnel_a.get('team', 'DEF')}</b> <span style="font-size: 0.74rem; background: {badge_color_a}22; color: {badge_color_a}; border: 1px solid {badge_color_a}; padding: 1px 6px; border-radius: 3px;">{funnel_a.get('funnel_classification', 'Balanced')}</span> · MOF EPA: <b>{funnel_a.get('mof_epa_allowed', 0):.2f}</b> · Quick Pres: <b>{funnel_a.get('quick_pressure_rate', 0)*100:.1f}%</b></div>
+                <div style="font-weight: 700; color: #f8fafc; font-size: 0.92rem;">{_html_safe(cand_a_name)} <span style="font-size: 0.8rem; color: #94a3b8; font-weight: normal;">({_html_safe(cand_a.get('position', 'WR'))})</span></div>
+                <div style="font-size: 0.80rem; color: #cbd5e1; margin-top: 2px;">Alignment: <b style="color: #38bdf8;">{_html_safe(align_a.get('alignment_tag', 'WR'))}</b> (Slot: {align_a.get('slot_snap_pct', 0)*100:.0f}% | Wide: {align_a.get('wide_snap_pct', 0)*100:.0f}%) · Archetype: <b style="color: #38bdf8;">{_html_safe(vol_a)}</b></div>
+                <div style="font-size: 0.80rem; color: #e2e8f0; margin-top: 3px;">Opp: <b>{_html_safe(funnel_a.get('team', 'DEF'))}</b> <span style="font-size: 0.74rem; background: {badge_color_a}22; color: {badge_color_a}; border: 1px solid {badge_color_a}; padding: 1px 6px; border-radius: 3px;">{_html_safe(funnel_a.get('funnel_classification', 'Balanced'))}</span> · MOF EPA: <b>{funnel_a.get('mof_epa_allowed', 0):.2f}</b> · Quick Pres: <b>{funnel_a.get('quick_pressure_rate', 0)*100:.1f}%</b></div>
             </div>
             <div style="background: #1e293b; padding: 8px 12px; border-radius: 6px; border-left: 3px solid #c084fc;">
-                <div style="font-weight: 700; color: #f8fafc; font-size: 0.92rem;">{cand_b_name} <span style="font-size: 0.8rem; color: #94a3b8; font-weight: normal;">({cand_b.get('position', 'WR')})</span></div>
-                <div style="font-size: 0.80rem; color: #cbd5e1; margin-top: 2px;">Alignment: <b style="color: #c084fc;">{align_b.get('alignment_tag', 'WR')}</b> (Slot: {align_b.get('slot_snap_pct', 0)*100:.0f}% | Wide: {align_b.get('wide_snap_pct', 0)*100:.0f}%) · Archetype: <b style="color: #c084fc;">{vol_b}</b></div>
-                <div style="font-size: 0.80rem; color: #e2e8f0; margin-top: 3px;">Opp: <b>{funnel_b.get('team', 'DEF')}</b> <span style="font-size: 0.74rem; background: {badge_color_b}22; color: {badge_color_b}; border: 1px solid {badge_color_b}; padding: 1px 6px; border-radius: 3px;">{funnel_b.get('funnel_classification', 'Balanced')}</span> · MOF EPA: <b>{funnel_b.get('mof_epa_allowed', 0):.2f}</b> · Quick Pres: <b>{funnel_b.get('quick_pressure_rate', 0)*100:.1f}%</b></div>
+                <div style="font-weight: 700; color: #f8fafc; font-size: 0.92rem;">{_html_safe(cand_b_name)} <span style="font-size: 0.8rem; color: #94a3b8; font-weight: normal;">({_html_safe(cand_b.get('position', 'WR'))})</span></div>
+                <div style="font-size: 0.80rem; color: #cbd5e1; margin-top: 2px;">Alignment: <b style="color: #c084fc;">{_html_safe(align_b.get('alignment_tag', 'WR'))}</b> (Slot: {align_b.get('slot_snap_pct', 0)*100:.0f}% | Wide: {align_b.get('wide_snap_pct', 0)*100:.0f}%) · Archetype: <b style="color: #c084fc;">{_html_safe(vol_b)}</b></div>
+                <div style="font-size: 0.80rem; color: #e2e8f0; margin-top: 3px;">Opp: <b>{_html_safe(funnel_b.get('team', 'DEF'))}</b> <span style="font-size: 0.74rem; background: {badge_color_b}22; color: {badge_color_b}; border: 1px solid {badge_color_b}; padding: 1px 6px; border-radius: 3px;">{_html_safe(funnel_b.get('funnel_classification', 'Balanced'))}</span> · MOF EPA: <b>{funnel_b.get('mof_epa_allowed', 0):.2f}</b> · Quick Pres: <b>{funnel_b.get('quick_pressure_rate', 0)*100:.1f}%</b></div>
             </div>
         </div>
         <div style="font-size: 0.82rem; color: #f1f5f9; background: #0f172a; padding: 7px 11px; border-radius: 6px; border: 1px solid #334155;">
-            💡 <b>Scheme Calibration Recommendation:</b> {funnel_note}
+            💡 <b>Scheme Calibration Recommendation:</b> {_html_safe(funnel_note)}
         </div>
     </div>
-    """, unsafe_allow_html=True)
+    """)
 
     # Tactical Objective Banner
     tac_mode = ss_result.get("tactical_mode", "TOSS-UP")
@@ -1105,44 +1111,44 @@ with tab_startsit:
     )
     tac_icon = "🚨" if "INACTIVE" in tac_mode else ("🛡️" if tac_mode == "FAVORITE" else ("⚡" if tac_mode == "UNDERDOG" else "⚖️"))
 
-    st.markdown(f"""
+    st.html(f"""
     <div style="background: {tac_bg}; border: 1px solid #334155; border-radius: 10px; padding: 10px 16px; margin-bottom: 14px;">
-        <span style="font-weight: 800; font-size: 1.0rem;">{tac_icon} {tac_mode} REGIME: {tac_obj}</span><br>
-        <span style="color: #cbd5e1; font-size: 0.84rem;">{ss_result.get('tactical_rationale', '')}</span>
+        <span style="font-weight: 800; font-size: 1.0rem; color: #f8fafc;">{tac_icon} {_html_safe(tac_mode)} REGIME: {_html_safe(tac_obj)}</span><br>
+        <span style="color: #cbd5e1; font-size: 0.84rem;">{_html_safe(ss_result.get('tactical_rationale', ''))}</span>
     </div>
-    """, unsafe_allow_html=True)
+    """)
 
     # Decision Scorecard
     sc_col1, sc_col2, sc_col3 = st.columns(3)
     with sc_col1:
-        st.markdown(f"""
+        st.html(f"""
         <div class="metric-card">
             <div class="metric-title">Head-to-Head Outscore %</div>
             <div class="metric-value blue-val">{ss_result['p_outscore_a'] * 100:.1f}%</div>
-            <div class="metric-sub">{cand_a_name} vs {cand_b_name} ({ss_result['p_outscore_b']*100:.1f}%)</div>
+            <div class="metric-sub">{_html_safe(cand_a_name)} vs {_html_safe(cand_b_name)} ({ss_result['p_outscore_b']*100:.1f}%)</div>
         </div>
-        """, unsafe_allow_html=True)
+        """)
 
     with sc_col2:
-        st.markdown(f"""
+        st.html(f"""
         <div class="metric-card">
             <div class="metric-title">Team Win% Impact</div>
             <div class="metric-value green-val">{ss_result['team_win_rate_a'] * 100:.1f}%</div>
-            <div class="metric-sub">With {cand_a_name} vs {ss_result['team_win_rate_b']*100:.1f}% with {cand_b_name}</div>
+            <div class="metric-sub">With {_html_safe(cand_a_name)} vs {ss_result['team_win_rate_b']*100:.1f}% with {_html_safe(cand_b_name)}</div>
         </div>
-        """, unsafe_allow_html=True)
+        """)
 
     with sc_col3:
         delta_str = f"{ss_result['delta_win_rate'] * 100:+0.1f}%"
         is_rec_a = ss_result["recommended"] == cand_a_name
         rec_color = "red-val" if "INACTIVE" in tac_mode else ("green-val" if is_rec_a else "amber-val")
-        st.markdown(f"""
+        st.html(f"""
         <div class="metric-card">
-            <div class="metric-title">Tuned Decision ({tac_mode})</div>
-            <div class="metric-value {rec_color}">START {ss_result['recommended'].upper()}</div>
+            <div class="metric-title">Tuned Decision ({_html_safe(tac_mode)})</div>
+            <div class="metric-value {rec_color}">START {_html_safe(ss_result['recommended'].upper())}</div>
             <div class="metric-sub">Win% Delta: {delta_str}</div>
         </div>
-        """, unsafe_allow_html=True)
+        """)
 
     # Consolidated Outcome Probability Density & Percentile Horizon Plot
     sim_a = ss_result["sim_a"]
@@ -1191,7 +1197,7 @@ with tab_startsit:
 
     # Comprehensive Start/Sit Leverage Audit Table for Team A
     st.markdown("---")
-    st.subheader(f"📋 Comprehensive Start/Sit Leverage Audit for {team_a_name}")
+    st.subheader(f"📋 Comprehensive Start/Sit Leverage Audit for {_md_safe(team_a_name)}")
     st.caption("Vectorized evaluation of every possible bench-to-starter substitution across all 10,000 correlated Monte Carlo iterations.")
     if team_a_bench:
         opt_sig = _sim_cache_sig("roster_opt", team_a_roster, team_a_bench, team_b_roster, n_iterations)
@@ -1226,7 +1232,7 @@ with tab_startsit:
 # TAB 3: TUESDAY WAIVER & FAAB CLAIM SHEET
 # ===========================================================================
 with tab_vorp:
-    st.subheader(f"📋 Tuesday Waiver & FAAB Claim Sheet ({team_a_name})")
+    st.subheader(f"📋 Tuesday Waiver & FAAB Claim Sheet ({_md_safe(team_a_name)})")
     st.markdown("Automated waiver priority queue. Recommendations are formatted as **Atomic Transaction Pairs** with dynamic FAAB bid sizing derived from marginal win% leverage, net projected points, and remaining team budget.")
 
     # Interactive Sizing & Strategy Controls
@@ -1253,15 +1259,15 @@ with tab_vorp:
         )
 
     with w_col3:
-        st.markdown(f"""
+        st.html(f"""
         <div class="metric-card" style="padding: 10px 14px;">
             <div class="metric-title">Active FAAB Pool</div>
             <div class="metric-value green-val" style="font-size: 1.6rem; margin: 2px 0;">${remaining_faab}</div>
             <div class="metric-sub">{"Default ($100)" if remaining_faab == 100 else f"${remaining_faab} budget"}</div>
         </div>
-        """, unsafe_allow_html=True)
+        """)
 
-    st.markdown("<br>", unsafe_allow_html=True)
+    st.html("<div style='height: 8px;'></div>")
 
     # Dynamic Replacement Baselines & Waiver Evaluation Suite (cached across unrelated widget reruns)
     all_team_a_players = (team_a_dict.get("roster", team_a_roster) if is_espn_active else team_a_roster) + team_a_bench
@@ -1304,18 +1310,18 @@ with tab_vorp:
     for col, pos in zip([b_col1, b_col2, b_col3, b_col4, b_col5], ["QB", "RB", "WR", "TE", "FLEX"]):
         b_info = baselines.get(pos, {})
         with col:
-            st.markdown(f"""
+            st.html(f"""
             <div class="metric-card">
-                <div class="metric-title">{pos} BASELINE</div>
+                <div class="metric-title">{_html_safe(pos)} BASELINE</div>
                 <div class="metric-value blue-val">{b_info.get('baseline_mean', 0.0):.1f}</div>
-                <div class="metric-sub">{b_info.get('player_name', 'N/A')}</div>
+                <div class="metric-sub">{_html_safe(b_info.get('player_name', 'N/A'))}</div>
             </div>
-            """, unsafe_allow_html=True)
+            """)
 
-    st.markdown("<br>", unsafe_allow_html=True)
+    st.html("<div style='height: 8px;'></div>")
 
     st.markdown("### ⚡ Atomic Claim Sheet (Priority Orders)")
-    st.caption(f"Ordered queue of atomic Add ➔ Drop pairs with dynamically sized FAAB allocations ready for submission into your league manager. **🔒 2-QB Rule Enforced:** Quarterback claims are evaluated exclusively against rostered QBs ({qb_str}) to preserve the 2-QB limit.")
+    st.caption(f"Ordered queue of atomic Add ➔ Drop pairs with dynamically sized FAAB allocations ready for submission into your league manager. **🔒 2-QB Rule Enforced:** Quarterback claims are evaluated exclusively against rostered QBs ({_md_safe(qb_str)}) to preserve the 2-QB limit.")
 
     if not df_upgrades.empty:
         # Copyable quick-claim text
@@ -1332,24 +1338,24 @@ with tab_vorp:
             gain_val = f"+{row['Net P90 Gain']:.1f}" if is_stash_selected else f"+{row['Net Proj Gain']:.1f}"
             win_lev_str = row.get("Win% Leverage", f"{float(row['Net Proj Gain'])*1.6:+.1f}%")
 
-            st.markdown(f"""
+            st.html(f"""
             <div style="background: #1e293b; border: 1px solid {p_badge_border}; border-radius: 10px; padding: 14px 18px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                 <div>
                     <span style="background: {p_badge_bg}; color: #f8fafc; border: 1px solid {p_badge_border}; padding: 3px 10px; border-radius: 6px; font-size: 0.82rem; font-weight: 800;">
-                        Priority {row['Priority']}
+                        Priority {_html_safe(row['Priority'])}
                     </span>
                     <span style="margin-left: 12px; font-weight: 800; font-size: 1.05rem; color: #f8fafc;">
-                        Add <span style="color: #10b981;">{row['Target Waiver Add']}</span> ({row['Pos']}) &nbsp;➔&nbsp; Drop <span style="color: #ef4444;">{row['Cut Candidate']}</span> ({row['Cut Pos']})
+                        Add <span style="color: #10b981;">{_html_safe(row['Target Waiver Add'])}</span> ({_html_safe(row['Pos'])}) &nbsp;➔&nbsp; Drop <span style="color: #ef4444;">{_html_safe(row['Cut Candidate'])}</span> ({_html_safe(row['Cut Pos'])})
                     </span>
                     <div style="font-size: 0.82rem; color: #94a3b8; margin-top: 4px;">
-                        {row['Upgrade Rationale']}
+                        {_html_safe(row['Upgrade Rationale'])}
                     </div>
                 </div>
                 <div style="display: flex; gap: 16px; align-items: center;">
                     <div style="text-align: right;">
                         <div style="font-size: 0.70rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Win% Leverage</div>
                         <div style="font-weight: 800; color: #38bdf8; font-size: 1.15rem;">
-                            {win_lev_str}
+                            {_html_safe(win_lev_str)}
                         </div>
                     </div>
                     <div style="text-align: right;">
@@ -1360,22 +1366,22 @@ with tab_vorp:
                     </div>
                     <div style="background: #064e3b; border: 1px solid #10b981; padding: 8px 16px; border-radius: 8px; text-align: center;">
                         <div style="font-size: 0.70rem; color: #a7f3d0; font-weight: 700; text-transform: uppercase;">Suggested FAAB</div>
-                        <div style="font-size: 1.2rem; font-weight: 900; color: #ffffff;">{row['Suggested FAAB']}</div>
+                        <div style="font-size: 1.2rem; font-weight: 900; color: #ffffff;">{_html_safe(row['Suggested FAAB'])}</div>
                     </div>
                 </div>
             </div>
-            """, unsafe_allow_html=True)
+            """)
 
         with st.expander("📋 View Detailed Upgrade Audit Table", expanded=False):
             disp_cols = [c for c in ["Priority", "Target Waiver Add", "Pos", "Cut Candidate", "Cut Pos", "Projected (Med)", "Floor (P10)", "Ceiling (P90)", "Win% Leverage", "Net Proj Gain", "Net P90 Gain", "Suggested FAAB", "Upgrade Rationale"] if c in df_upgrades.columns]
             st.dataframe(df_upgrades[disp_cols], width="stretch", hide_index=True)
     else:
-        st.info(f"Your bench on {team_a_name} is currently stronger than the available waiver wire pool at key positions.")
+        st.info(f"Your bench on {_md_safe(team_a_name)} is currently stronger than the available waiver wire pool at key positions.")
 
     st.markdown("---")
 
     # Active Roster VORP Table with Standardized Columns
-    st.subheader(f"Active Roster VORP for {team_a_name}")
+    st.subheader(f"Active Roster VORP for {_md_safe(team_a_name)}")
     disp_vorp_cols = [c for c in ["Player", "Pos", "Slot", "Projected (Med)", "Floor (P10)", "Ceiling (P90)", "Waiver Baseline", "Points VORP", "Win% VORP (Delta P(Win))"] if c in df_roster_vorp.columns]
     st.dataframe(df_roster_vorp[disp_vorp_cols], width="stretch", hide_index=True)
 
@@ -1416,8 +1422,8 @@ with tab_vorp:
 
     # Floor Surge & Contrarian Buy-Low Scanner
     st.markdown("---")
-    st.subheader(f"📈 Floor Surge & Contrarian Buy-Low Scanner ({team_a_name})")
-    st.caption(f"Scans multi-week SumerSports usage trajectories (Target Share velocity, YPRR efficiency, and aDOT) across the league to identify high-floor surging assets and contrarian buy-low trade candidates due for positive touchdown regression for **{team_a_name}**.")
+    st.subheader(f"📈 Floor Surge & Contrarian Buy-Low Scanner ({_md_safe(team_a_name)})")
+    st.caption(f"Scans multi-week SumerSports usage trajectories (Target Share velocity, YPRR efficiency, and aDOT) across the league to identify high-floor surging assets and contrarian buy-low trade candidates due for positive touchdown regression for **{_md_safe(team_a_name)}**.")
 
     try:
         df_scanner = scheme_db.detect_floor_surges_and_buy_lows()
@@ -1455,7 +1461,7 @@ with tab_vorp:
 # TAB 4: NEXT-HORIZON STRATEGY & MARKET FEED
 # ===========================================================================
 with tab_feeds:
-    st.subheader(f"🔮 Next-Horizon Quantitative Strategy & Market Feed ({team_a_name})")
+    st.subheader(f"🔮 Next-Horizon Quantitative Strategy & Market Feed ({_md_safe(team_a_name)})")
 
     # Section 1: Game-Theoretic Matchup Inversion Solver (Pillar 5.1)
     st.markdown("#### ♟️ 1. Game-Theoretic Matchup Inversion Engine")
@@ -1471,48 +1477,48 @@ with tab_feeds:
 
     inv_col1, inv_col2, inv_col3, inv_col4 = st.columns(4)
     with inv_col1:
-        st.markdown(f"""
+        st.html(f"""
         <div class="metric-card">
             <div class="metric-title">Variance Sensitivity</div>
             <div class="metric-value {'amber-val' if inv_result['dp_dsigma_pct'] > 0 else 'green-val'}" style="font-size:1.35rem;">{inv_result['dp_dsigma_pct']:+.2f}% / pt</div>
             <div class="metric-sub">∂P(Win)/∂σ_M</div>
         </div>
-        """, unsafe_allow_html=True)
+        """)
     with inv_col2:
-        st.markdown(f"""
+        st.html(f"""
         <div class="metric-card">
             <div class="metric-title">Opponent Volatility Profile</div>
-            <div class="metric-value purple-val" style="font-size:1.15rem;">{inv_result['opp_profile']}</div>
+            <div class="metric-value purple-val" style="font-size:1.15rem;">{_html_safe(inv_result['opp_profile'])}</div>
             <div class="metric-sub">Opp Skew Ratio: {inv_result['opp_skew_ratio']:.2f} (σ_B={inv_result['sigma_b']:.1f})</div>
         </div>
-        """, unsafe_allow_html=True)
+        """)
     with inv_col3:
-        st.markdown(f"""
+        st.html(f"""
         <div class="metric-card">
             <div class="metric-title">Margin Volatility (σ_M)</div>
             <div class="metric-value blue-val" style="font-size:1.5rem;">±{inv_result['sigma_margin']:.1f} pts</div>
             <div class="metric-sub">Expected Spread: {inv_result['spread']:+.1f} pts</div>
         </div>
-        """, unsafe_allow_html=True)
+        """)
     with inv_col4:
-        st.markdown(f"""
+        st.html(f"""
         <div class="metric-card">
             <div class="metric-title">Own Lineup Volatility (σ_A)</div>
             <div class="metric-value green-val" style="font-size:1.5rem;">±{inv_result['sigma_a']:.1f} pts</div>
             <div class="metric-sub">Correlated Copula Draw</div>
         </div>
-        """, unsafe_allow_html=True)
+        """)
 
-    st.markdown(f"""
+    st.html(f"""
     <div style="background: #0f172a; border: 1px solid #38bdf8; border-radius: 10px; padding: 12px 16px; margin: 12px 0;">
-        <div style="font-weight: 800; color: #38bdf8; font-size: 0.95rem; margin-bottom: 4px;">{inv_result['strategy_headline']}</div>
-        <div style="font-size: 0.85rem; color: #e2e8f0; margin-bottom: 6px;">{inv_result['strategy_summary']}</div>
+        <div style="font-weight: 800; color: #38bdf8; font-size: 0.95rem; margin-bottom: 4px;">{_html_safe(inv_result['strategy_headline'])}</div>
+        <div style="font-size: 0.85rem; color: #e2e8f0; margin-bottom: 6px;">{_html_inline_bold(inv_result['strategy_summary'])}</div>
     </div>
-    """, unsafe_allow_html=True)
+    """)
 
     if inv_result.get("tactical_moves"):
         for move_str in inv_result["tactical_moves"]:
-            st.markdown(f"- {move_str}")
+            st.markdown(f"- {_md_safe(move_str)}")
 
     st.markdown("---")
 
@@ -1615,7 +1621,7 @@ with tab_feeds:
                 help="Example: nfl-will-the-bills-beat-the-lions"
             )
         with poly_col2:
-            st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
+            st.html("<div style='height: 28px;'></div>")
             query_poly = st.button("Query Polymarket Gamma API", width="stretch")
 
         if query_poly and custom_slug.strip():
@@ -1827,7 +1833,7 @@ with tab_scheme:
                 tag_badges_html += (
                     f"<span style='background:{bg}; color:{fg}; border:1px solid {fg}; "
                     f"padding:3px 10px; border-radius:999px; font-size:0.76rem; font-weight:800; margin-right:8px;'>"
-                    f"⚡ {rt}</span>"
+                    f"⚡ {_html_safe(rt)}</span>"
                 )
         else:
             tag_badges_html = (
@@ -1835,20 +1841,20 @@ with tab_scheme:
                 "border-radius:999px; font-size:0.76rem; font-weight:700;'>✅ STABLE REGIME (ON EXPECTATION)</span>"
             )
 
-        st.markdown(f"""
+        st.html(f"""
         <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border: 1px solid #334155; border-left: 5px solid #38bdf8; border-radius: 10px; padding: 12px 18px; margin-bottom: 10px;">
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-                <span style="color:#f8fafc; font-weight:800; font-size:1.05rem;">🏛️ {sel_team} Longitudinal Regime Profile</span>
+                <span style="color:#f8fafc; font-weight:800; font-size:1.05rem;">🏛️ {_html_safe(sel_team)} Longitudinal Regime Profile</span>
                 <div>{tag_badges_html}</div>
             </div>
             <div style="color:#94a3b8; font-size:0.84rem; margin-top:6px;">
-                <b>Preseason Expectation:</b> {deep_dive['preseason_expectation']}
+                <b>Preseason Expectation:</b> {_html_safe(deep_dive['preseason_expectation'])}
             </div>
             <div style="color:#cbd5e1; font-size:0.84rem; margin-top:4px;">
-                <b>Expectation vs. Reality Verdict:</b> {exp_delta.get('verdict', '')}
+                <b>Expectation vs. Reality Verdict:</b> {_html_safe(exp_delta.get('verdict', ''))}
             </div>
         </div>
-        """, unsafe_allow_html=True)
+        """)
 
     # Top 4 KPI Delta Cards
     m_c1, m_c2, m_c3, m_c4 = st.columns(4)
@@ -2023,8 +2029,8 @@ with tab_scheme:
 
     # Weekly Scheme Matchup Impact on Team A
     st.markdown("---")
-    st.markdown(f"### 🛡️ Weekly Scheme Matchup Impact on {team_a_name}")
-    st.caption(f"How opposing NFL defensive schemes (Quick Pressure %, MOF EPA allowed, Rush SR allowed) specifically modulate {team_a_name}'s players.")
+    st.markdown(f"### 🛡️ Weekly Scheme Matchup Impact on {_md_safe(team_a_name)}")
+    st.caption(f"How opposing NFL defensive schemes (Quick Pressure %, MOF EPA allowed, Rush SR allowed) specifically modulate {_md_safe(team_a_name)}'s players.")
 
     scheme_impact_rows = []
     for p in team_a_roster + team_a_bench:
@@ -2235,7 +2241,7 @@ with tab_trade:
         verdict_color = "#10b981" if trade_eval["composite_edge_pts"] >= 1.0 else ("#f59e0b" if trade_eval["composite_edge_pts"] >= -1.25 else "#ef4444")
 
         # Executive Verdict Banner
-        st.markdown(f"""
+        st.html(f"""
         <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border: 2px solid {verdict_color}; border-radius: 12px; padding: 16px 22px; margin: 12px 0 18px 0;">
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
                 <div>
@@ -2243,56 +2249,56 @@ with tab_trade:
                         Idiosyncratic League Trade Verdict · {len(selected_receives)}-for-{len(selected_gives)} Package
                     </div>
                     <div style="font-size: 1.35rem; font-weight: 800; color: {verdict_color}; margin-top: 2px;">
-                        {trade_eval['verdict']}
+                        {_html_safe(trade_eval['verdict'])}
                     </div>
                 </div>
                 <div style="text-align: right;">
                     <span style="background: rgba(16, 185, 129, 0.15); border: 1px solid {verdict_color}; color: {verdict_color}; font-size: 1.35rem; font-weight: 900; padding: 6px 16px; border-radius: 10px;">
-                        Grade: {trade_eval['grade']} ({trade_eval['composite_edge_pts']:+.2f} Composite Index)
+                        Grade: {_html_safe(trade_eval['grade'])} ({trade_eval['composite_edge_pts']:+.2f} Composite Index)
                     </span>
                 </div>
             </div>
         </div>
-        """, unsafe_allow_html=True)
+        """)
 
         # Top 4 KPI Metric Cards
         k1, k2, k3, k4 = st.columns(4)
         with k1:
             wk_col = "green-val" if tm["wk6_starter_delta"] >= 0 else "amber-val"
-            st.markdown(f"""
+            st.html(f"""
             <div class="metric-card">
                 <div class="metric-title">Immediate Week 6 Starter Δ</div>
                 <div class="metric-value {wk_col}">{tm['wk6_starter_delta']:+.2f} pts</div>
                 <div class="metric-sub">{tm['wk6_starter_pre']:.1f} ➔ {tm['wk6_starter_post']:.1f} pts (P10 Floor: {tm['wk6_p10_pre']:.1f} ➔ {tm['wk6_p10_post']:.1f})</div>
             </div>
-            """, unsafe_allow_html=True)
+            """)
         with k2:
             wp_col = "green-val" if tm["wk6_win_prob_delta"] >= 0 else "amber-val"
-            st.markdown(f"""
+            st.html(f"""
             <div class="metric-card">
                 <div class="metric-title">Matchup Win Prob Δ vs {_html_safe(trade_eval['week6_opponent_name'])}</div>
                 <div class="metric-value {wp_col}">{tm['wk6_win_prob_delta']:+.1f}%</div>
                 <div class="metric-sub">{tm['wk6_win_prob_pre']:.1f}% ➔ {tm['wk6_win_prob_post']:.1f}%</div>
             </div>
-            """, unsafe_allow_html=True)
+            """)
         with k3:
             rm_col = "green-val" if tm["ros_model_effective_delta"] >= 0 else "amber-val"
-            st.markdown(f"""
+            st.html(f"""
             <div class="metric-card">
                 <div class="metric-title">ROS Model Starter Δ (+Handcuff EV)</div>
                 <div class="metric-value {rm_col}">{tm['ros_model_effective_delta']:+.2f} PPG</div>
                 <div class="metric-sub">Lineup Δ: {tm['ros_model_starter_delta']:+.2f} + IND Cuff Insurance: +{trade_eval['synergies_a']['total_handcuff_insurance_ev']:.2f}</div>
             </div>
-            """, unsafe_allow_html=True)
+            """)
         with k4:
             po_col = "green-val" if tm["playoff_w15_17_starter_delta"] >= 0 else "amber-val"
-            st.markdown(f"""
+            st.html(f"""
             <div class="metric-card">
                 <div class="metric-title">🏆 Fantasy Playoffs Δ (Wks 15–17)</div>
                 <div class="metric-value {po_col}">{tm['playoff_w15_17_starter_delta']:+.2f} PPG</div>
                 <div class="metric-sub">{tm['playoff_w15_17_pre_avg']:.1f} ➔ {tm['playoff_w15_17_post_avg']:.1f} PPG | Wks 7–14 Avg Δ: {tm['w7_14_starter_delta']:+.2f}</div>
             </div>
-            """, unsafe_allow_html=True)
+            """)
 
         # Season-Long & Championship Horizon Callout Banner
         if tm["wk6_starter_delta"] > 0 and tm["playoff_w15_17_starter_delta"] < -1.5:
@@ -2323,7 +2329,7 @@ with tab_trade:
             f"📐 **Full-Season Projections (`2026-FFB-Projections-0812.xlsx`) & Bayesian 50/50 Consolidation Audit**: "
             f"Incoming Active VORP: **`+{tm['fs_incoming_active_vorp']:.1f}`** (`${tm['fs_incoming_auc']:.2f}` Auction Value) vs. "
             f"Outgoing Active VORP: **`+{tm['fs_outgoing_active_vorp']:.1f}`** (`${tm['fs_outgoing_auc']:.2f}` Auction Value) · "
-            f"Net Active VORP Δ: **`{tm['fs_net_active_vorp_delta']:+.1f}`** (`{tm['fs_net_auc_delta']:+.2f}` Auction $) · "
+            f"Net Active VORP Δ: **`{tm['fs_net_active_vorp_delta']:+.1f}`** (`{tm['fs_net_auc_delta']:+.2f}` Auction \\$) · "
             f"Full-Season Model 9-Starter Δ: **`{tm['fs_starter_delta']:+.2f}` PPG** (`{tm['fs_starter_pre']:.2f}` → `{tm['fs_starter_post']:.2f}`) · "
             f"Bayesian 50/50 ROS 9-Starter Δ: **`{tm['bayes_ros_starter_delta']:+.2f}` PPG** (`{tm['bayes_ros_starter_pre']:.2f}` → `{tm['bayes_ros_starter_post']:.2f}`)."
         )
@@ -2335,10 +2341,10 @@ with tab_trade:
             "Realized Season PPG, ESPN League ROS PPG, True In-Season ROS (`True ROS PPG`), Bayesian 50/50 Blend (`Bayes 50/50 PPG`), "
             "and SumerSports Scheme-Adjusted Fantasy Playoff Average (`Playoffs W15-17`)."
         )
-        st.markdown(f"**📥 Assets Acquired by {trade_team_a}**")
+        st.markdown(f"**📥 Assets Acquired by {_md_safe(trade_team_a)}**")
         st.dataframe(trade_eval["tables"]["incoming_df"], width="stretch", hide_index=True)
 
-        st.markdown(f"**📤 Assets Sent to {trade_team_b}**")
+        st.markdown(f"**📤 Assets Sent to {_md_safe(trade_team_b)}**")
         st.dataframe(trade_eval["tables"]["outgoing_df"], width="stretch", hide_index=True)
 
         # Interactive Plotly Charts: Week-by-Week Championship Trajectory (Wks 6-17) + Slot-by-Slot Net Delta
@@ -2420,7 +2426,7 @@ with tab_trade:
             f"📅 In-Season True ROS ({tm['true_ros_starter_delta']:+.2f} PPG)",
             f"⚡ Week 6 Lineup ({tm['wk6_starter_delta']:+.2f} pts)",
             f"🔮 Athletic Model ROS ({tm['ros_model_starter_delta']:+.2f} PPG)",
-            f"🤝 Partner ({trade_team_b}) ROS ({tm['partner_ros_starter_delta']:+.2f} PPG)",
+            f"🤝 Partner ({_md_safe(trade_team_b)}) ROS ({tm['partner_ros_starter_delta']:+.2f} PPG)",
         ])
         with sub_traj:
             st.dataframe(
