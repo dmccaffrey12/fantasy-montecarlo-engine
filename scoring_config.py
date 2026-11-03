@@ -165,8 +165,6 @@ RETURN_SPECIALIST_YARDS: Dict[str, float] = {
     "marvin mims": 28.0,
     "xavier gipson": 26.0,
     "jayden reed": 14.0,
-    "wan'dale robinson": 10.0,
-    "wandale robinson": 10.0,
     "demario douglas": 12.0,
 }
 

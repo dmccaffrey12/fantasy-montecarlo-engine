@@ -583,7 +583,24 @@ def evaluate_start_sit_decision(
     elif baseline_win_rate > 0.60:
         tactical_mode = "FAVORITE"
         tactical_objective = "Maximize P15 Floor (Protect Lead)"
-        if summary_a["p15"] >= summary_b["p15"]:
+        med_diff = summary_a["median"] - summary_b["median"]
+        # Use P15 floor as a tiebreaker only when candidates are in the same tier (within 1.5% win rate and 1.75 med pts).
+        if abs(delta_win_rate) > 0.015 or abs(med_diff) > 1.75:
+            if win_rate_a >= win_rate_b:
+                recommended = candidate_a["name"]
+                rationale = (
+                    f"As a strong favorite ({baseline_win_rate*100:.1f}% win prob), start {candidate_a['name']} "
+                    f"for a decisive projection & win-equity edge ({summary_a['median']:.1f} vs {summary_b['median']:.1f} med, "
+                    f"{delta_win_rate*100:+0.1f}% win leverage; P15 floor {summary_a['p15']:.1f})."
+                )
+            else:
+                recommended = candidate_b["name"]
+                rationale = (
+                    f"As a strong favorite ({baseline_win_rate*100:.1f}% win prob), start {candidate_b['name']} "
+                    f"for a decisive projection & win-equity edge ({summary_b['median']:.1f} vs {summary_a['median']:.1f} med, "
+                    f"{-delta_win_rate*100:+0.1f}% win leverage; P15 floor {summary_b['p15']:.1f})."
+                )
+        elif summary_a["p15"] >= summary_b["p15"]:
             recommended = candidate_a["name"]
             rationale = f"As a strong favorite ({baseline_win_rate*100:.1f}% win prob), prioritize safe floor. Start {candidate_a['name']} with superior P15 floor ({summary_a['p15']:.1f} vs {summary_b['p15']:.1f})."
         else:
@@ -907,7 +924,7 @@ def find_contested_lineup_slots(
                         rationale = f"Trailing projection ({team_a_win_rate*100:.1f}% win rate). Starter {s_name}{arch_text} provides superior explosive ceiling ({s_p90:.1f} vs {b_p90:.1f} pts). Keep in starting lineup."
                 # Favorite regime (win_rate >= 52%): protecting floor & minimizing variance
                 elif team_a_win_rate >= 0.52:
-                    if delta_floor > 0.5:
+                    if delta_floor > 0.5 and delta_med >= -0.75:
                         badge = "🛡️ Safe Floor Upgrade"
                         badge_color = "#10b981"
                         badge_bg = "rgba(16, 185, 129, 0.18)"
@@ -916,7 +933,7 @@ def find_contested_lineup_slots(
                         badge = "🛡️ Safe Floor Starter"
                         badge_color = "#10b981"
                         badge_bg = "rgba(16, 185, 129, 0.18)"
-                        rationale = f"Projected favorite ({team_a_win_rate*100:.1f}% win rate). Starter {s_name} insulates lead with higher floor (P10: {s_p10:.1f} vs {b_p10:.1f} pts)."
+                        rationale = f"Projected favorite ({team_a_win_rate*100:.1f}% win rate). Starter {s_name} insulates lead with superior projection ({s_med:.1f} vs {b_med:.1f} med; P10: {s_p10:.1f} vs {b_p10:.1f} pts)."
                 else:
                     if delta_mu > 0.5:
                         badge = "🎯 Optimal Win% Pick"

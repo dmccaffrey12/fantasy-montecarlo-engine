@@ -394,9 +394,9 @@ CURATED_NFL_PROPS: Dict[str, Dict[str, Any]] = {
     "dj moore": {"rec_yds": 68.5, "receptions": 5.5, "rush_yds": 2.5, "anytime_td_prob": 0.29, "team_implied": 21.5},
     "puka nacua": {"rec_yds": 84.5, "receptions": 7.2, "rush_yds": 1.5, "anytime_td_prob": 0.35, "team_implied": 24.5},
     "tee higgins": {"rec_yds": 64.5, "receptions": 5.0, "rush_yds": 0.0, "anytime_td_prob": 0.30, "team_implied": 26.0},
-    "wandale robinson": {"rec_yds": 46.5, "receptions": 5.5, "rush_yds": 3.0, "anytime_td_prob": 0.19, "team_implied": 18.5},
+    "wandale robinson": {"rec_yds": 40.5, "receptions": 4.2, "rush_yds": 0.5, "anytime_td_prob": 0.17, "team_implied": 18.5},
     "demario douglas": {"rec_yds": 38.5, "receptions": 3.4, "rush_yds": 1.5, "anytime_td_prob": 0.14, "team_implied": 19.0},
-    "jalen coker": {"rec_yds": 46.5, "receptions": 3.8, "rush_yds": 0.0, "anytime_td_prob": 0.20, "team_implied": 19.0},
+    "jalen coker": {"rec_yds": 68.5, "receptions": 5.3, "rush_yds": 0.0, "anytime_td_prob": 0.34, "team_implied": 21.5},
     "adonai mitchell": {"rec_yds": 38.5, "receptions": 2.8, "rush_yds": 0.0, "anytime_td_prob": 0.18, "team_implied": 21.5},
     "jack bech": {"rec_yds": 32.5, "receptions": 2.5, "rush_yds": 0.0, "anytime_td_prob": 0.14, "team_implied": 19.5},
     "deebo samuel": {"rec_yds": 54.5, "receptions": 4.2, "rush_yds": 22.5, "anytime_td_prob": 0.35, "team_implied": 26.5},
@@ -604,13 +604,13 @@ def get_polymarket_player_probability(
 
 def _resolve_default_athletic_excel() -> Tuple[str, str]:
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    preferred = os.path.join(base_dir, "Week6_Proj_1015.xlsx")
-    if os.path.exists(preferred):
-        return preferred, "Week6_Proj_1015.xlsx"
     try:
         candidates = [
             f for f in os.listdir(base_dir)
-            if f.lower().endswith(".xlsx") and "proj" in f.lower() and not f.startswith("~$")
+            if f.lower().endswith(".xlsx")
+            and "proj" in f.lower()
+            and not f.startswith("~$")
+            and "2026-ffb" not in f.lower()
         ]
         if candidates:
             def _wk_key(fn: str):
@@ -620,6 +620,7 @@ def _resolve_default_athletic_excel() -> Tuple[str, str]:
             return os.path.join(base_dir, best), best
     except Exception:
         pass
+    preferred = os.path.join(base_dir, "Week6_Proj_1015.xlsx")
     return preferred, "Week6_Proj_1015.xlsx"
 
 
@@ -628,15 +629,23 @@ _ACTIVE_ATHLETIC_BYTES: Optional[bytes] = None
 _ACTIVE_ATHLETIC_FILENAME: str = _DEFAULT_ATHLETIC_FILENAME
 
 
-def set_uploaded_athletic_projections(file_obj_or_bytes: Optional[Any], filename: str = "Uploaded_Athletic_Proj.xlsx") -> None:
+def set_uploaded_athletic_projections(
+    file_obj_or_bytes: Optional[Any],
+    filename: str = "Uploaded_Athletic_Proj.xlsx",
+    persist_to_disk: bool = False,
+) -> None:
     """
-    Store uploaded Weekly Athletic Projections (.xlsx) in memory so Wednesday waiver
-    releases or Sunday morning updates immediately anchor all projections across the app.
+    Store uploaded Weekly Athletic Projections (.xlsx) in memory (and optionally on disk)
+    so Wednesday waiver releases or Sunday morning updates immediately anchor all projections
+    across the app and invalidate any stale cached ESPN syncs.
     """
-    global _ACTIVE_ATHLETIC_BYTES, _ACTIVE_ATHLETIC_FILENAME
+    global DEFAULT_ATHLETIC_EXCEL_PATH, _DEFAULT_ATHLETIC_FILENAME, _ACTIVE_ATHLETIC_BYTES, _ACTIVE_ATHLETIC_FILENAME
+    prev_sig = (_ACTIVE_ATHLETIC_FILENAME, len(_ACTIVE_ATHLETIC_BYTES) if _ACTIVE_ATHLETIC_BYTES else 0)
+
     if file_obj_or_bytes is None:
         _ACTIVE_ATHLETIC_BYTES = None
-        _, _ACTIVE_ATHLETIC_FILENAME = _resolve_default_athletic_excel()
+        DEFAULT_ATHLETIC_EXCEL_PATH, _DEFAULT_ATHLETIC_FILENAME = _resolve_default_athletic_excel()
+        _ACTIVE_ATHLETIC_FILENAME = _DEFAULT_ATHLETIC_FILENAME
     elif isinstance(file_obj_or_bytes, (bytes, bytearray)):
         _ACTIVE_ATHLETIC_BYTES = bytes(file_obj_or_bytes)
         _ACTIVE_ATHLETIC_FILENAME = filename
@@ -646,6 +655,30 @@ def set_uploaded_athletic_projections(file_obj_or_bytes: Optional[Any], filename
     elif hasattr(file_obj_or_bytes, "read"):
         _ACTIVE_ATHLETIC_BYTES = file_obj_or_bytes.read()
         _ACTIVE_ATHLETIC_FILENAME = getattr(file_obj_or_bytes, "name", filename)
+
+    if persist_to_disk and _ACTIVE_ATHLETIC_BYTES and _ACTIVE_ATHLETIC_FILENAME:
+        safe_name = os.path.basename(_ACTIVE_ATHLETIC_FILENAME)
+        if safe_name.lower().endswith(".xlsx") and not safe_name.startswith("~$"):
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            target_path = os.path.join(base_dir, safe_name)
+            try:
+                if not os.path.exists(target_path) or os.path.getsize(target_path) != len(_ACTIVE_ATHLETIC_BYTES):
+                    with open(target_path, "wb") as f_out:
+                        f_out.write(_ACTIVE_ATHLETIC_BYTES)
+                DEFAULT_ATHLETIC_EXCEL_PATH, _DEFAULT_ATHLETIC_FILENAME = _resolve_default_athletic_excel()
+            except Exception:
+                pass
+
+    new_sig = (_ACTIVE_ATHLETIC_FILENAME, len(_ACTIVE_ATHLETIC_BYTES) if _ACTIVE_ATHLETIC_BYTES else 0)
+    if new_sig != prev_sig:
+        try:
+            _cached_athletic_projections.clear()
+        except Exception:
+            pass
+        try:
+            sync_espn_league.clear()
+        except Exception:
+            pass
 
 
 def get_active_athletic_filename() -> str:
@@ -933,8 +966,18 @@ def _cached_athletic_projections(file_bytes: Optional[bytes], default_path: str)
 
 
 def build_athletic_projections_cache() -> Dict[str, Dict[str, Any]]:
-    """Return cached Athletic multi-block projections dictionary."""
-    return _cached_athletic_projections(_ACTIVE_ATHLETIC_BYTES, DEFAULT_ATHLETIC_EXCEL_PATH)
+    """Return cached Athletic multi-block projections dictionary and keep CURRENT_NFL_SCHEDULE synced."""
+    cache = _cached_athletic_projections(_ACTIVE_ATHLETIC_BYTES, DEFAULT_ATHLETIC_EXCEL_PATH)
+    for entry_dict in cache.values():
+        t_code = entry_dict.get("team", "")
+        o_code = entry_dict.get("opponent", "")
+        if t_code and o_code:
+            CURRENT_NFL_SCHEDULE[t_code] = o_code
+            if t_code == "JAX":
+                CURRENT_NFL_SCHEDULE["JAC"] = o_code
+            elif t_code == "WAS":
+                CURRENT_NFL_SCHEDULE["WSH"] = o_code
+    return cache
 
 
 def get_athletic_projection_summary(athletic_cache: Optional[Dict[str, Dict[str, Any]]] = None) -> Dict[str, Any]:
@@ -968,6 +1011,9 @@ def get_matched_athletic_projection(
     """Retrieve matched Athletic weekly stat projection for a player or D/ST with suffix & nickname fallbacks."""
     if not player_name:
         return {}
+    if isinstance(athletic_cache, str):
+        position = athletic_cache
+        athletic_cache = None
     cache = athletic_cache if athletic_cache is not None else build_athletic_projections_cache()
     if not cache:
         return {}
@@ -1174,11 +1220,9 @@ def calculate_projection_params(
         )
 
         if has_vegas_props:
-            # If props come from live sportsbook markets (or explicitly passed in tests), use 50/50 blend.
-            # If props are static fallback priors and diverge sharply from The Athletic's weekly sheet,
-            # anchor 75% on The Athletic's fresh weekly projection and 25% on the static prior.
-            w_vegas = 0.50 if (is_live_vegas or abs(vegas_mu - ath_mu) <= 3.0) else 0.25
-            w_ath = 1.0 - w_vegas
+            # 50% Vegas Implied / 50% Athletic Custom Mu
+            w_vegas = 0.50
+            w_ath = 0.50
             mu = round(w_vegas * vegas_mu + w_ath * ath_mu, 2)
             sigma_base = w_vegas * vegas_sigma + w_ath * ath_sigma
             breakdown = {**ath_breakdown, **vegas_breakdown}
@@ -1187,7 +1231,7 @@ def calculate_projection_params(
             breakdown["athletic_custom_mu"] = round(ath_mu, 2)
             breakdown["athletic_default_proj"] = ath_entry.get("athletic_proj", 0.0)
         else:
-            # Universal Athletic Custom Baseline (solves missing props for bench/waiver players)
+            # Universal Athletic Custom Baseline (prevents static fallback priors from distorting fresh weekly Athletic projections)
             mu = round(ath_mu, 2)
             sigma_base = ath_sigma
             breakdown = ath_breakdown
@@ -1241,7 +1285,8 @@ def sync_espn_league(
     swid: Optional[str] = None,
     ppr: float = 1.0,
     scoring_cfg: Optional[scoring_config.LeagueScoringConfig] = None,
-    user_team_hint: Optional[str] = None
+    user_team_hint: Optional[str] = None,
+    athletic_anchor: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Synchronize league teams, active starting rosters, bench, weekly scoreboard
@@ -2021,6 +2066,11 @@ def apply_defensive_scheme_modifiers(
     sigma = orig_sigma
     mod_notes = []
 
+    # Avoid double-scaling sigma if calculate_projection_params already applied scheme_sigma_mult
+    already_scheme_sigma_scaled = (
+        abs(float((player.get("score_breakdown") or {}).get("scheme_sigma_mult", 1.0) or 1.0) - 1.0) > 1e-4
+    )
+
     # Determine alignment profile
     align = get_receiver_alignment(p_name, pos)
     align_tag = align["alignment_tag"]
@@ -2033,11 +2083,13 @@ def apply_defensive_scheme_modifiers(
     if mof_epa >= 0.45 or (mof_epa >= 0.38 and qpr >= 0.195) or (mof_epa > 0.40 and qpr > 0.20):
         if align_tag == "Slot Primary" or pos == "TE":
             mu *= 1.15
-            sigma *= 0.90
+            if not already_scheme_sigma_scaled:
+                sigma *= 0.90
             mod_notes.append(f"Inside Funnel (MOF EPA {mof_epa:.2f} / QP {qpr*100:.1f}%): Slot/TE median boosted (+15%) & floor raised")
         elif align_tag == "Hybrid":
             mu *= 1.08
-            sigma *= 0.95
+            if not already_scheme_sigma_scaled:
+                sigma *= 0.95
             mod_notes.append(f"Inside Funnel: Hybrid receiver captures middle checkdown volume (+8%)")
         elif align_tag == "Boundary Primary":
             mu *= 0.92
@@ -2046,7 +2098,8 @@ def apply_defensive_scheme_modifiers(
     # 2. Outside Funnel Synergy: Low MOF EPA (<=0.28 or <0.05)
     elif mof_epa <= 0.28 or ((mof_epa < 0.28 or mof_epa < 0.05) and qpr < 0.18):
         if align_tag == "Boundary Primary":
-            sigma *= 1.25
+            if not already_scheme_sigma_scaled:
+                sigma *= 1.25
             mod_notes.append(f"Outside Funnel (MOF EPA {mof_epa:.2f} / QP {qpr*100:.1f}%): Clean pocket unlocks 1-on-1 boundary ceiling (+25% variance)")
         elif align_tag == "Slot Primary" or pos == "TE":
             mu *= 0.90
@@ -2064,13 +2117,15 @@ def apply_defensive_scheme_modifiers(
     # 4. QB Pocket Compression (Quick Pressure > 20%)
     if pos == "QB" and qpr > 0.20:
         mu *= 0.92
-        sigma *= 1.10
+        if not already_scheme_sigma_scaled:
+            sigma *= 1.10
         mod_notes.append(f"Quick Press ({qpr*100:.1f}%): QB pocket compressed")
 
     # 5. RB High Rush SR Allowed (> 45%)
     if pos == "RB" and rush_sr > 0.45:
         mu *= 1.10
-        sigma *= 0.85
+        if not already_scheme_sigma_scaled:
+            sigma *= 0.85
         mod_notes.append(f"High Rush SR ({rush_sr*100:.1f}%): RB efficiency boost & tighter floor")
 
     # 6. Early-Season Bayesian Shrinkage Damping (Weeks 1-4): cap matchup drift to +/- 8%

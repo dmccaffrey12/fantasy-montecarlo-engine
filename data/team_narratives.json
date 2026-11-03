@@ -3,34 +3,36 @@
     "team": "ARI",
     "preseason_expectation": "Balanced NFL Scheme Baseline (Prior QP 14.5%)",
     "regime_tags": [
-      "SLOT_FUNNEL_HIGH"
+      "SLOT_FUNNEL_HIGH",
+      "RUN_GAME_BROKEN"
     ],
     "expectation_delta": {
       "team": "ARI",
-      "week": 15,
+      "week": 6,
       "expected_qpr": 0.195,
-      "realized_qpr": 0.158,
-      "qpr_delta": -0.037,
+      "realized_qpr": 0.169,
+      "qpr_delta": -0.026,
       "expected_mof_epa": -0.18,
-      "realized_mof_epa": 1.16,
-      "mof_epa_delta": 1.34,
-      "realized_pass_oe": 2.5,
-      "realized_epa_rush": -0.09,
+      "realized_mof_epa": 1.0,
+      "mof_epa_delta": 1.187,
+      "realized_pass_oe": -0.2,
+      "realized_epa_rush": -0.14,
       "regime_tags": [
-        "SLOT_FUNNEL_HIGH"
+        "SLOT_FUNNEL_HIGH",
+        "RUN_GAME_BROKEN"
       ],
       "prior_decay_multiplier": 1.0,
       "slot_te_mu_boost": 1.18,
       "slot_te_floor_boost": 1.08,
       "slot_te_ceiling_boost": 1.12,
-      "verdict": "Defense bled elevated MOF EPA (+1.16 realized vs -0.18 previewed) -> Opposing Slot/TE floor & ceiling elevated"
+      "verdict": "Defense bled elevated MOF EPA (+1.00 realized vs -0.18 previewed) -> Opposing Slot/TE floor & ceiling elevated | Inefficient ground game (Rush EPA -0.14, Rush SR 50.2%)"
     },
     "rolling_3wk": {
-      "quick_pressure_rate": 0.158,
-      "mof_epa_allowed": 1.157,
-      "rush_sr_allowed": 0.526,
-      "pressure_rate": 0.349,
-      "mof_pct": 0.345,
+      "quick_pressure_rate": 0.169,
+      "mof_epa_allowed": 1.003,
+      "rush_sr_allowed": 0.502,
+      "pressure_rate": 0.337,
+      "mof_pct": 0.27,
       "weeks_counted": 3,
       "is_rolling": true
     },
@@ -78,18 +80,18 @@
         "pass_oe": 1.1
       },
       {
-        "week": 15,
-        "opponent": "SF",
-        "preview_hypothesis": "Standard baseline shell vs SF",
-        "review_execution": "ARI vs SF: Pass OE +1.1%, EPA/DB +0.12, Off Press Allowed 26.4% (QP 13.5%), Def MOF EPA Allowed +0.74, Rush SR Allowed 57.1%.",
-        "expected_qpr": 0.108,
-        "realized_qpr": 0.123,
-        "qpr_delta": 0.015,
-        "pressure_rate": 0.317,
-        "expected_mof_epa": 0.65,
-        "realized_mof_epa": 0.74,
-        "mof_epa_delta": 0.089,
-        "pass_oe": 1.1
+        "week": 6,
+        "opponent": "LAR",
+        "preview_hypothesis": "Standard baseline shell vs LAR",
+        "review_execution": "Arizona Cardinals 18, Los Angeles Rams 16: Arizona wins a tight division game as the Rams drop to 2-4. The Cardinals defense played Cover 4 or Cover 6 on 24 of Matthew Stafford\u2019s 36 dropbacks. Stafford completed 16 passes for just 113 yards and took three sacks on those",
+        "expected_qpr": 0.136,
+        "realized_qpr": 0.155,
+        "qpr_delta": 0.019,
+        "pressure_rate": 0.281,
+        "expected_mof_epa": 0.25,
+        "realized_mof_epa": 0.28,
+        "mof_epa_delta": 0.034,
+        "pass_oe": -6.9
       }
     ]
   },
@@ -101,15 +103,15 @@
     ],
     "expectation_delta": {
       "team": "ATL",
-      "week": 15,
+      "week": 6,
       "expected_qpr": 0.212,
-      "realized_qpr": 0.171,
-      "qpr_delta": -0.041,
+      "realized_qpr": 0.194,
+      "qpr_delta": -0.018,
       "expected_mof_epa": 0.61,
-      "realized_mof_epa": 0.01,
-      "mof_epa_delta": -0.603,
-      "realized_pass_oe": -10.0,
-      "realized_epa_rush": 0.11,
+      "realized_mof_epa": 0.22,
+      "mof_epa_delta": -0.397,
+      "realized_pass_oe": -4.8,
+      "realized_epa_rush": -0.08,
       "regime_tags": [
         "RUN_GAME_BROKEN"
       ],
@@ -117,14 +119,14 @@
       "slot_te_mu_boost": 1.0,
       "slot_te_floor_boost": 1.0,
       "slot_te_ceiling_boost": 1.0,
-      "verdict": "Inefficient ground game (Rush EPA +0.11, Rush SR 35.5%)"
+      "verdict": "Inefficient ground game (Rush EPA -0.08, Rush SR 36.3%)"
     },
     "rolling_3wk": {
-      "quick_pressure_rate": 0.171,
+      "quick_pressure_rate": 0.194,
       "mof_epa_allowed": 0.404,
       "rush_sr_allowed": 0.417,
-      "pressure_rate": 0.333,
-      "mof_pct": 0.104,
+      "pressure_rate": 0.367,
+      "mof_pct": 0.144,
       "weeks_counted": 3,
       "is_rolling": true
     },
@@ -175,64 +177,46 @@
         "week": 6,
         "opponent": "CHI",
         "preview_hypothesis": "Inside/Slot Funnel (41% Man / 59% Zone) \u2014 Chicago Bears @ Atlanta Falcons: What will the Bears offensive rebound look like? We are sending this before we have official word on if Caleb Williams will be back in this game, but we can still look at the offense with and without Williams in the lineup. The passing offense, perhaps unsurprisingly (ATL vs CHI: 1-High",
-        "review_execution": "Pending game review",
+        "review_execution": "Chicago Bears 31, Atlanta Falcons 23: Caleb Williams is back, and the Bears are 4-2. Caleb Williams had a 71st percentile EPA/dropback and an 85th percentile dropback success rate. Williams was 15/15 for 137 yards on throws he released in under 2.5 seconds. Luther Burden ended up catching all seven ",
         "expected_qpr": 0.235,
-        "realized_qpr": 0.235,
-        "qpr_delta": 0.0,
-        "pressure_rate": 0.376,
+        "realized_qpr": 0.214,
+        "qpr_delta": -0.021,
+        "pressure_rate": 0.414,
         "expected_mof_epa": 0.19,
-        "realized_mof_epa": 0.19,
-        "mof_epa_delta": 0.0,
-        "pass_oe": 0.0
-      },
-      {
-        "week": 15,
-        "opponent": "GB",
-        "preview_hypothesis": "Standard baseline shell vs GB",
-        "review_execution": "ATL vs GB: Pass OE -11.6%, EPA/DB +0.40, Off Press Allowed 16.7% (QP 8.3%), Def MOF EPA Allowed -0.05, Rush SR Allowed 33.3%.",
-        "expected_qpr": 0.128,
-        "realized_qpr": 0.146,
-        "qpr_delta": 0.018,
-        "pressure_rate": 0.31,
-        "expected_mof_epa": -0.04,
-        "realized_mof_epa": -0.05,
-        "mof_epa_delta": -0.006,
-        "pass_oe": -11.6
+        "realized_mof_epa": 0.57,
+        "mof_epa_delta": 0.38,
+        "pass_oe": 4.2
       }
     ]
   },
   "BAL": {
     "team": "BAL",
     "preseason_expectation": "Split-Safety disguise & Historic QB/RB Dual-Threat Rushing Efficiency",
-    "regime_tags": [
-      "RUN_GAME_BROKEN"
-    ],
+    "regime_tags": [],
     "expectation_delta": {
       "team": "BAL",
-      "week": 15,
-      "expected_qpr": 0.199,
-      "realized_qpr": 0.16,
-      "qpr_delta": -0.039,
-      "expected_mof_epa": 0.77,
-      "realized_mof_epa": -1.14,
-      "mof_epa_delta": -1.91,
-      "realized_pass_oe": -9.7,
-      "realized_epa_rush": -0.15,
-      "regime_tags": [
-        "RUN_GAME_BROKEN"
-      ],
+      "week": 3,
+      "expected_qpr": 0.206,
+      "realized_qpr": 0.184,
+      "qpr_delta": -0.022,
+      "expected_mof_epa": 0.79,
+      "realized_mof_epa": -0.35,
+      "mof_epa_delta": -1.137,
+      "realized_pass_oe": -4.9,
+      "realized_epa_rush": 0.04,
+      "regime_tags": [],
       "prior_decay_multiplier": 1.0,
       "slot_te_mu_boost": 1.0,
       "slot_te_floor_boost": 1.0,
       "slot_te_ceiling_boost": 1.0,
-      "verdict": "Inefficient ground game (Rush EPA -0.15, Rush SR 43.3%)"
+      "verdict": "Execution aligned with pre-game preview expectations"
     },
     "rolling_3wk": {
       "quick_pressure_rate": 0.187,
       "mof_epa_allowed": 0.224,
-      "rush_sr_allowed": 0.433,
-      "pressure_rate": 0.392,
-      "mof_pct": 0.209,
+      "rush_sr_allowed": 0.437,
+      "pressure_rate": 0.416,
+      "mof_pct": 0.217,
       "weeks_counted": 3,
       "is_rolling": true
     },
@@ -280,49 +264,53 @@
         "pass_oe": -18.3
       },
       {
-        "week": 15,
-        "opponent": "DAL",
-        "preview_hypothesis": "Standard baseline shell vs DAL",
-        "review_execution": "Baltimore Ravens 34, Dallas Cowboys 31: The Ravens win at the last second. Literally. The Cowboys got the ball with 1:30 left in the game down by three. They marched down the field and had 1st and goal with 28 seconds left. Dallas ended up settling for a game tying field goal that left just seven se",
-        "expected_qpr": 0.136,
-        "realized_qpr": 0.154,
-        "qpr_delta": 0.018,
-        "pressure_rate": 0.402,
-        "expected_mof_epa": -1.65,
-        "realized_mof_epa": -1.88,
-        "mof_epa_delta": -0.226,
-        "pass_oe": -18.3
+        "week": 7,
+        "opponent": "CIN",
+        "preview_hypothesis": "Inside/Slot Funnel (42% Man / 58% Zone) \u2014 BAL vs CIN: 1-High 42.2% / 2-High 57.8% | Blitz 27.0% | Press 36.3% | Exp MOF EPA +0.34",
+        "review_execution": "Pending game review",
+        "expected_qpr": 0.209,
+        "realized_qpr": 0.209,
+        "qpr_delta": 0.0,
+        "pressure_rate": 0.334,
+        "expected_mof_epa": 0.34,
+        "realized_mof_epa": 0.34,
+        "mof_epa_delta": 0.0,
+        "pass_oe": 0.0
       }
     ]
   },
   "BUF": {
     "team": "BUF",
     "preseason_expectation": "Nickel Two-High Disguise Defense & Josh Allen High-EPA Spread Progression",
-    "regime_tags": [],
+    "regime_tags": [
+      "SLOT_FUNNEL_HIGH"
+    ],
     "expectation_delta": {
       "team": "BUF",
-      "week": 15,
+      "week": 3,
       "expected_qpr": 0.21,
-      "realized_qpr": 0.16,
-      "qpr_delta": -0.05,
+      "realized_qpr": 0.164,
+      "qpr_delta": -0.046,
       "expected_mof_epa": -0.24,
-      "realized_mof_epa": -0.87,
-      "mof_epa_delta": -0.627,
-      "realized_pass_oe": -2.4,
-      "realized_epa_rush": 0.14,
-      "regime_tags": [],
+      "realized_mof_epa": -0.14,
+      "mof_epa_delta": 0.1,
+      "realized_pass_oe": 1.7,
+      "realized_epa_rush": 0.02,
+      "regime_tags": [
+        "SLOT_FUNNEL_HIGH"
+      ],
       "prior_decay_multiplier": 1.0,
-      "slot_te_mu_boost": 1.0,
-      "slot_te_floor_boost": 1.0,
-      "slot_te_ceiling_boost": 1.0,
-      "verdict": "Execution aligned with pre-game preview expectations"
+      "slot_te_mu_boost": 1.18,
+      "slot_te_floor_boost": 1.08,
+      "slot_te_ceiling_boost": 1.12,
+      "verdict": "Defense bled elevated MOF EPA (-0.14 realized vs -0.24 previewed) -> Opposing Slot/TE floor & ceiling elevated"
     },
     "rolling_3wk": {
       "quick_pressure_rate": 0.176,
       "mof_epa_allowed": 0.292,
-      "rush_sr_allowed": 0.457,
-      "pressure_rate": 0.45,
-      "mof_pct": 0.149,
+      "rush_sr_allowed": 0.411,
+      "pressure_rate": 0.434,
+      "mof_pct": 0.159,
       "weeks_counted": 3,
       "is_rolling": true
     },
@@ -382,20 +370,6 @@
         "realized_mof_epa": 0.01,
         "mof_epa_delta": 0.0,
         "pass_oe": 0.0
-      },
-      {
-        "week": 15,
-        "opponent": "LAC",
-        "preview_hypothesis": "Standard baseline shell vs LAC",
-        "review_execution": "BUF vs LAC: Pass OE -8.5%, EPA/DB -0.44, Off Press Allowed 37.9% (QP 6.9%), Def MOF EPA Allowed -1.91, Rush SR Allowed 53.8%.",
-        "expected_qpr": 0.128,
-        "realized_qpr": 0.146,
-        "qpr_delta": 0.018,
-        "pressure_rate": 0.447,
-        "expected_mof_epa": -1.68,
-        "realized_mof_epa": -1.91,
-        "mof_epa_delta": -0.229,
-        "pass_oe": -8.5
       }
     ]
   },
@@ -404,35 +378,37 @@
     "preseason_expectation": "Rebuild Zone Shell Vulnerable in Middle-of-Field (Projected Inside Slot/TE Funnel)",
     "regime_tags": [
       "SLOT_FUNNEL_HIGH",
-      "RUN_GAME_BROKEN"
+      "RUN_GAME_BROKEN",
+      "GARBAGE_TIME_ALPHA"
     ],
     "expectation_delta": {
       "team": "CAR",
-      "week": 15,
+      "week": 3,
       "expected_qpr": 0.209,
-      "realized_qpr": 0.22,
-      "qpr_delta": 0.011,
+      "realized_qpr": 0.204,
+      "qpr_delta": -0.004,
       "expected_mof_epa": 0.45,
-      "realized_mof_epa": -0.17,
-      "mof_epa_delta": -0.617,
-      "realized_pass_oe": 3.7,
-      "realized_epa_rush": -0.18,
+      "realized_mof_epa": -0.13,
+      "mof_epa_delta": -0.573,
+      "realized_pass_oe": 4.3,
+      "realized_epa_rush": -0.17,
       "regime_tags": [
         "SLOT_FUNNEL_HIGH",
-        "RUN_GAME_BROKEN"
+        "RUN_GAME_BROKEN",
+        "GARBAGE_TIME_ALPHA"
       ],
       "prior_decay_multiplier": 1.0,
       "slot_te_mu_boost": 1.18,
       "slot_te_floor_boost": 1.08,
       "slot_te_ceiling_boost": 1.12,
-      "verdict": "Defense bled elevated MOF EPA (-0.17 realized vs +0.45 previewed) -> Opposing Slot/TE floor & ceiling elevated | Inefficient ground game (Rush EPA -0.18, Rush SR 35.1%)"
+      "verdict": "Defense bled elevated MOF EPA (-0.13 realized vs +0.45 previewed) -> Opposing Slot/TE floor & ceiling elevated | Inefficient ground game (Rush EPA -0.17, Rush SR 37.5%) | Elevated Pass Over Expected (+4.3% POE) driving late-game passing volume"
     },
     "rolling_3wk": {
-      "quick_pressure_rate": 0.22,
+      "quick_pressure_rate": 0.204,
       "mof_epa_allowed": 0.499,
       "rush_sr_allowed": 0.47,
-      "pressure_rate": 0.435,
-      "mof_pct": 0.129,
+      "pressure_rate": 0.391,
+      "mof_pct": 0.132,
       "weeks_counted": 3,
       "is_rolling": true
     },
@@ -492,20 +468,6 @@
         "realized_mof_epa": 0.29,
         "mof_epa_delta": 0.0,
         "pass_oe": 0.0
-      },
-      {
-        "week": 15,
-        "opponent": "CLE",
-        "preview_hypothesis": "Standard baseline shell vs CLE",
-        "review_execution": "CAR vs CLE: Pass OE +1.7%, EPA/DB -0.20, Off Press Allowed 63.8% (QP 39.1%), Def MOF EPA Allowed -0.18, Rush SR Allowed 34.8%.",
-        "expected_qpr": 0.242,
-        "realized_qpr": 0.275,
-        "qpr_delta": 0.033,
-        "pressure_rate": 0.542,
-        "expected_mof_epa": -0.16,
-        "realized_mof_epa": -0.18,
-        "mof_epa_delta": -0.022,
-        "pass_oe": 1.7
       }
     ]
   },
@@ -513,34 +475,36 @@
     "team": "CHI",
     "preseason_expectation": "Balanced NFL Scheme Baseline (Prior QP 17.8%)",
     "regime_tags": [
-      "SLOT_FUNNEL_HIGH"
+      "SLOT_FUNNEL_HIGH",
+      "RUN_GAME_BROKEN"
     ],
     "expectation_delta": {
       "team": "CHI",
-      "week": 5,
-      "expected_qpr": 0.227,
-      "realized_qpr": 0.186,
-      "qpr_delta": -0.041,
-      "expected_mof_epa": 0.0,
-      "realized_mof_epa": 0.82,
-      "mof_epa_delta": 0.82,
-      "realized_pass_oe": -0.4,
-      "realized_epa_rush": -0.03,
+      "week": 6,
+      "expected_qpr": 0.214,
+      "realized_qpr": 0.181,
+      "qpr_delta": -0.033,
+      "expected_mof_epa": 0.2,
+      "realized_mof_epa": 0.66,
+      "mof_epa_delta": 0.463,
+      "realized_pass_oe": 0.9,
+      "realized_epa_rush": -0.21,
       "regime_tags": [
-        "SLOT_FUNNEL_HIGH"
+        "SLOT_FUNNEL_HIGH",
+        "RUN_GAME_BROKEN"
       ],
       "prior_decay_multiplier": 1.0,
       "slot_te_mu_boost": 1.18,
       "slot_te_floor_boost": 1.08,
       "slot_te_ceiling_boost": 1.12,
-      "verdict": "Defense bled elevated MOF EPA (+0.82 realized vs +0.00 previewed) -> Opposing Slot/TE floor & ceiling elevated"
+      "verdict": "Defense bled elevated MOF EPA (+0.66 realized vs +0.20 previewed) -> Opposing Slot/TE floor & ceiling elevated | Inefficient ground game (Rush EPA -0.21, Rush SR 31.2%)"
     },
     "rolling_3wk": {
-      "quick_pressure_rate": 0.186,
-      "mof_epa_allowed": 0.823,
+      "quick_pressure_rate": 0.181,
+      "mof_epa_allowed": 0.663,
       "rush_sr_allowed": 0.407,
-      "pressure_rate": 0.379,
-      "mof_pct": 0.149,
+      "pressure_rate": 0.38,
+      "mof_pct": 0.189,
       "weeks_counted": 3,
       "is_rolling": true
     },
@@ -605,13 +569,27 @@
         "week": 6,
         "opponent": "ATL",
         "preview_hypothesis": "Inside/Slot Funnel (38% Man / 62% Zone) \u2014 Chicago Bears @ Atlanta Falcons: What will the Bears offensive rebound look like? We are sending this before we have official word on if Caleb Williams will be back in this game, but we can still look at the offense with and without Williams in the lineup. The passing offense, perhaps unsurprisingly (CHI vs ATL: 1-High",
-        "review_execution": "Pending game review",
+        "review_execution": "Chicago Bears 31, Atlanta Falcons 23: Caleb Williams is back, and the Bears are 4-2. Caleb Williams had a 71st percentile EPA/dropback and an 85th percentile dropback success rate. Williams was 15/15 for 137 yards on throws he released in under 2.5 seconds. Luther Burden ended up catching all seven ",
         "expected_qpr": 0.235,
-        "realized_qpr": 0.235,
-        "qpr_delta": 0.0,
-        "pressure_rate": 0.376,
+        "realized_qpr": 0.214,
+        "qpr_delta": -0.021,
+        "pressure_rate": 0.414,
         "expected_mof_epa": -0.03,
-        "realized_mof_epa": -0.03,
+        "realized_mof_epa": 0.38,
+        "mof_epa_delta": 0.41,
+        "pass_oe": 5.4
+      },
+      {
+        "week": 7,
+        "opponent": "NE",
+        "preview_hypothesis": "Inside/Slot Funnel (48% Man / 52% Zone) \u2014 CHI vs NE: 1-High 48.4% / 2-High 51.6% | Blitz 37.1% | Press 42.7% | Exp MOF EPA +0.52",
+        "review_execution": "Pending game review",
+        "expected_qpr": 0.225,
+        "realized_qpr": 0.225,
+        "qpr_delta": 0.0,
+        "pressure_rate": 0.36,
+        "expected_mof_epa": 0.52,
+        "realized_mof_epa": 0.52,
         "mof_epa_delta": 0.0,
         "pass_oe": 0.0
       }
@@ -627,15 +605,15 @@
     ],
     "expectation_delta": {
       "team": "CIN",
-      "week": 15,
-      "expected_qpr": 0.215,
-      "realized_qpr": 0.169,
-      "qpr_delta": -0.046,
-      "expected_mof_epa": 0.2,
-      "realized_mof_epa": 0.77,
-      "mof_epa_delta": 0.573,
-      "realized_pass_oe": 11.0,
-      "realized_epa_rush": -0.13,
+      "week": 4,
+      "expected_qpr": 0.204,
+      "realized_qpr": 0.205,
+      "qpr_delta": 0.001,
+      "expected_mof_epa": 0.16,
+      "realized_mof_epa": 0.5,
+      "mof_epa_delta": 0.343,
+      "realized_pass_oe": 8.0,
+      "realized_epa_rush": -0.2,
       "regime_tags": [
         "SLOT_FUNNEL_HIGH",
         "RUN_GAME_BROKEN",
@@ -645,14 +623,14 @@
       "slot_te_mu_boost": 1.18,
       "slot_te_floor_boost": 1.08,
       "slot_te_ceiling_boost": 1.12,
-      "verdict": "Defense bled elevated MOF EPA (+0.77 realized vs +0.20 previewed) -> Opposing Slot/TE floor & ceiling elevated | Inefficient ground game (Rush EPA -0.13, Rush SR 51.7%) | Elevated Pass Over Expected (+11.0% POE) driving late-game passing volume"
+      "verdict": "Defense bled elevated MOF EPA (+0.50 realized vs +0.16 previewed) -> Opposing Slot/TE floor & ceiling elevated | Inefficient ground game (Rush EPA -0.20, Rush SR 47.2%) | Elevated Pass Over Expected (+8.0% POE) driving late-game passing volume"
     },
     "rolling_3wk": {
-      "quick_pressure_rate": 0.169,
-      "mof_epa_allowed": 0.77,
-      "rush_sr_allowed": 0.517,
-      "pressure_rate": 0.35,
-      "mof_pct": 0.373,
+      "quick_pressure_rate": 0.205,
+      "mof_epa_allowed": 0.503,
+      "rush_sr_allowed": 0.472,
+      "pressure_rate": 0.386,
+      "mof_pct": 0.296,
       "weeks_counted": 3,
       "is_rolling": true
     },
@@ -714,18 +692,18 @@
         "pass_oe": 12.6
       },
       {
-        "week": 15,
-        "opponent": "PIT",
-        "preview_hypothesis": "Standard baseline shell vs PIT",
-        "review_execution": "CIN vs PIT: Pass OE +10.2%, EPA/DB +0.40, Off Press Allowed 35.0% (QP 15.0%), Def MOF EPA Allowed +0.49, Rush SR Allowed 55.6%.",
-        "expected_qpr": 0.142,
-        "realized_qpr": 0.161,
-        "qpr_delta": 0.019,
-        "pressure_rate": 0.328,
-        "expected_mof_epa": 0.43,
-        "realized_mof_epa": 0.49,
-        "mof_epa_delta": 0.059,
-        "pass_oe": 10.2
+        "week": 7,
+        "opponent": "BAL",
+        "preview_hypothesis": "Inside/Slot Funnel (18% Man / 82% Zone) \u2014 CIN vs BAL: 1-High 18.1% / 2-High 81.9% | Blitz 29.3% | Press 39.7% | Exp MOF EPA +0.04",
+        "review_execution": "Pending game review",
+        "expected_qpr": 0.209,
+        "realized_qpr": 0.209,
+        "qpr_delta": 0.0,
+        "pressure_rate": 0.334,
+        "expected_mof_epa": 0.04,
+        "realized_mof_epa": 0.04,
+        "mof_epa_delta": 0.0,
+        "pass_oe": 0.0
       }
     ]
   },
@@ -739,15 +717,15 @@
     ],
     "expectation_delta": {
       "team": "CLE",
-      "week": 15,
+      "week": 3,
       "expected_qpr": 0.189,
-      "realized_qpr": 0.204,
-      "qpr_delta": 0.015,
+      "realized_qpr": 0.158,
+      "qpr_delta": -0.031,
       "expected_mof_epa": 0.2,
-      "realized_mof_epa": 0.68,
-      "mof_epa_delta": 0.477,
-      "realized_pass_oe": 3.8,
-      "realized_epa_rush": -0.39,
+      "realized_mof_epa": 0.63,
+      "mof_epa_delta": 0.427,
+      "realized_pass_oe": 0.7,
+      "realized_epa_rush": -0.33,
       "regime_tags": [
         "PASS_PROTECTION_COLLAPSE",
         "SLOT_FUNNEL_HIGH",
@@ -757,14 +735,14 @@
       "slot_te_mu_boost": 1.18,
       "slot_te_floor_boost": 1.08,
       "slot_te_ceiling_boost": 1.12,
-      "verdict": "Quick/overall pressure spiked (QP 20.4%, PR 42.6% realized vs 18.9% previewed) -> Accelerated Bayesian prior decay (0.65x) | Defense bled elevated MOF EPA (+0.68 realized vs +0.20 previewed) -> Opposing Slot/TE floor & ceiling elevated | Inefficient ground game (Rush EPA -0.39, Rush SR 37.7%)"
+      "verdict": "Quick/overall pressure spiked (QP 15.8%, PR 35.2% realized vs 18.9% previewed) -> Accelerated Bayesian prior decay (0.65x) | Defense bled elevated MOF EPA (+0.63 realized vs +0.20 previewed) -> Opposing Slot/TE floor & ceiling elevated | Inefficient ground game (Rush EPA -0.33, Rush SR 45.5%)"
     },
     "rolling_3wk": {
       "quick_pressure_rate": 0.221,
-      "mof_epa_allowed": 0.68,
-      "rush_sr_allowed": 0.377,
-      "pressure_rate": 0.426,
-      "mof_pct": 0.119,
+      "mof_epa_allowed": 0.63,
+      "rush_sr_allowed": 0.455,
+      "pressure_rate": 0.352,
+      "mof_pct": 0.109,
       "weeks_counted": 3,
       "is_rolling": true
     },
@@ -810,20 +788,6 @@
         "realized_mof_epa": 0.39,
         "mof_epa_delta": 0.45,
         "pass_oe": 2.3
-      },
-      {
-        "week": 15,
-        "opponent": "CAR",
-        "preview_hypothesis": "Standard baseline shell vs CAR",
-        "review_execution": "CLE vs CAR: Pass OE +2.3%, EPA/DB +0.08, Off Press Allowed 44.7% (QP 15.8%), Def MOF EPA Allowed +0.39, Rush SR Allowed 30.4%.",
-        "expected_qpr": 0.242,
-        "realized_qpr": 0.275,
-        "qpr_delta": 0.033,
-        "pressure_rate": 0.542,
-        "expected_mof_epa": 0.34,
-        "realized_mof_epa": 0.39,
-        "mof_epa_delta": 0.047,
-        "pass_oe": 2.3
       }
     ]
   },
@@ -832,36 +796,38 @@
     "preseason_expectation": "Balanced NFL Scheme Baseline (Prior QP 19.0%)",
     "regime_tags": [
       "SLOT_FUNNEL_HIGH",
+      "RUN_GAME_BROKEN",
       "GARBAGE_TIME_ALPHA"
     ],
     "expectation_delta": {
       "team": "DAL",
-      "week": 15,
+      "week": 3,
       "expected_qpr": 0.181,
-      "realized_qpr": 0.151,
-      "qpr_delta": -0.03,
+      "realized_qpr": 0.149,
+      "qpr_delta": -0.032,
       "expected_mof_epa": 0.69,
-      "realized_mof_epa": 0.75,
-      "mof_epa_delta": 0.057,
-      "realized_pass_oe": 7.8,
-      "realized_epa_rush": -0.09,
+      "realized_mof_epa": 0.82,
+      "mof_epa_delta": 0.127,
+      "realized_pass_oe": 10.2,
+      "realized_epa_rush": -0.12,
       "regime_tags": [
         "SLOT_FUNNEL_HIGH",
+        "RUN_GAME_BROKEN",
         "GARBAGE_TIME_ALPHA"
       ],
       "prior_decay_multiplier": 1.0,
       "slot_te_mu_boost": 1.18,
       "slot_te_floor_boost": 1.08,
       "slot_te_ceiling_boost": 1.12,
-      "verdict": "Defense bled elevated MOF EPA (+0.75 realized vs +0.69 previewed) -> Opposing Slot/TE floor & ceiling elevated | Elevated Pass Over Expected (+7.8% POE) driving late-game passing volume"
+      "verdict": "Defense bled elevated MOF EPA (+0.82 realized vs +0.69 previewed) -> Opposing Slot/TE floor & ceiling elevated | Inefficient ground game (Rush EPA -0.12, Rush SR 43.0%) | Elevated Pass Over Expected (+10.2% POE) driving late-game passing volume"
     },
     "rolling_3wk": {
       "quick_pressure_rate": 0.171,
-      "mof_epa_allowed": 0.75,
+      "mof_epa_allowed": 0.687,
       "rush_sr_allowed": 0.451,
-      "pressure_rate": 0.383,
-      "mof_pct": 0.218,
-      "weeks_counted": 3,
+      "pressure_rate": 0.374,
+      "mof_pct": 0.171,
+      "weeks_counted": 2,
       "is_rolling": true
     },
     "weekly_ledger": [
@@ -905,20 +871,6 @@
         "expected_mof_epa": 0.39,
         "realized_mof_epa": 0.61,
         "mof_epa_delta": 0.22,
-        "pass_oe": 2.9
-      },
-      {
-        "week": 15,
-        "opponent": "BAL",
-        "preview_hypothesis": "Standard baseline shell vs BAL",
-        "review_execution": "Baltimore Ravens 34, Dallas Cowboys 31: The Ravens win at the last second. Literally. The Cowboys got the ball with 1:30 left in the game down by three. They marched down the field and had 1st and goal with 28 seconds left. Dallas ended up settling for a game tying field goal that left just seven se",
-        "expected_qpr": 0.136,
-        "realized_qpr": 0.154,
-        "qpr_delta": 0.018,
-        "pressure_rate": 0.402,
-        "expected_mof_epa": 0.54,
-        "realized_mof_epa": 0.61,
-        "mof_epa_delta": 0.073,
         "pass_oe": 2.9
       }
     ]
@@ -1021,38 +973,34 @@
     "team": "DET",
     "preseason_expectation": "Press-Man Heavy Run Wall (Top-3 Rush Defense) & Elite Play-Action Slot/Seam Attack",
     "regime_tags": [
-      "SLOT_FUNNEL_HIGH",
-      "RUN_GAME_BROKEN",
-      "GARBAGE_TIME_ALPHA"
+      "SLOT_FUNNEL_HIGH"
     ],
     "expectation_delta": {
       "team": "DET",
-      "week": 15,
-      "expected_qpr": 0.198,
-      "realized_qpr": 0.183,
-      "qpr_delta": -0.015,
-      "expected_mof_epa": 0.38,
-      "realized_mof_epa": 0.88,
-      "mof_epa_delta": 0.503,
-      "realized_pass_oe": 5.1,
+      "week": 3,
+      "expected_qpr": 0.208,
+      "realized_qpr": 0.206,
+      "qpr_delta": -0.002,
+      "expected_mof_epa": 0.21,
+      "realized_mof_epa": 1.03,
+      "mof_epa_delta": 0.82,
+      "realized_pass_oe": 2.7,
       "realized_epa_rush": -0.1,
       "regime_tags": [
-        "SLOT_FUNNEL_HIGH",
-        "RUN_GAME_BROKEN",
-        "GARBAGE_TIME_ALPHA"
+        "SLOT_FUNNEL_HIGH"
       ],
       "prior_decay_multiplier": 1.0,
       "slot_te_mu_boost": 1.18,
       "slot_te_floor_boost": 1.08,
       "slot_te_ceiling_boost": 1.12,
-      "verdict": "Defense bled elevated MOF EPA (+0.88 realized vs +0.38 previewed) -> Opposing Slot/TE floor & ceiling elevated | Inefficient ground game (Rush EPA -0.10, Rush SR 38.1%) | Elevated Pass Over Expected (+5.1% POE) driving late-game passing volume"
+      "verdict": "Defense bled elevated MOF EPA (+1.03 realized vs +0.21 previewed) -> Opposing Slot/TE floor & ceiling elevated"
     },
     "rolling_3wk": {
-      "quick_pressure_rate": 0.191,
-      "mof_epa_allowed": 0.88,
-      "rush_sr_allowed": 0.381,
-      "pressure_rate": 0.414,
-      "mof_pct": 0.172,
+      "quick_pressure_rate": 0.206,
+      "mof_epa_allowed": 1.027,
+      "rush_sr_allowed": 0.399,
+      "pressure_rate": 0.418,
+      "mof_pct": 0.146,
       "weeks_counted": 3,
       "is_rolling": true
     },
@@ -1100,18 +1048,18 @@
         "pass_oe": 8.3
       },
       {
-        "week": 15,
-        "opponent": "NYJ",
-        "preview_hypothesis": "Standard baseline shell vs NYJ",
-        "review_execution": "DET vs NYJ: Pass OE +8.3%, EPA/DB +0.33, Off Press Allowed 30.6% (QP 8.3%), Def MOF EPA Allowed +0.88, Rush SR Allowed 29.4%.",
-        "expected_qpr": 0.159,
-        "realized_qpr": 0.181,
-        "qpr_delta": 0.022,
-        "pressure_rate": 0.392,
-        "expected_mof_epa": 0.77,
-        "realized_mof_epa": 0.88,
-        "mof_epa_delta": 0.106,
-        "pass_oe": 8.3
+        "week": 7,
+        "opponent": "GB",
+        "preview_hypothesis": "Inside/Slot Funnel (43% Man / 57% Zone) \u2014 DET vs GB: 1-High 42.6% / 2-High 57.4% | Blitz 32.2% | Press 38.8% | Exp MOF EPA -0.20",
+        "review_execution": "Pending game review",
+        "expected_qpr": 0.21,
+        "realized_qpr": 0.21,
+        "qpr_delta": 0.0,
+        "pressure_rate": 0.336,
+        "expected_mof_epa": -0.2,
+        "realized_mof_epa": -0.2,
+        "mof_epa_delta": 0.0,
+        "pass_oe": 0.0
       }
     ]
   },
@@ -1124,15 +1072,15 @@
     ],
     "expectation_delta": {
       "team": "GB",
-      "week": 15,
-      "expected_qpr": 0.207,
-      "realized_qpr": 0.151,
-      "qpr_delta": -0.056,
-      "expected_mof_epa": 0.26,
-      "realized_mof_epa": -0.72,
-      "mof_epa_delta": -0.98,
-      "realized_pass_oe": 12.5,
-      "realized_epa_rush": -0.24,
+      "week": 5,
+      "expected_qpr": 0.214,
+      "realized_qpr": 0.149,
+      "qpr_delta": -0.065,
+      "expected_mof_epa": 0.36,
+      "realized_mof_epa": -0.36,
+      "mof_epa_delta": -0.72,
+      "realized_pass_oe": 6.8,
+      "realized_epa_rush": -0.31,
       "regime_tags": [
         "RUN_GAME_BROKEN",
         "GARBAGE_TIME_ALPHA"
@@ -1141,14 +1089,14 @@
       "slot_te_mu_boost": 1.0,
       "slot_te_floor_boost": 1.0,
       "slot_te_ceiling_boost": 1.0,
-      "verdict": "Inefficient ground game (Rush EPA -0.24, Rush SR 53.7%) | Elevated Pass Over Expected (+12.5% POE) driving late-game passing volume"
+      "verdict": "Inefficient ground game (Rush EPA -0.31, Rush SR 41.9%) | Elevated Pass Over Expected (+6.8% POE) driving late-game passing volume"
     },
     "rolling_3wk": {
       "quick_pressure_rate": 0.173,
       "mof_epa_allowed": 0.327,
-      "rush_sr_allowed": 0.537,
-      "pressure_rate": 0.323,
-      "mof_pct": 0.246,
+      "rush_sr_allowed": 0.419,
+      "pressure_rate": 0.339,
+      "mof_pct": 0.324,
       "weeks_counted": 3,
       "is_rolling": true
     },
@@ -1210,18 +1158,18 @@
         "pass_oe": 9.0
       },
       {
-        "week": 15,
-        "opponent": "ATL",
-        "preview_hypothesis": "Standard baseline shell vs ATL",
-        "review_execution": "GB vs ATL: Pass OE +14.2%, EPA/DB -0.03, Off Press Allowed 45.3% (QP 20.8%), Def MOF EPA Allowed -0.73, Rush SR Allowed 61.5%.",
-        "expected_qpr": 0.128,
-        "realized_qpr": 0.146,
-        "qpr_delta": 0.018,
-        "pressure_rate": 0.31,
-        "expected_mof_epa": -0.64,
-        "realized_mof_epa": -0.73,
-        "mof_epa_delta": -0.088,
-        "pass_oe": 14.2
+        "week": 7,
+        "opponent": "DET",
+        "preview_hypothesis": "Inside/Slot Funnel (37% Man / 63% Zone) \u2014 GB vs DET: 1-High 37.2% / 2-High 62.8% | Blitz 28.0% | Press 37.7% | Exp MOF EPA +0.45",
+        "review_execution": "Pending game review",
+        "expected_qpr": 0.21,
+        "realized_qpr": 0.21,
+        "qpr_delta": 0.0,
+        "pressure_rate": 0.336,
+        "expected_mof_epa": 0.45,
+        "realized_mof_epa": 0.45,
+        "mof_epa_delta": 0.0,
+        "pass_oe": 0.0
       }
     ]
   },
@@ -1229,36 +1177,34 @@
     "team": "HOU",
     "preseason_expectation": "Balanced NFL Scheme Baseline (Prior QP 21.8%)",
     "regime_tags": [
-      "SLOT_FUNNEL_HIGH",
-      "RUN_GAME_BROKEN"
+      "SLOT_FUNNEL_HIGH"
     ],
     "expectation_delta": {
       "team": "HOU",
-      "week": 15,
+      "week": 6,
       "expected_qpr": 0.209,
-      "realized_qpr": 0.248,
-      "qpr_delta": 0.039,
+      "realized_qpr": 0.243,
+      "qpr_delta": 0.034,
       "expected_mof_epa": 0.63,
-      "realized_mof_epa": 0.63,
-      "mof_epa_delta": -0.007,
-      "realized_pass_oe": -1.0,
-      "realized_epa_rush": -0.13,
+      "realized_mof_epa": 0.56,
+      "mof_epa_delta": -0.077,
+      "realized_pass_oe": 2.8,
+      "realized_epa_rush": -0.07,
       "regime_tags": [
-        "SLOT_FUNNEL_HIGH",
-        "RUN_GAME_BROKEN"
+        "SLOT_FUNNEL_HIGH"
       ],
       "prior_decay_multiplier": 1.0,
       "slot_te_mu_boost": 1.18,
       "slot_te_floor_boost": 1.08,
       "slot_te_ceiling_boost": 1.12,
-      "verdict": "Defense bled elevated MOF EPA (+0.63 realized vs +0.63 previewed) -> Opposing Slot/TE floor & ceiling elevated | Inefficient ground game (Rush EPA -0.13, Rush SR 33.6%)"
+      "verdict": "Defense bled elevated MOF EPA (+0.56 realized vs +0.63 previewed) -> Opposing Slot/TE floor & ceiling elevated"
     },
     "rolling_3wk": {
-      "quick_pressure_rate": 0.248,
-      "mof_epa_allowed": 0.627,
+      "quick_pressure_rate": 0.243,
+      "mof_epa_allowed": 0.557,
       "rush_sr_allowed": 0.38,
-      "pressure_rate": 0.419,
-      "mof_pct": 0.334,
+      "pressure_rate": 0.391,
+      "mof_pct": 0.33,
       "weeks_counted": 3,
       "is_rolling": true
     },
@@ -1309,29 +1255,15 @@
         "week": 6,
         "opponent": "JAX",
         "preview_hypothesis": "Inside/Slot Funnel (34% Man / 66% Zone) \u2014 Houston Texans @ Jacksonville Jaguars (London): Will the Texans defense or Jaguars offense win the battle in London? Liam Coen is one of our favorite play callers and is a former Stats & Scheme Offensive Coordinator of the Year (trademark application in progress). His Jaguars offense has only (HOU vs JAX: 1-High 33.5% ",
-        "review_execution": "Pending game review",
+        "review_execution": "Houston Texans 34, Jacksonville Jaguars 31: C.J. Stroud put up another strong performance as the Texans took down the Jaguars in London. C.J. Stroud was pressured on 40% of his dropbacks and faced a quick pressure on 26% of his dropbacks. Still, he went 11/13 for 147 yards and 2 touchdowns for 0.57",
         "expected_qpr": 0.223,
-        "realized_qpr": 0.223,
-        "qpr_delta": 0.0,
-        "pressure_rate": 0.357,
+        "realized_qpr": 0.222,
+        "qpr_delta": -0.001,
+        "pressure_rate": 0.328,
         "expected_mof_epa": 0.69,
-        "realized_mof_epa": 0.69,
-        "mof_epa_delta": 0.0,
-        "pass_oe": 0.0
-      },
-      {
-        "week": 15,
-        "opponent": "IND",
-        "preview_hypothesis": "Standard baseline shell vs IND",
-        "review_execution": "HOU vs IND: Pass OE -6.4%, EPA/DB -0.09, Off Press Allowed 33.3% (QP 20.0%), Def MOF EPA Allowed +0.75, Rush SR Allowed 34.5%.",
-        "expected_qpr": 0.209,
-        "realized_qpr": 0.238,
-        "qpr_delta": 0.029,
-        "pressure_rate": 0.41,
-        "expected_mof_epa": 0.66,
-        "realized_mof_epa": 0.75,
-        "mof_epa_delta": 0.09,
-        "pass_oe": -6.4
+        "realized_mof_epa": 0.54,
+        "mof_epa_delta": -0.15,
+        "pass_oe": 4.9
       }
     ]
   },
@@ -1343,15 +1275,15 @@
     ],
     "expectation_delta": {
       "team": "IND",
-      "week": 15,
+      "week": 3,
       "expected_qpr": 0.203,
-      "realized_qpr": 0.234,
-      "qpr_delta": 0.031,
+      "realized_qpr": 0.232,
+      "qpr_delta": 0.029,
       "expected_mof_epa": 0.02,
-      "realized_mof_epa": 0.23,
-      "mof_epa_delta": 0.217,
-      "realized_pass_oe": 1.4,
-      "realized_epa_rush": -0.01,
+      "realized_mof_epa": 0.36,
+      "mof_epa_delta": 0.343,
+      "realized_pass_oe": 0.5,
+      "realized_epa_rush": 0.02,
       "regime_tags": [
         "SLOT_FUNNEL_HIGH"
       ],
@@ -1359,15 +1291,15 @@
       "slot_te_mu_boost": 1.18,
       "slot_te_floor_boost": 1.08,
       "slot_te_ceiling_boost": 1.12,
-      "verdict": "Defense bled elevated MOF EPA (+0.23 realized vs +0.02 previewed) -> Opposing Slot/TE floor & ceiling elevated"
+      "verdict": "Defense bled elevated MOF EPA (+0.36 realized vs +0.02 previewed) -> Opposing Slot/TE floor & ceiling elevated"
     },
     "rolling_3wk": {
-      "quick_pressure_rate": 0.234,
+      "quick_pressure_rate": 0.211,
       "mof_epa_allowed": 0.456,
-      "rush_sr_allowed": 0.456,
-      "pressure_rate": 0.431,
-      "mof_pct": 0.224,
-      "weeks_counted": 3,
+      "rush_sr_allowed": 0.46,
+      "pressure_rate": 0.442,
+      "mof_pct": 0.19,
+      "weeks_counted": 2,
       "is_rolling": true
     },
     "weekly_ledger": [
@@ -1411,20 +1343,6 @@
         "expected_mof_epa": 0.62,
         "realized_mof_epa": -0.02,
         "mof_epa_delta": -0.64,
-        "pass_oe": 3.3
-      },
-      {
-        "week": 15,
-        "opponent": "HOU",
-        "preview_hypothesis": "Standard baseline shell vs HOU",
-        "review_execution": "IND vs HOU: Pass OE +3.3%, EPA/DB -0.15, Off Press Allowed 48.8% (QP 27.5%), Def MOF EPA Allowed -0.02, Rush SR Allowed 45.0%.",
-        "expected_qpr": 0.209,
-        "realized_qpr": 0.238,
-        "qpr_delta": 0.029,
-        "pressure_rate": 0.41,
-        "expected_mof_epa": -0.02,
-        "realized_mof_epa": -0.02,
-        "mof_epa_delta": -0.002,
         "pass_oe": 3.3
       }
     ]
@@ -1475,15 +1393,15 @@
     ],
     "expectation_delta": {
       "team": "JAX",
-      "week": 15,
+      "week": 6,
       "expected_qpr": 0.199,
-      "realized_qpr": 0.213,
-      "qpr_delta": 0.014,
+      "realized_qpr": 0.207,
+      "qpr_delta": 0.008,
       "expected_mof_epa": 0.42,
-      "realized_mof_epa": 0.04,
-      "mof_epa_delta": -0.38,
-      "realized_pass_oe": -1.4,
-      "realized_epa_rush": 0.14,
+      "realized_mof_epa": 0.21,
+      "mof_epa_delta": -0.217,
+      "realized_pass_oe": -0.5,
+      "realized_epa_rush": 0.06,
       "regime_tags": [
         "SLOT_FUNNEL_HIGH",
         "RUN_GAME_BROKEN"
@@ -1492,14 +1410,14 @@
       "slot_te_mu_boost": 1.18,
       "slot_te_floor_boost": 1.08,
       "slot_te_ceiling_boost": 1.12,
-      "verdict": "Defense bled elevated MOF EPA (+0.04 realized vs +0.42 previewed) -> Opposing Slot/TE floor & ceiling elevated | Inefficient ground game (Rush EPA +0.14, Rush SR 20.3%)"
+      "verdict": "Defense bled elevated MOF EPA (+0.21 realized vs +0.42 previewed) -> Opposing Slot/TE floor & ceiling elevated | Inefficient ground game (Rush EPA +0.06, Rush SR 28.0%)"
     },
     "rolling_3wk": {
-      "quick_pressure_rate": 0.213,
+      "quick_pressure_rate": 0.207,
       "mof_epa_allowed": 0.473,
       "rush_sr_allowed": 0.441,
-      "pressure_rate": 0.439,
-      "mof_pct": 0.163,
+      "pressure_rate": 0.394,
+      "mof_pct": 0.23,
       "weeks_counted": 3,
       "is_rolling": true
     },
@@ -1564,29 +1482,15 @@
         "week": 6,
         "opponent": "HOU",
         "preview_hypothesis": "Inside/Slot Funnel (40% Man / 60% Zone) \u2014 Houston Texans @ Jacksonville Jaguars (London): Will the Texans defense or Jaguars offense win the battle in London? Liam Coen is one of our favorite play callers and is a former Stats & Scheme Offensive Coordinator of the Year (trademark application in progress). His Jaguars offense has only (JAX vs HOU: 1-High 39.5% ",
-        "review_execution": "Pending game review",
+        "review_execution": "Houston Texans 34, Jacksonville Jaguars 31: C.J. Stroud put up another strong performance as the Texans took down the Jaguars in London. C.J. Stroud was pressured on 40% of his dropbacks and faced a quick pressure on 26% of his dropbacks. Still, he went 11/13 for 147 yards and 2 touchdowns for 0.57",
         "expected_qpr": 0.223,
-        "realized_qpr": 0.223,
-        "qpr_delta": 0.0,
-        "pressure_rate": 0.357,
+        "realized_qpr": 0.222,
+        "qpr_delta": -0.001,
+        "pressure_rate": 0.328,
         "expected_mof_epa": 0.41,
-        "realized_mof_epa": 0.41,
-        "mof_epa_delta": 0.0,
-        "pass_oe": 0.0
-      },
-      {
-        "week": 15,
-        "opponent": "NE",
-        "preview_hypothesis": "Standard baseline shell vs NE",
-        "review_execution": "Jacksonville Jaguars 35, New England Patriots 6: The Jaguars are the only team in the top five in EPA/play on offense and defense this season. The Jaguars had a 93rd percentile EPA/rush and a diverse run game menu. They ran duo 11 times for 41 yards, outside zone nine times for 39 yards, and inside ",
-        "expected_qpr": 0.211,
-        "realized_qpr": 0.24,
-        "qpr_delta": 0.029,
-        "pressure_rate": 0.462,
-        "expected_mof_epa": 0.08,
-        "realized_mof_epa": 0.09,
-        "mof_epa_delta": 0.011,
-        "pass_oe": 1.6
+        "realized_mof_epa": 0.58,
+        "mof_epa_delta": 0.17,
+        "pass_oe": 4.2
       }
     ]
   },
@@ -1598,15 +1502,15 @@
     ],
     "expectation_delta": {
       "team": "KC",
-      "week": 15,
-      "expected_qpr": 0.173,
-      "realized_qpr": 0.248,
-      "qpr_delta": 0.074,
-      "expected_mof_epa": 0.51,
-      "realized_mof_epa": 0.09,
-      "mof_epa_delta": -0.423,
-      "realized_pass_oe": 4.0,
-      "realized_epa_rush": -0.09,
+      "week": 4,
+      "expected_qpr": 0.183,
+      "realized_qpr": 0.245,
+      "qpr_delta": 0.062,
+      "expected_mof_epa": 0.25,
+      "realized_mof_epa": 0.04,
+      "mof_epa_delta": -0.212,
+      "realized_pass_oe": 3.0,
+      "realized_epa_rush": -0.01,
       "regime_tags": [
         "RUN_GAME_BROKEN"
       ],
@@ -1614,15 +1518,15 @@
       "slot_te_mu_boost": 1.0,
       "slot_te_floor_boost": 1.0,
       "slot_te_ceiling_boost": 1.0,
-      "verdict": "Inefficient ground game (Rush EPA -0.09, Rush SR 24.0%)"
+      "verdict": "Inefficient ground game (Rush EPA -0.01, Rush SR 27.6%)"
     },
     "rolling_3wk": {
-      "quick_pressure_rate": 0.248,
+      "quick_pressure_rate": 0.235,
       "mof_epa_allowed": 0.258,
       "rush_sr_allowed": 0.359,
-      "pressure_rate": 0.399,
-      "mof_pct": 0.396,
-      "weeks_counted": 3,
+      "pressure_rate": 0.42,
+      "mof_pct": 0.406,
+      "weeks_counted": 2,
       "is_rolling": true
     },
     "weekly_ledger": [
@@ -1683,18 +1587,18 @@
         "pass_oe": -0.1
       },
       {
-        "week": 15,
-        "opponent": "MIA",
-        "preview_hypothesis": "Standard baseline shell vs MIA",
-        "review_execution": "KC vs MIA: Pass OE +6.0%, EPA/DB +0.45, Off Press Allowed 33.3% (QP 29.2%), Def MOF EPA Allowed +0.20, Rush SR Allowed 16.7%.",
-        "expected_qpr": 0.223,
-        "realized_qpr": 0.253,
-        "qpr_delta": 0.03,
-        "pressure_rate": 0.357,
-        "expected_mof_epa": 0.18,
-        "realized_mof_epa": 0.2,
-        "mof_epa_delta": 0.024,
-        "pass_oe": 6.0
+        "week": 7,
+        "opponent": "SEA",
+        "preview_hypothesis": "Inside/Slot Funnel (18% Man / 82% Zone) \u2014 KC vs SEA: 1-High 18.3% / 2-High 81.7% | Blitz 21.1% | Press 40.8% | Exp MOF EPA -0.07",
+        "review_execution": "Pending game review",
+        "expected_qpr": 0.21,
+        "realized_qpr": 0.21,
+        "qpr_delta": 0.0,
+        "pressure_rate": 0.336,
+        "expected_mof_epa": -0.07,
+        "realized_mof_epa": -0.07,
+        "mof_epa_delta": 0.0,
+        "pass_oe": 0.0
       }
     ]
   },
@@ -1706,15 +1610,15 @@
     ],
     "expectation_delta": {
       "team": "LAC",
-      "week": 15,
+      "week": 3,
       "expected_qpr": 0.186,
-      "realized_qpr": 0.18,
-      "qpr_delta": -0.006,
+      "realized_qpr": 0.183,
+      "qpr_delta": -0.003,
       "expected_mof_epa": 0.09,
-      "realized_mof_epa": -0.57,
-      "mof_epa_delta": -0.66,
-      "realized_pass_oe": -6.4,
-      "realized_epa_rush": -0.12,
+      "realized_mof_epa": -0.32,
+      "mof_epa_delta": -0.413,
+      "realized_pass_oe": -4.6,
+      "realized_epa_rush": -0.26,
       "regime_tags": [
         "RUN_GAME_BROKEN"
       ],
@@ -1722,14 +1626,14 @@
       "slot_te_mu_boost": 1.0,
       "slot_te_floor_boost": 1.0,
       "slot_te_ceiling_boost": 1.0,
-      "verdict": "Inefficient ground game (Rush EPA -0.12, Rush SR 48.1%)"
+      "verdict": "Inefficient ground game (Rush EPA -0.26, Rush SR 42.0%)"
     },
     "rolling_3wk": {
-      "quick_pressure_rate": 0.18,
+      "quick_pressure_rate": 0.183,
       "mof_epa_allowed": 0.249,
-      "rush_sr_allowed": 0.481,
-      "pressure_rate": 0.452,
-      "mof_pct": 0.35,
+      "rush_sr_allowed": 0.42,
+      "pressure_rate": 0.406,
+      "mof_pct": 0.252,
       "weeks_counted": 3,
       "is_rolling": true
     },
@@ -1775,20 +1679,6 @@
         "realized_mof_epa": -0.75,
         "mof_epa_delta": -0.09,
         "pass_oe": -3.2
-      },
-      {
-        "week": 15,
-        "opponent": "BUF",
-        "preview_hypothesis": "Standard baseline shell vs BUF",
-        "review_execution": "LAC vs BUF: Pass OE -3.2%, EPA/DB -0.39, Off Press Allowed 51.4% (QP 22.2%), Def MOF EPA Allowed -0.75, Rush SR Allowed 58.1%.",
-        "expected_qpr": 0.128,
-        "realized_qpr": 0.146,
-        "qpr_delta": 0.018,
-        "pressure_rate": 0.447,
-        "expected_mof_epa": -0.66,
-        "realized_mof_epa": -0.75,
-        "mof_epa_delta": -0.09,
-        "pass_oe": -3.2
       }
     ]
   },
@@ -1801,15 +1691,15 @@
     ],
     "expectation_delta": {
       "team": "LAR",
-      "week": 1,
+      "week": 6,
       "expected_qpr": 0.199,
-      "realized_qpr": 0.08,
-      "qpr_delta": -0.119,
+      "realized_qpr": 0.117,
+      "qpr_delta": -0.082,
       "expected_mof_epa": 0.05,
-      "realized_mof_epa": -0.68,
-      "mof_epa_delta": -0.73,
-      "realized_pass_oe": -12.2,
-      "realized_epa_rush": -0.17,
+      "realized_mof_epa": -0.23,
+      "mof_epa_delta": -0.28,
+      "realized_pass_oe": -5.4,
+      "realized_epa_rush": -0.12,
       "regime_tags": [
         "SLOT_FUNNEL_HIGH",
         "RUN_GAME_BROKEN"
@@ -1818,15 +1708,15 @@
       "slot_te_mu_boost": 1.18,
       "slot_te_floor_boost": 1.08,
       "slot_te_ceiling_boost": 1.12,
-      "verdict": "Defense bled elevated MOF EPA (-0.68 realized vs +0.05 previewed) -> Opposing Slot/TE floor & ceiling elevated | Inefficient ground game (Rush EPA -0.17, Rush SR 53.6%)"
+      "verdict": "Defense bled elevated MOF EPA (-0.23 realized vs +0.05 previewed) -> Opposing Slot/TE floor & ceiling elevated | Inefficient ground game (Rush EPA -0.12, Rush SR 49.7%)"
     },
     "rolling_3wk": {
       "quick_pressure_rate": 0.155,
       "mof_epa_allowed": 0.439,
-      "rush_sr_allowed": 0.48,
-      "pressure_rate": 0.315,
-      "mof_pct": 0.061,
-      "weeks_counted": 1,
+      "rush_sr_allowed": 0.482,
+      "pressure_rate": 0.298,
+      "mof_pct": 0.155,
+      "weeks_counted": 2,
       "is_rolling": true
     },
     "weekly_ledger": [
@@ -1885,6 +1775,20 @@
         "realized_mof_epa": 0.43,
         "mof_epa_delta": 0.0,
         "pass_oe": 0.0
+      },
+      {
+        "week": 6,
+        "opponent": "ARI",
+        "preview_hypothesis": "Standard baseline shell vs ARI",
+        "review_execution": "Arizona Cardinals 18, Los Angeles Rams 16: Arizona wins a tight division game as the Rams drop to 2-4. The Cardinals defense played Cover 4 or Cover 6 on 24 of Matthew Stafford\u2019s 36 dropbacks. Stafford completed 16 passes for just 113 yards and took three sacks on those",
+        "expected_qpr": 0.136,
+        "realized_qpr": 0.155,
+        "qpr_delta": 0.019,
+        "pressure_rate": 0.281,
+        "expected_mof_epa": 0.19,
+        "realized_mof_epa": 0.22,
+        "mof_epa_delta": 0.026,
+        "pass_oe": 1.3
       }
     ]
   },
@@ -1897,7 +1801,7 @@
     ],
     "expectation_delta": {
       "team": "LV",
-      "week": 15,
+      "week": 5,
       "expected_qpr": 0.219,
       "realized_qpr": 0.212,
       "qpr_delta": -0.007,
@@ -1995,20 +1899,6 @@
         "realized_mof_epa": 1.59,
         "mof_epa_delta": 1.38,
         "pass_oe": 0.3
-      },
-      {
-        "week": 15,
-        "opponent": "NO",
-        "preview_hypothesis": "Standard baseline shell vs NO",
-        "review_execution": "Las Vegas Raiders 35, New Orleans Saints 27: The Raiders are 3-0, and Brock Bowers is back in business. The Raiders used 11 personnel on just 4.8% of snaps with Brock Bowers back in the lineup. They used 12 personnel on 28 of 37 dropbacks and had 0.30 EPA/dropback on",
-        "expected_qpr": 0.138,
-        "realized_qpr": 0.157,
-        "qpr_delta": 0.019,
-        "pressure_rate": 0.342,
-        "expected_mof_epa": 0.5,
-        "realized_mof_epa": 0.57,
-        "mof_epa_delta": 0.068,
-        "pass_oe": 4.2
       }
     ]
   },
@@ -2021,15 +1911,15 @@
     ],
     "expectation_delta": {
       "team": "MIA",
-      "week": 15,
+      "week": 3,
       "expected_qpr": 0.217,
-      "realized_qpr": 0.229,
-      "qpr_delta": 0.012,
+      "realized_qpr": 0.207,
+      "qpr_delta": -0.01,
       "expected_mof_epa": 0.02,
-      "realized_mof_epa": 0.34,
-      "mof_epa_delta": 0.317,
-      "realized_pass_oe": -9.4,
-      "realized_epa_rush": -0.24,
+      "realized_mof_epa": 0.19,
+      "mof_epa_delta": 0.167,
+      "realized_pass_oe": -7.4,
+      "realized_epa_rush": -0.23,
       "regime_tags": [
         "SLOT_FUNNEL_HIGH",
         "RUN_GAME_BROKEN"
@@ -2038,14 +1928,14 @@
       "slot_te_mu_boost": 1.18,
       "slot_te_floor_boost": 1.08,
       "slot_te_ceiling_boost": 1.12,
-      "verdict": "Defense bled elevated MOF EPA (+0.34 realized vs +0.02 previewed) -> Opposing Slot/TE floor & ceiling elevated | Inefficient ground game (Rush EPA -0.24, Rush SR 43.9%)"
+      "verdict": "Defense bled elevated MOF EPA (+0.19 realized vs +0.02 previewed) -> Opposing Slot/TE floor & ceiling elevated | Inefficient ground game (Rush EPA -0.23, Rush SR 40.6%)"
     },
     "rolling_3wk": {
-      "quick_pressure_rate": 0.229,
+      "quick_pressure_rate": 0.207,
       "mof_epa_allowed": 0.413,
-      "rush_sr_allowed": 0.439,
-      "pressure_rate": 0.347,
-      "mof_pct": 0.238,
+      "rush_sr_allowed": 0.412,
+      "pressure_rate": 0.373,
+      "mof_pct": 0.206,
       "weeks_counted": 3,
       "is_rolling": true
     },
@@ -2091,20 +1981,6 @@
         "realized_mof_epa": -0.06,
         "mof_epa_delta": -0.62,
         "pass_oe": -5.2
-      },
-      {
-        "week": 15,
-        "opponent": "KC",
-        "preview_hypothesis": "Standard baseline shell vs KC",
-        "review_execution": "MIA vs KC: Pass OE -5.2%, EPA/DB -0.19, Off Press Allowed 38.1% (QP 21.4%), Def MOF EPA Allowed -0.06, Rush SR Allowed 52.2%.",
-        "expected_qpr": 0.223,
-        "realized_qpr": 0.253,
-        "qpr_delta": 0.03,
-        "pressure_rate": 0.357,
-        "expected_mof_epa": -0.05,
-        "realized_mof_epa": -0.06,
-        "mof_epa_delta": -0.007,
-        "pass_oe": -5.2
       }
     ]
   },
@@ -2113,35 +1989,37 @@
     "preseason_expectation": "Brian Flores Zero-Blitz / Simulated Pressure Lab & Vertical Play-Action",
     "regime_tags": [
       "PASS_PROTECTION_COLLAPSE",
+      "SLOT_FUNNEL_HIGH",
       "RUN_GAME_BROKEN"
     ],
     "expectation_delta": {
       "team": "MIN",
-      "week": 15,
+      "week": 3,
       "expected_qpr": 0.203,
-      "realized_qpr": 0.151,
-      "qpr_delta": -0.053,
+      "realized_qpr": 0.183,
+      "qpr_delta": -0.02,
       "expected_mof_epa": 0.46,
-      "realized_mof_epa": -0.04,
-      "mof_epa_delta": -0.497,
-      "realized_pass_oe": -4.5,
-      "realized_epa_rush": -0.2,
+      "realized_mof_epa": 0.49,
+      "mof_epa_delta": 0.027,
+      "realized_pass_oe": -6.3,
+      "realized_epa_rush": -0.16,
       "regime_tags": [
         "PASS_PROTECTION_COLLAPSE",
+        "SLOT_FUNNEL_HIGH",
         "RUN_GAME_BROKEN"
       ],
       "prior_decay_multiplier": 0.65,
-      "slot_te_mu_boost": 1.0,
-      "slot_te_floor_boost": 1.0,
-      "slot_te_ceiling_boost": 1.0,
-      "verdict": "Quick/overall pressure spiked (QP 15.1%, PR 36.2% realized vs 20.3% previewed) -> Accelerated Bayesian prior decay (0.65x) | Inefficient ground game (Rush EPA -0.20, Rush SR 29.0%)"
+      "slot_te_mu_boost": 1.18,
+      "slot_te_floor_boost": 1.08,
+      "slot_te_ceiling_boost": 1.12,
+      "verdict": "Quick/overall pressure spiked (QP 18.3%, PR 40.4% realized vs 20.3% previewed) -> Accelerated Bayesian prior decay (0.65x) | Defense bled elevated MOF EPA (+0.49 realized vs +0.46 previewed) -> Opposing Slot/TE floor & ceiling elevated | Inefficient ground game (Rush EPA -0.16, Rush SR 36.2%)"
     },
     "rolling_3wk": {
       "quick_pressure_rate": 0.203,
-      "mof_epa_allowed": 0.284,
+      "mof_epa_allowed": 0.487,
       "rush_sr_allowed": 0.378,
-      "pressure_rate": 0.362,
-      "mof_pct": 0.194,
+      "pressure_rate": 0.404,
+      "mof_pct": 0.138,
       "weeks_counted": 3,
       "is_rolling": true
     },
@@ -2187,20 +2065,6 @@
         "realized_mof_epa": 0.18,
         "mof_epa_delta": -0.6,
         "pass_oe": -1.2
-      },
-      {
-        "week": 15,
-        "opponent": "TB",
-        "preview_hypothesis": "Standard baseline shell vs TB",
-        "review_execution": "MIN vs TB: Pass OE -1.2%, EPA/DB -0.38, Off Press Allowed 33.3% (QP 6.1%), Def MOF EPA Allowed +0.18, Rush SR Allowed 11.8%.",
-        "expected_qpr": 0.125,
-        "realized_qpr": 0.142,
-        "qpr_delta": 0.017,
-        "pressure_rate": 0.355,
-        "expected_mof_epa": 0.16,
-        "realized_mof_epa": 0.18,
-        "mof_epa_delta": 0.022,
-        "pass_oe": -1.2
       }
     ]
   },
@@ -2213,15 +2077,15 @@
     ],
     "expectation_delta": {
       "team": "NE",
-      "week": 15,
-      "expected_qpr": 0.222,
-      "realized_qpr": 0.232,
-      "qpr_delta": 0.01,
-      "expected_mof_epa": 0.01,
-      "realized_mof_epa": 0.26,
-      "mof_epa_delta": 0.253,
-      "realized_pass_oe": -0.3,
-      "realized_epa_rush": -0.22,
+      "week": 5,
+      "expected_qpr": 0.236,
+      "realized_qpr": 0.223,
+      "qpr_delta": -0.012,
+      "expected_mof_epa": 0.04,
+      "realized_mof_epa": 0.34,
+      "mof_epa_delta": 0.3,
+      "realized_pass_oe": 2.0,
+      "realized_epa_rush": -0.14,
       "regime_tags": [
         "SLOT_FUNNEL_HIGH",
         "RUN_GAME_BROKEN"
@@ -2230,14 +2094,14 @@
       "slot_te_mu_boost": 1.18,
       "slot_te_floor_boost": 1.08,
       "slot_te_ceiling_boost": 1.12,
-      "verdict": "Defense bled elevated MOF EPA (+0.26 realized vs +0.01 previewed) -> Opposing Slot/TE floor & ceiling elevated | Inefficient ground game (Rush EPA -0.22, Rush SR 49.5%)"
+      "verdict": "Defense bled elevated MOF EPA (+0.34 realized vs +0.04 previewed) -> Opposing Slot/TE floor & ceiling elevated | Inefficient ground game (Rush EPA -0.14, Rush SR 42.7%)"
     },
     "rolling_3wk": {
-      "quick_pressure_rate": 0.232,
+      "quick_pressure_rate": 0.223,
       "mof_epa_allowed": 0.37,
-      "rush_sr_allowed": 0.495,
-      "pressure_rate": 0.453,
-      "mof_pct": 0.34,
+      "rush_sr_allowed": 0.427,
+      "pressure_rate": 0.421,
+      "mof_pct": 0.247,
       "weeks_counted": 3,
       "is_rolling": true
     },
@@ -2299,18 +2163,18 @@
         "pass_oe": 6.7
       },
       {
-        "week": 15,
-        "opponent": "JAX",
-        "preview_hypothesis": "Standard baseline shell vs JAX",
-        "review_execution": "Jacksonville Jaguars 35, New England Patriots 6: The Jaguars are the only team in the top five in EPA/play on offense and defense this season. The Jaguars had a 93rd percentile EPA/rush and a diverse run game menu. They ran duo 11 times for 41 yards, outside zone nine times for 39 yards, and inside ",
-        "expected_qpr": 0.211,
-        "realized_qpr": 0.24,
-        "qpr_delta": 0.029,
-        "pressure_rate": 0.462,
-        "expected_mof_epa": 0.07,
-        "realized_mof_epa": 0.08,
-        "mof_epa_delta": 0.01,
-        "pass_oe": -3.8
+        "week": 7,
+        "opponent": "CHI",
+        "preview_hypothesis": "Inside/Slot Funnel (39% Man / 61% Zone) \u2014 NE vs CHI: 1-High 39.2% / 2-High 60.8% | Blitz 40.3% | Press 39.1% | Exp MOF EPA +0.25",
+        "review_execution": "Pending game review",
+        "expected_qpr": 0.225,
+        "realized_qpr": 0.225,
+        "qpr_delta": 0.0,
+        "pressure_rate": 0.36,
+        "expected_mof_epa": 0.25,
+        "realized_mof_epa": 0.25,
+        "mof_epa_delta": 0.0,
+        "pass_oe": 0.0
       }
     ]
   },
@@ -2322,15 +2186,15 @@
     ],
     "expectation_delta": {
       "team": "NO",
-      "week": 15,
+      "week": 3,
       "expected_qpr": 0.198,
-      "realized_qpr": 0.162,
-      "qpr_delta": -0.036,
+      "realized_qpr": 0.192,
+      "qpr_delta": -0.006,
       "expected_mof_epa": 0.04,
-      "realized_mof_epa": 0.56,
-      "mof_epa_delta": 0.513,
-      "realized_pass_oe": 3.3,
-      "realized_epa_rush": -0.02,
+      "realized_mof_epa": 0.86,
+      "mof_epa_delta": 0.813,
+      "realized_pass_oe": 2.7,
+      "realized_epa_rush": -0.03,
       "regime_tags": [
         "SLOT_FUNNEL_HIGH"
       ],
@@ -2338,14 +2202,14 @@
       "slot_te_mu_boost": 1.18,
       "slot_te_floor_boost": 1.08,
       "slot_te_ceiling_boost": 1.12,
-      "verdict": "Defense bled elevated MOF EPA (+0.56 realized vs +0.04 previewed) -> Opposing Slot/TE floor & ceiling elevated"
+      "verdict": "Defense bled elevated MOF EPA (+0.86 realized vs +0.04 previewed) -> Opposing Slot/TE floor & ceiling elevated"
     },
     "rolling_3wk": {
-      "quick_pressure_rate": 0.162,
-      "mof_epa_allowed": 0.557,
+      "quick_pressure_rate": 0.192,
+      "mof_epa_allowed": 0.857,
       "rush_sr_allowed": 0.435,
-      "pressure_rate": 0.352,
-      "mof_pct": 0.185,
+      "pressure_rate": 0.372,
+      "mof_pct": 0.144,
       "weeks_counted": 3,
       "is_rolling": true
     },
@@ -2391,20 +2255,6 @@
         "realized_mof_epa": 0.52,
         "mof_epa_delta": 0.76,
         "pass_oe": 5.1
-      },
-      {
-        "week": 15,
-        "opponent": "LV",
-        "preview_hypothesis": "Standard baseline shell vs LV",
-        "review_execution": "Las Vegas Raiders 35, New Orleans Saints 27: The Raiders are 3-0, and Brock Bowers is back in business. The Raiders used 11 personnel on just 4.8% of snaps with Brock Bowers back in the lineup. They used 12 personnel on 28 of 37 dropbacks and had 0.30 EPA/dropback on",
-        "expected_qpr": 0.138,
-        "realized_qpr": 0.157,
-        "qpr_delta": 0.019,
-        "pressure_rate": 0.342,
-        "expected_mof_epa": 0.46,
-        "realized_mof_epa": 0.52,
-        "mof_epa_delta": 0.062,
-        "pass_oe": 5.1
       }
     ]
   },
@@ -2414,7 +2264,7 @@
     "regime_tags": [],
     "expectation_delta": {
       "team": "NYG",
-      "week": 15,
+      "week": 3,
       "expected_qpr": 0.2,
       "realized_qpr": 0.163,
       "qpr_delta": -0.037,
@@ -2431,12 +2281,12 @@
       "verdict": "Execution aligned with pre-game preview expectations"
     },
     "rolling_3wk": {
-      "quick_pressure_rate": 0.17,
+      "quick_pressure_rate": 0.178,
       "mof_epa_allowed": 0.404,
       "rush_sr_allowed": 0.461,
       "pressure_rate": 0.292,
       "mof_pct": 0.088,
-      "weeks_counted": 2,
+      "weeks_counted": 1,
       "is_rolling": true
     },
     "weekly_ledger": [
@@ -2481,20 +2331,6 @@
         "realized_mof_epa": -0.51,
         "mof_epa_delta": -1.25,
         "pass_oe": -15.4
-      },
-      {
-        "week": 15,
-        "opponent": "TEN",
-        "preview_hypothesis": "Standard baseline shell vs TEN",
-        "review_execution": "NYG vs TEN: Pass OE -15.4%, EPA/DB -0.17, Off Press Allowed 38.5% (QP 12.5%), Def MOF EPA Allowed -0.51, Rush SR Allowed 42.9%.",
-        "expected_qpr": 0.143,
-        "realized_qpr": 0.163,
-        "qpr_delta": 0.02,
-        "pressure_rate": 0.292,
-        "expected_mof_epa": -0.45,
-        "realized_mof_epa": -0.51,
-        "mof_epa_delta": -0.061,
-        "pass_oe": -15.4
       }
     ]
   },
@@ -2502,36 +2338,34 @@
     "team": "NYJ",
     "preseason_expectation": "Balanced NFL Scheme Baseline (Prior QP 21.0%)",
     "regime_tags": [
-      "RUN_GAME_BROKEN",
-      "GARBAGE_TIME_ALPHA"
+      "RUN_GAME_BROKEN"
     ],
     "expectation_delta": {
       "team": "NYJ",
-      "week": 15,
+      "week": 3,
       "expected_qpr": 0.2,
-      "realized_qpr": 0.167,
-      "qpr_delta": -0.033,
+      "realized_qpr": 0.173,
+      "qpr_delta": -0.027,
       "expected_mof_epa": 0.73,
-      "realized_mof_epa": 0.07,
-      "mof_epa_delta": -0.667,
-      "realized_pass_oe": 4.5,
-      "realized_epa_rush": -0.36,
+      "realized_mof_epa": 0.13,
+      "mof_epa_delta": -0.607,
+      "realized_pass_oe": 3.0,
+      "realized_epa_rush": -0.25,
       "regime_tags": [
-        "RUN_GAME_BROKEN",
-        "GARBAGE_TIME_ALPHA"
+        "RUN_GAME_BROKEN"
       ],
       "prior_decay_multiplier": 1.0,
       "slot_te_mu_boost": 1.0,
       "slot_te_floor_boost": 1.0,
       "slot_te_ceiling_boost": 1.0,
-      "verdict": "Inefficient ground game (Rush EPA -0.36, Rush SR 50.0%) | Elevated Pass Over Expected (+4.5% POE) driving late-game passing volume"
+      "verdict": "Inefficient ground game (Rush EPA -0.25, Rush SR 40.5%)"
     },
     "rolling_3wk": {
       "quick_pressure_rate": 0.189,
       "mof_epa_allowed": 0.215,
-      "rush_sr_allowed": 0.5,
-      "pressure_rate": 0.38,
-      "mof_pct": 0.212,
+      "rush_sr_allowed": 0.405,
+      "pressure_rate": 0.365,
+      "mof_pct": 0.27,
       "weeks_counted": 3,
       "is_rolling": true
     },
@@ -2576,20 +2410,6 @@
         "expected_mof_epa": 0.44,
         "realized_mof_epa": 0.17,
         "mof_epa_delta": -0.27,
-        "pass_oe": 4.5
-      },
-      {
-        "week": 15,
-        "opponent": "DET",
-        "preview_hypothesis": "Standard baseline shell vs DET",
-        "review_execution": "NYJ vs DET: Pass OE +4.5%, EPA/DB +0.24, Off Press Allowed 47.7% (QP 27.9%), Def MOF EPA Allowed +0.17, Rush SR Allowed 58.3%.",
-        "expected_qpr": 0.159,
-        "realized_qpr": 0.181,
-        "qpr_delta": 0.022,
-        "pressure_rate": 0.392,
-        "expected_mof_epa": 0.15,
-        "realized_mof_epa": 0.17,
-        "mof_epa_delta": 0.02,
         "pass_oe": 4.5
       }
     ]
@@ -2700,15 +2520,15 @@
     ],
     "expectation_delta": {
       "team": "PIT",
-      "week": 15,
+      "week": 3,
       "expected_qpr": 0.233,
       "realized_qpr": 0.179,
       "qpr_delta": -0.054,
       "expected_mof_epa": 0.2,
-      "realized_mof_epa": 0.62,
-      "mof_epa_delta": 0.417,
-      "realized_pass_oe": 6.5,
-      "realized_epa_rush": 0.12,
+      "realized_mof_epa": 0.4,
+      "mof_epa_delta": 0.2,
+      "realized_pass_oe": 7.3,
+      "realized_epa_rush": -0.04,
       "regime_tags": [
         "PASS_PROTECTION_COLLAPSE",
         "SLOT_FUNNEL_HIGH",
@@ -2718,14 +2538,14 @@
       "slot_te_mu_boost": 1.18,
       "slot_te_floor_boost": 1.08,
       "slot_te_ceiling_boost": 1.12,
-      "verdict": "Quick/overall pressure spiked (QP 17.9%, PR 34.1% realized vs 23.3% previewed) -> Accelerated Bayesian prior decay (0.65x) | Defense bled elevated MOF EPA (+0.62 realized vs +0.20 previewed) -> Opposing Slot/TE floor & ceiling elevated | Elevated Pass Over Expected (+6.5% POE) driving late-game passing volume"
+      "verdict": "Quick/overall pressure spiked (QP 17.9%, PR 35.6% realized vs 23.3% previewed) -> Accelerated Bayesian prior decay (0.65x) | Defense bled elevated MOF EPA (+0.40 realized vs +0.20 previewed) -> Opposing Slot/TE floor & ceiling elevated | Elevated Pass Over Expected (+7.3% POE) driving late-game passing volume"
     },
     "rolling_3wk": {
       "quick_pressure_rate": 0.2,
-      "mof_epa_allowed": 0.617,
-      "rush_sr_allowed": 0.437,
-      "pressure_rate": 0.341,
-      "mof_pct": 0.253,
+      "mof_epa_allowed": 0.4,
+      "rush_sr_allowed": 0.429,
+      "pressure_rate": 0.356,
+      "mof_pct": 0.155,
       "weeks_counted": 3,
       "is_rolling": true
     },
@@ -2771,20 +2591,6 @@
         "realized_mof_epa": 0.46,
         "mof_epa_delta": 0.39,
         "pass_oe": 9.6
-      },
-      {
-        "week": 15,
-        "opponent": "CIN",
-        "preview_hypothesis": "Standard baseline shell vs CIN",
-        "review_execution": "PIT vs CIN: Pass OE +9.6%, EPA/DB +0.21, Off Press Allowed 30.6% (QP 17.1%), Def MOF EPA Allowed +0.46, Rush SR Allowed 43.8%.",
-        "expected_qpr": 0.142,
-        "realized_qpr": 0.161,
-        "qpr_delta": 0.019,
-        "pressure_rate": 0.328,
-        "expected_mof_epa": 0.4,
-        "realized_mof_epa": 0.46,
-        "mof_epa_delta": 0.055,
-        "pass_oe": 9.6
       }
     ]
   },
@@ -2792,38 +2598,34 @@
     "team": "SEA",
     "preseason_expectation": "Balanced NFL Scheme Baseline (Prior QP 18.0%)",
     "regime_tags": [
-      "SLOT_FUNNEL_HIGH",
-      "RUN_GAME_BROKEN",
-      "GARBAGE_TIME_ALPHA"
+      "RUN_GAME_BROKEN"
     ],
     "expectation_delta": {
       "team": "SEA",
-      "week": 15,
-      "expected_qpr": 0.221,
-      "realized_qpr": 0.194,
-      "qpr_delta": -0.027,
-      "expected_mof_epa": 0.92,
-      "realized_mof_epa": 0.45,
-      "mof_epa_delta": -0.473,
-      "realized_pass_oe": 6.2,
-      "realized_epa_rush": -0.6,
+      "week": 5,
+      "expected_qpr": 0.21,
+      "realized_qpr": 0.197,
+      "qpr_delta": -0.013,
+      "expected_mof_epa": 0.76,
+      "realized_mof_epa": 0.02,
+      "mof_epa_delta": -0.733,
+      "realized_pass_oe": -0.7,
+      "realized_epa_rush": -0.49,
       "regime_tags": [
-        "SLOT_FUNNEL_HIGH",
-        "RUN_GAME_BROKEN",
-        "GARBAGE_TIME_ALPHA"
+        "RUN_GAME_BROKEN"
       ],
       "prior_decay_multiplier": 1.0,
-      "slot_te_mu_boost": 1.18,
-      "slot_te_floor_boost": 1.08,
-      "slot_te_ceiling_boost": 1.12,
-      "verdict": "Defense bled elevated MOF EPA (+0.45 realized vs +0.92 previewed) -> Opposing Slot/TE floor & ceiling elevated | Inefficient ground game (Rush EPA -0.60, Rush SR 35.9%) | Elevated Pass Over Expected (+6.2% POE) driving late-game passing volume"
+      "slot_te_mu_boost": 1.0,
+      "slot_te_floor_boost": 1.0,
+      "slot_te_ceiling_boost": 1.0,
+      "verdict": "Inefficient ground game (Rush EPA -0.49, Rush SR 39.2%)"
     },
     "rolling_3wk": {
-      "quick_pressure_rate": 0.194,
-      "mof_epa_allowed": 0.447,
+      "quick_pressure_rate": 0.197,
+      "mof_epa_allowed": 0.378,
       "rush_sr_allowed": 0.427,
-      "pressure_rate": 0.439,
-      "mof_pct": 0.331,
+      "pressure_rate": 0.432,
+      "mof_pct": 0.266,
       "weeks_counted": 3,
       "is_rolling": true
     },
@@ -2885,18 +2687,18 @@
         "pass_oe": -4.6
       },
       {
-        "week": 15,
-        "opponent": "WAS",
-        "preview_hypothesis": "Standard baseline shell vs WAS",
-        "review_execution": "SEA vs WAS: Pass OE +11.6%, EPA/DB +0.07, Off Press Allowed 41.3% (QP 10.9%), Def MOF EPA Allowed +0.66, Rush SR Allowed 21.4%.",
-        "expected_qpr": 0.194,
-        "realized_qpr": 0.221,
-        "qpr_delta": 0.027,
-        "pressure_rate": 0.435,
-        "expected_mof_epa": 0.58,
-        "realized_mof_epa": 0.66,
-        "mof_epa_delta": 0.079,
-        "pass_oe": 11.6
+        "week": 7,
+        "opponent": "KC",
+        "preview_hypothesis": "Inside/Slot Funnel (43% Man / 57% Zone) \u2014 SEA vs KC: 1-High 43.1% / 2-High 56.9% | Blitz 28.7% | Press 35.6% | Exp MOF EPA +0.03",
+        "review_execution": "Pending game review",
+        "expected_qpr": 0.21,
+        "realized_qpr": 0.21,
+        "qpr_delta": 0.0,
+        "pressure_rate": 0.336,
+        "expected_mof_epa": 0.03,
+        "realized_mof_epa": 0.03,
+        "mof_epa_delta": 0.0,
+        "pass_oe": 0.0
       }
     ]
   },
@@ -2908,7 +2710,7 @@
     ],
     "expectation_delta": {
       "team": "SF",
-      "week": 15,
+      "week": 5,
       "expected_qpr": 0.195,
       "realized_qpr": 0.156,
       "qpr_delta": -0.038,
@@ -3005,20 +2807,6 @@
         "realized_mof_epa": -1.04,
         "mof_epa_delta": -0.75,
         "pass_oe": 4.1
-      },
-      {
-        "week": 15,
-        "opponent": "ARI",
-        "preview_hypothesis": "Standard baseline shell vs ARI",
-        "review_execution": "SF vs ARI: Pass OE +3.1%, EPA/DB +0.82, Off Press Allowed 37.0% (QP 11.1%), Def MOF EPA Allowed +0.57, Rush SR Allowed 59.3%.",
-        "expected_qpr": 0.108,
-        "realized_qpr": 0.123,
-        "qpr_delta": 0.015,
-        "pressure_rate": 0.317,
-        "expected_mof_epa": 0.5,
-        "realized_mof_epa": 0.57,
-        "mof_epa_delta": 0.068,
-        "pass_oe": 3.1
       }
     ]
   },
@@ -3031,15 +2819,15 @@
     ],
     "expectation_delta": {
       "team": "TB",
-      "week": 15,
+      "week": 3,
       "expected_qpr": 0.177,
-      "realized_qpr": 0.153,
-      "qpr_delta": -0.023,
+      "realized_qpr": 0.167,
+      "qpr_delta": -0.01,
       "expected_mof_epa": 0.37,
-      "realized_mof_epa": 0.15,
-      "mof_epa_delta": -0.217,
-      "realized_pass_oe": 2.1,
-      "realized_epa_rush": -0.24,
+      "realized_mof_epa": 0.14,
+      "mof_epa_delta": -0.23,
+      "realized_pass_oe": 2.8,
+      "realized_epa_rush": -0.1,
       "regime_tags": [
         "SLOT_FUNNEL_HIGH",
         "RUN_GAME_BROKEN"
@@ -3048,14 +2836,14 @@
       "slot_te_mu_boost": 1.18,
       "slot_te_floor_boost": 1.08,
       "slot_te_ceiling_boost": 1.12,
-      "verdict": "Defense bled elevated MOF EPA (+0.15 realized vs +0.37 previewed) -> Opposing Slot/TE floor & ceiling elevated | Inefficient ground game (Rush EPA -0.24, Rush SR 26.9%)"
+      "verdict": "Defense bled elevated MOF EPA (+0.14 realized vs +0.37 previewed) -> Opposing Slot/TE floor & ceiling elevated | Inefficient ground game (Rush EPA -0.10, Rush SR 31.3%)"
     },
     "rolling_3wk": {
-      "quick_pressure_rate": 0.164,
+      "quick_pressure_rate": 0.167,
       "mof_epa_allowed": 0.464,
       "rush_sr_allowed": 0.4,
-      "pressure_rate": 0.354,
-      "mof_pct": 0.174,
+      "pressure_rate": 0.345,
+      "mof_pct": 0.118,
       "weeks_counted": 3,
       "is_rolling": true
     },
@@ -3101,20 +2889,6 @@
         "realized_mof_epa": -0.03,
         "mof_epa_delta": 0.03,
         "pass_oe": 1.6
-      },
-      {
-        "week": 15,
-        "opponent": "MIN",
-        "preview_hypothesis": "Standard baseline shell vs MIN",
-        "review_execution": "TB vs MIN: Pass OE +1.6%, EPA/DB -0.37, Off Press Allowed 37.8% (QP 22.2%), Def MOF EPA Allowed -0.03, Rush SR Allowed 28.6%.",
-        "expected_qpr": 0.125,
-        "realized_qpr": 0.142,
-        "qpr_delta": 0.017,
-        "pressure_rate": 0.355,
-        "expected_mof_epa": -0.03,
-        "realized_mof_epa": -0.03,
-        "mof_epa_delta": -0.004,
-        "pass_oe": 1.6
       }
     ]
   },
@@ -3124,15 +2898,15 @@
     "regime_tags": [],
     "expectation_delta": {
       "team": "TEN",
-      "week": 15,
+      "week": 3,
       "expected_qpr": 0.201,
-      "realized_qpr": 0.147,
-      "qpr_delta": -0.054,
+      "realized_qpr": 0.159,
+      "qpr_delta": -0.042,
       "expected_mof_epa": 0.31,
-      "realized_mof_epa": 0.27,
-      "mof_epa_delta": -0.037,
-      "realized_pass_oe": -12.6,
-      "realized_epa_rush": 0.03,
+      "realized_mof_epa": 0.18,
+      "mof_epa_delta": -0.127,
+      "realized_pass_oe": -6.2,
+      "realized_epa_rush": 0.02,
       "regime_tags": [],
       "prior_decay_multiplier": 1.0,
       "slot_te_mu_boost": 1.0,
@@ -3141,11 +2915,11 @@
       "verdict": "Execution aligned with pre-game preview expectations"
     },
     "rolling_3wk": {
-      "quick_pressure_rate": 0.153,
+      "quick_pressure_rate": 0.159,
       "mof_epa_allowed": 0.387,
-      "rush_sr_allowed": 0.398,
-      "pressure_rate": 0.322,
-      "mof_pct": 0.188,
+      "rush_sr_allowed": 0.425,
+      "pressure_rate": 0.34,
+      "mof_pct": 0.152,
       "weeks_counted": 3,
       "is_rolling": true
     },
@@ -3191,20 +2965,6 @@
         "realized_mof_epa": -0.08,
         "mof_epa_delta": -0.23,
         "pass_oe": -10.9
-      },
-      {
-        "week": 15,
-        "opponent": "NYG",
-        "preview_hypothesis": "Standard baseline shell vs NYG",
-        "review_execution": "TEN vs NYG: Pass OE -10.9%, EPA/DB -0.17, Off Press Allowed 20.0% (QP 20.0%), Def MOF EPA Allowed -0.08, Rush SR Allowed 41.9%.",
-        "expected_qpr": 0.143,
-        "realized_qpr": 0.163,
-        "qpr_delta": 0.02,
-        "pressure_rate": 0.292,
-        "expected_mof_epa": -0.07,
-        "realized_mof_epa": -0.08,
-        "mof_epa_delta": -0.01,
-        "pass_oe": -10.9
       }
     ]
   },
@@ -3217,15 +2977,15 @@
     ],
     "expectation_delta": {
       "team": "WAS",
-      "week": 15,
+      "week": 3,
       "expected_qpr": 0.199,
-      "realized_qpr": 0.179,
-      "qpr_delta": -0.02,
+      "realized_qpr": 0.151,
+      "qpr_delta": -0.048,
       "expected_mof_epa": 0.19,
-      "realized_mof_epa": 0.62,
-      "mof_epa_delta": 0.433,
-      "realized_pass_oe": -1.6,
-      "realized_epa_rush": -0.23,
+      "realized_mof_epa": 0.56,
+      "mof_epa_delta": 0.37,
+      "realized_pass_oe": -2.9,
+      "realized_epa_rush": -0.16,
       "regime_tags": [
         "SLOT_FUNNEL_HIGH",
         "RUN_GAME_BROKEN"
@@ -3234,14 +2994,14 @@
       "slot_te_mu_boost": 1.18,
       "slot_te_floor_boost": 1.08,
       "slot_te_ceiling_boost": 1.12,
-      "verdict": "Defense bled elevated MOF EPA (+0.62 realized vs +0.19 previewed) -> Opposing Slot/TE floor & ceiling elevated | Inefficient ground game (Rush EPA -0.23, Rush SR 41.2%)"
+      "verdict": "Defense bled elevated MOF EPA (+0.56 realized vs +0.19 previewed) -> Opposing Slot/TE floor & ceiling elevated | Inefficient ground game (Rush EPA -0.16, Rush SR 39.2%)"
     },
     "rolling_3wk": {
-      "quick_pressure_rate": 0.179,
-      "mof_epa_allowed": 0.623,
+      "quick_pressure_rate": 0.151,
+      "mof_epa_allowed": 0.56,
       "rush_sr_allowed": 0.454,
-      "pressure_rate": 0.405,
-      "mof_pct": 0.252,
+      "pressure_rate": 0.418,
+      "mof_pct": 0.158,
       "weeks_counted": 3,
       "is_rolling": true
     },
@@ -3286,20 +3046,6 @@
         "expected_mof_epa": -0.24,
         "realized_mof_epa": 0.34,
         "mof_epa_delta": 0.58,
-        "pass_oe": -2.7
-      },
-      {
-        "week": 15,
-        "opponent": "SEA",
-        "preview_hypothesis": "Standard baseline shell vs SEA",
-        "review_execution": "WAS vs SEA: Pass OE -2.7%, EPA/DB +0.02, Off Press Allowed 45.7% (QP 33.3%), Def MOF EPA Allowed +0.34, Rush SR Allowed 41.2%.",
-        "expected_qpr": 0.194,
-        "realized_qpr": 0.221,
-        "qpr_delta": 0.027,
-        "pressure_rate": 0.435,
-        "expected_mof_epa": 0.3,
-        "realized_mof_epa": 0.34,
-        "mof_epa_delta": 0.041,
         "pass_oe": -2.7
       }
     ]

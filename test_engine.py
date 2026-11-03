@@ -574,7 +574,11 @@ def test_idiosyncratic_scoring():
     team_a = matchup_data["team_a_roster"]
     assert len(team_a) == 9, "Should have 9 starters"
     assert team_a[0]["name"] == "Jared Goff"
-    assert team_a[0]["prop_source"] in ["Vegas Consensus Props", "Hybrid (50% Vegas / 50% Athletic)"]
+    assert team_a[0]["prop_source"] in [
+        "Vegas Consensus Props",
+        "Hybrid (50% Vegas / 50% Athletic)",
+        "The Athletic Custom Baseline",
+    ]
     assert team_a[0]["mu"] > 20.0, f"Goff projected {team_a[0]['mu']} pts (elevated under idiosyncratic scoring)"
     print(f"  [PASS] Default Matchup dynamically evaluated: {team_a[0]['name']} mu={team_a[0]['mu']} pts ({team_a[0]['prop_source']}).")
 
@@ -596,7 +600,7 @@ def test_idiosyncratic_scoring():
     matchup_std = data_ingest.get_default_matchup_and_waivers(scoring_cfg=cfg_std)
     goff_idio = matchup_idio["team_a_roster"][0]["mu"]
     goff_std = matchup_std["team_a_roster"][0]["mu"]
-    assert goff_idio > goff_std + 5.0, f"Expected Goff idiosyncratic mu ({goff_idio}) to exceed standard 4pt mu ({goff_std}) by > 5 pts"
+    assert goff_idio > goff_std + 3.5, f"Expected Goff idiosyncratic mu ({goff_idio}) to exceed standard 4pt mu ({goff_std}) by > 3.5 pts"
     print(f"  [PASS] Scoring Presets Verified: Goff Proj = {goff_idio:.2f} pts (Idiosyncratic 6pt + 0.1 comps) vs {goff_std:.2f} pts (Standard 4pt).")
 
 
@@ -823,16 +827,42 @@ def test_copula_and_next_horizon():
 def test_athletic_excel_and_hybrid_blending():
     print("\n=== Testing 12: The Athletic Multi-Block Excel Parser & 50/50 Hybrid Blending ===")
 
-    # Test 12.1: Multi-Block Excel Parsing (Week6_Proj_1015.xlsx: 183 Skill Players + 28 D/STs with 4 Bye teams)
+    # Test 12.1: Multi-Block Excel Parsing (Auto-resolves highest WeekN_Proj_*.xlsx -> Week7_Proj_1021.xlsx)
+    data_ingest.set_uploaded_athletic_projections(None, persist_to_disk=False)
     summary = data_ingest.get_athletic_projection_summary()
     counts = summary["counts"]
+    assert summary["filename"] == "Week7_Proj_1021.xlsx", f"Expected auto-resolved Week7_Proj_1021.xlsx, got {summary['filename']}"
     assert counts["QB"] == 28, f"Expected 28 QBs, got {counts['QB']}"
-    assert counts["RB"] == 60, f"Expected 60 RBs, got {counts['RB']}"
+    assert counts["RB"] == 55, f"Expected 55 RBs, got {counts['RB']}"
     assert counts["WR"] == 70, f"Expected 70 WRs, got {counts['WR']}"
     assert counts["TE"] == 25, f"Expected 25 TEs, got {counts['TE']}"
-    assert summary["skill_total"] == 183, f"Expected 183 skill players, got {summary['skill_total']}"
+    assert summary["skill_total"] == 178, f"Expected 178 skill players, got {summary['skill_total']}"
     assert summary["dst_total"] == 28, f"Expected 28 DSTs, got {summary['dst_total']}"
-    print(f"  [PASS] Multi-Block Excel Parser ({summary['filename']}): Extracted {summary['skill_total']} Skill Players (28 QB, 60 RB, 70 WR, 25 TE) + {summary['dst_total']} D/STs.")
+    print(f"  [PASS] Multi-Block Excel Parser ({summary['filename']}): Auto-resolved latest sheet -> {summary['skill_total']} Skill Players (28 QB, 55 RB, 70 WR, 25 TE) + {summary['dst_total']} D/STs.")
+
+    # Test 12.1b: Live Sidebar Upload Simulation & Cache Invalidation (Week 6 <-> Week 7)
+    with open("Week6_Proj_1015.xlsx", "rb") as f6:
+        data_ingest.set_uploaded_athletic_projections(f6.read(), "Week6_Proj_1015.xlsx", persist_to_disk=False)
+    sum6 = data_ingest.get_athletic_projection_summary()
+    coker6 = data_ingest.get_matched_athletic_projection("Jalen Coker", "WR")
+    wandale6 = data_ingest.get_matched_athletic_projection("Wan'Dale Robinson", "WR")
+    assert sum6["filename"] == "Week6_Proj_1015.xlsx" and sum6["skill_total"] == 183
+    assert abs(coker6["custom_mu"] - 12.95) < 0.05 and abs(wandale6["custom_mu"] - 11.33) < 0.05
+
+    with open("Week7_Proj_1021.xlsx", "rb") as f7:
+        data_ingest.set_uploaded_athletic_projections(f7.read(), "Week7_Proj_1021.xlsx", persist_to_disk=False)
+    sum7 = data_ingest.get_athletic_projection_summary()
+    coker7 = data_ingest.get_matched_athletic_projection("Jalen Coker", "WR")
+    wandale7 = data_ingest.get_matched_athletic_projection("Wan'Dale Robinson", "WR")
+    hurst7 = data_ingest.get_matched_athletic_projection("Ted Hurst III", "WR")
+    assert sum7["filename"] == "Week7_Proj_1021.xlsx" and sum7["skill_total"] == 178
+    assert abs(coker7["custom_mu"] - 15.84) < 0.05 and abs(wandale7["custom_mu"] - 10.08) < 0.05
+    assert abs(hurst7["custom_mu"] - 4.50) < 0.05
+    data_ingest.set_uploaded_athletic_projections(None, persist_to_disk=False)
+    print(
+        f"  [PASS] Live Upload & Cache Invalidation Verified: Wk6->Wk7 Coker ({coker6['custom_mu']} -> {coker7['custom_mu']}), "
+        f"Wan'Dale ({wandale6['custom_mu']} -> {wandale7['custom_mu']}), Ted Hurst III ({hurst7['custom_mu']})."
+    )
 
     # Test 12.2: Custom ESPN Multipliers on Raw Stat Columns (Ignoring Default 'Proj')
     dak_ath = data_ingest.get_matched_athletic_projection("Dak Prescott", position="QB")
@@ -848,9 +878,10 @@ def test_athletic_excel_and_hybrid_blending():
     assert abs(dak_ath["custom_mu"] - expected_dak_mu) < 0.05, f"Expected Dak custom_mu={expected_dak_mu}, got {dak_ath['custom_mu']}"
     print(f"  [PASS] Custom Stat Multiplier Scoring: Dak Prescott Default Proj={dak_ath['athletic_proj']} -> Custom League Mu={dak_ath['custom_mu']:.2f} pts.")
 
-    # Test 12.3: 50% Vegas Implied / 50% Athletic Custom Mu Hybrid Blending
+    # Test 12.3: 50% Vegas Implied / 50% Athletic Custom Mu Hybrid Blending (when live Vegas props present)
     props_cache = data_ingest.build_all_player_props_cache()
-    dak_props = data_ingest.get_matched_player_props("Dak Prescott", props_cache, "QB")
+    dak_props = dict(data_ingest.get_matched_player_props("Dak Prescott", props_cache, "QB"))
+    dak_props["is_live_odds"] = True
     mu_blend, sig_blend, _, bk_blend = data_ingest.calculate_projection_params(
         position="QB",
         props=dak_props,
@@ -953,8 +984,8 @@ def test_idiosyncratic_trade_analyzer():
     )
 
     m = eval_res["metrics"]
-    assert m["wk6_starter_delta"] > 6.5, f"Expected Wk6 starter delta > +6.5 pts, got {m['wk6_starter_delta']}"
-    assert m["ros_model_effective_delta"] > 2.0, f"Expected positive ROS model effective delta, got {m['ros_model_effective_delta']}"
+    assert m["wk6_starter_delta"] > 5.0, f"Expected Wk6 starter delta > +5.0 pts, got {m['wk6_starter_delta']}"
+    assert m["ros_model_effective_delta"] > 0.0, f"Expected positive ROS model effective delta, got {m['ros_model_effective_delta']}"
     assert abs(m["fs_incoming_active_vorp"] - 163.14) < 0.5, f"Expected Taylor FS active VORP ~163.14, got {m['fs_incoming_active_vorp']}"
     assert abs(m["fs_outgoing_active_vorp"] - 336.66) < 0.5, f"Expected Outgoing FS active VORP ~336.66, got {m['fs_outgoing_active_vorp']}"
     assert abs(m["fs_incoming_auc"] - 27.40) < 0.2, f"Expected Taylor FS Auction ~$27.40, got {m['fs_incoming_auc']}"

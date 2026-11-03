@@ -138,11 +138,16 @@ uploaded_athletic_xlsx = st.sidebar.file_uploader(
 )
 if uploaded_athletic_xlsx is not None:
     file_sig = f"{uploaded_athletic_xlsx.name}_{uploaded_athletic_xlsx.size}"
+    data_ingest.set_uploaded_athletic_projections(
+        uploaded_athletic_xlsx,
+        uploaded_athletic_xlsx.name,
+        persist_to_disk=True
+    )
     if st.session_state.get("athletic_file_sig") != file_sig:
-        data_ingest.set_uploaded_athletic_projections(uploaded_athletic_xlsx, uploaded_athletic_xlsx.name)
         st.session_state["athletic_file_sig"] = file_sig
         st.session_state.espn_league = None
         st.session_state.espn_last_attempt = None
+        st.cache_data.clear()
         st.rerun()
 else:
     if st.session_state.get("athletic_file_sig") is not None:
@@ -150,6 +155,7 @@ else:
         st.session_state["athletic_file_sig"] = None
         st.session_state.espn_league = None
         st.session_state.espn_last_attempt = None
+        st.cache_data.clear()
         st.rerun()
 
 ath_summary = data_ingest.get_athletic_projection_summary()
@@ -202,7 +208,8 @@ target_year = espn_creds.get("year", 2024)
 current_synced_id = st.session_state.espn_league.get("league_id") if st.session_state.espn_league else None
 current_synced_year = st.session_state.espn_league.get("year") if st.session_state.espn_league else None
 
-attempt_key = (target_league_id, target_year, scoring_format, st.session_state.get("athletic_file_sig"))
+active_ath_anchor = data_ingest.get_active_athletic_filename()
+attempt_key = (target_league_id, target_year, scoring_format, st.session_state.get("athletic_file_sig"), active_ath_anchor)
 
 if target_league_id and (
     st.session_state.espn_league is None or
@@ -218,7 +225,8 @@ if target_league_id and (
             swid=espn_creds.get("swid"),
             ppr=ppr_val,
             scoring_cfg=active_scoring_cfg,
-            user_team_hint=espn_creds.get("user_team_hint")
+            user_team_hint=espn_creds.get("user_team_hint"),
+            athletic_anchor=active_ath_anchor
         )
         if sync_result.get("success"):
             st.session_state.espn_league = sync_result
@@ -271,7 +279,7 @@ active_mode_selection = st.sidebar.radio(
     key="active_data_source"
 )
 
-APP_BUILD_VERSION = "2026.10.13-v3.0"
+APP_BUILD_VERSION = "2026.10.22-v3.2"
 st.sidebar.caption(f"⚡ Engine Build: `{APP_BUILD_VERSION}`")
 
 # ESPN Sync Management in Sidebar
@@ -295,6 +303,10 @@ with st.sidebar.expander("⚙️ ESPN Connection Settings", expanded=not has_esp
         if not l_id.strip():
             st.error("Please enter a valid numeric League ID.")
         else:
+            try:
+                data_ingest.sync_espn_league.clear()
+            except Exception:
+                pass
             with st.spinner("Connecting to ESPN..."):
                 sync_res = data_ingest.sync_espn_league(
                     league_id=int(l_id.strip()),
@@ -303,12 +315,13 @@ with st.sidebar.expander("⚙️ ESPN Connection Settings", expanded=not has_esp
                     swid=swid.strip() if swid else None,
                     ppr=ppr_val,
                     scoring_cfg=active_scoring_cfg,
-                    user_team_hint=espn_creds.get("user_team_hint")
+                    user_team_hint=espn_creds.get("user_team_hint"),
+                    athletic_anchor=active_ath_anchor
                 )
                 if sync_res.get("success"):
                     st.session_state.espn_league = sync_res
                     st.session_state.espn_sync_error = None
-                    st.session_state.espn_last_attempt = (int(l_id.strip()), int(yr), scoring_format)
+                    st.session_state.espn_last_attempt = (int(l_id.strip()), int(yr), scoring_format, st.session_state.get("athletic_file_sig"), active_ath_anchor)
                     teams = sync_res.get("teams", [])
                     user_t = sync_res.get("user_team_name")
                     user_opp = sync_res.get("user_opp_name")

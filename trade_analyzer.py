@@ -1316,6 +1316,16 @@ def get_default_bodhizafa_trade_rosters(
     cfg = scoring_cfg or scoring_config.DEFAULT_SCORING
     props_cache = data_ingest.build_all_player_props_cache()
 
+    import os
+    prev_bytes = getattr(data_ingest, "_ACTIVE_ATHLETIC_BYTES", None)
+    prev_filename = getattr(data_ingest, "_ACTIVE_ATHLETIC_FILENAME", None)
+    wk6_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Week6_Proj_1015.xlsx")
+    if os.path.exists(wk6_path):
+        with open(wk6_path, "rb") as f_wk6:
+            data_ingest.set_uploaded_athletic_projections(
+                f_wk6.read(), "Week6_Proj_1015.xlsx", persist_to_disk=False
+            )
+
     def _mk(name: str, pos: str, team: str, opp: str, slot: str, status: str, avg_pts: float, proj_avg: float, pos_rank: int) -> Dict[str, Any]:
         is_bye = (opp == "BYE" or status == "BYE")
         is_inact = status in ["IR", "OUT"]
@@ -1355,44 +1365,50 @@ def get_default_bodhizafa_trade_rosters(
             "score_breakdown": bk,
         }
 
-    eatin_roster = [
-        _mk("Dak Prescott", "QB", "DAL", "GB", "QB", "ACTIVE", 26.10, 25.16, 8),
-        _mk("Jared Goff", "QB", "DET", "BYE", "BE", "BYE", 30.88, 27.30, 3),
-        _mk("Chase Brown", "RB", "CIN", "BYE", "BE", "BYE", 13.00, 15.78, 16),
-        _mk("Bucky Irving", "RB", "TB", "PIT", "RB", "ACTIVE", 15.94, 16.48, 14),
-        _mk("MarShawn Lloyd", "RB", "GB", "DAL", "RB", "ACTIVE", 8.54, 6.40, 35),
-        _mk("Kenny Gainwell", "RB", "TB", "PIT", "BE", "ACTIVE", 7.16, 9.50, 40),
-        _mk("Rico Dowdle", "RB", "PIT", "TB", "BE", "QUESTIONABLE", 5.25, 7.39, 79),
-        _mk("J.K. Dobbins", "RB", "DEN", "SEA", "BE", "ACTIVE", 7.22, 11.76, 39),
-        _mk("Drake London", "WR", "ATL", "CHI", "WR", "ACTIVE", 15.64, 15.89, 13),
-        _mk("DJ Moore", "WR", "BUF", "LV", "WR", "QUESTIONABLE", 9.57, 14.34, 58),
-        _mk("Jalen Coker", "WR", "CAR", "PHI", "OP", "ACTIVE", 19.07, 15.76, 27),
-        _mk("Wan'Dale Robinson", "WR", "TEN", "IND", "WR/TE", "ACTIVE", 10.34, 8.87, 34),
-        _mk("Ladd McConkey", "WR", "LAC", "KC", "BE", "QUESTIONABLE", 9.07, 11.44, 66),
-        _mk("Colston Loveland", "TE", "CHI", "ATL", "RB/WR/TE", "ACTIVE", 4.80, 8.75, 33),
-        _mk("Browns D/ST", "D/ST", "CLE", "BAL", "D/ST", "ACTIVE", 6.60, 5.28, 16),
-        _mk("Jonah Coleman", "RB", "DEN", "SEA", "IR", "OUT", 8.83, 10.02, 50),
-        _mk("Omar Cooper Jr.", "WR", "NYJ", "IND", "IR", "OUT", 13.70, 9.21, 56),
-    ]
+    try:
+        eatin_roster = [
+            _mk("Dak Prescott", "QB", "DAL", "GB", "QB", "ACTIVE", 26.10, 25.16, 8),
+            _mk("Jared Goff", "QB", "DET", "BYE", "BE", "BYE", 30.88, 27.30, 3),
+            _mk("Chase Brown", "RB", "CIN", "BYE", "BE", "BYE", 13.00, 15.78, 16),
+            _mk("Bucky Irving", "RB", "TB", "PIT", "RB", "ACTIVE", 15.94, 16.48, 14),
+            _mk("MarShawn Lloyd", "RB", "GB", "DAL", "RB", "ACTIVE", 8.54, 6.40, 35),
+            _mk("Kenny Gainwell", "RB", "TB", "PIT", "BE", "ACTIVE", 7.16, 9.50, 40),
+            _mk("Rico Dowdle", "RB", "PIT", "TB", "BE", "QUESTIONABLE", 5.25, 7.39, 79),
+            _mk("J.K. Dobbins", "RB", "DEN", "SEA", "BE", "ACTIVE", 7.22, 11.76, 39),
+            _mk("Drake London", "WR", "ATL", "CHI", "WR", "ACTIVE", 15.64, 15.89, 13),
+            _mk("DJ Moore", "WR", "BUF", "LV", "WR", "QUESTIONABLE", 9.57, 14.34, 58),
+            _mk("Jalen Coker", "WR", "CAR", "PHI", "OP", "ACTIVE", 19.07, 15.76, 27),
+            _mk("Wan'Dale Robinson", "WR", "TEN", "IND", "WR/TE", "ACTIVE", 10.34, 8.87, 34),
+            _mk("Ladd McConkey", "WR", "LAC", "KC", "BE", "QUESTIONABLE", 9.07, 11.44, 66),
+            _mk("Colston Loveland", "TE", "CHI", "ATL", "RB/WR/TE", "ACTIVE", 4.80, 8.75, 33),
+            _mk("Browns D/ST", "D/ST", "CLE", "BAL", "D/ST", "ACTIVE", 6.60, 5.28, 16),
+            _mk("Jonah Coleman", "RB", "DEN", "SEA", "IR", "OUT", 8.83, 10.02, 50),
+            _mk("Omar Cooper Jr.", "WR", "NYJ", "IND", "IR", "OUT", 13.70, 9.21, 56),
+        ]
 
-    bodhizafa_roster = [
-        _mk("Jacoby Brissett", "QB", "ARI", "LAR", "QB", "ACTIVE", 23.62, 24.74, 14),
-        _mk("Sam Darnold", "QB", "SEA", "DEN", "OP", "ACTIVE", 18.72, 22.20, 26),
-        _mk("Baker Mayfield", "QB", "TB", "PIT", "BE", "ACTIVE", 15.53, 19.62, 33),
-        _mk("Bijan Robinson", "RB", "ATL", "CHI", "RB", "ACTIVE", 25.24, 22.99, 2),
-        _mk("Jonathan Taylor", "RB", "IND", "TEN", "RB", "ACTIVE", 19.48, 18.04, 7),
-        _mk("Brian Robinson Jr.", "RB", "ATL", "CHI", "BE", "ACTIVE", 11.22, 8.72, 21),
-        _mk("Seth McGowan", "RB", "IND", "TEN", "BE", "ACTIVE", 5.02, 5.70, 49),
-        _mk("Denzel Boston", "WR", "CLE", "BAL", "WR", "ACTIVE", 14.60, 13.22, 18),
-        _mk("Devaughn Vele", "WR", "NO", "NYG", "WR", "ACTIVE", 12.44, 8.02, 24),
-        _mk("Rashid Shaheed", "WR", "SEA", "DEN", "BE", "ACTIVE", 8.46, 12.54, 50),
-        _mk("Keon Coleman", "WR", "BUF", "LV", "BE", "ACTIVE", 10.08, 6.92, 35),
-        _mk("Dontayvion Wicks", "WR", "PHI", "CAR", "BE", "QUESTIONABLE", 9.80, 9.20, 40),
-        _mk("Rashod Bateman", "WR", "BAL", "CLE", "BE", "ACTIVE", 9.06, 8.03, 46),
-        _mk("Sam LaPorta", "TE", "DET", "BYE", "BE", "BYE", 15.32, 12.84, 3),
-        _mk("Dallas Goedert", "TE", "PHI", "CAR", "WR/TE", "ACTIVE", 11.97, 10.21, 25),
-        _mk("Steelers D/ST", "D/ST", "PIT", "TB", "D/ST", "ACTIVE", 8.80, 5.57, 5),
-    ]
+        bodhizafa_roster = [
+            _mk("Jacoby Brissett", "QB", "ARI", "LAR", "QB", "ACTIVE", 23.62, 24.74, 14),
+            _mk("Sam Darnold", "QB", "SEA", "DEN", "OP", "ACTIVE", 18.72, 22.20, 26),
+            _mk("Baker Mayfield", "QB", "TB", "PIT", "BE", "ACTIVE", 15.53, 19.62, 33),
+            _mk("Bijan Robinson", "RB", "ATL", "CHI", "RB", "ACTIVE", 25.24, 22.99, 2),
+            _mk("Jonathan Taylor", "RB", "IND", "TEN", "RB", "ACTIVE", 19.48, 18.04, 7),
+            _mk("Brian Robinson Jr.", "RB", "ATL", "CHI", "BE", "ACTIVE", 11.22, 8.72, 21),
+            _mk("Seth McGowan", "RB", "IND", "TEN", "BE", "ACTIVE", 5.02, 5.70, 49),
+            _mk("Denzel Boston", "WR", "CLE", "BAL", "WR", "ACTIVE", 14.60, 13.22, 18),
+            _mk("Devaughn Vele", "WR", "NO", "NYG", "WR", "ACTIVE", 12.44, 8.02, 24),
+            _mk("Rashid Shaheed", "WR", "SEA", "DEN", "BE", "ACTIVE", 8.46, 12.54, 50),
+            _mk("Keon Coleman", "WR", "BUF", "LV", "BE", "ACTIVE", 10.08, 6.92, 35),
+            _mk("Dontayvion Wicks", "WR", "PHI", "CAR", "BE", "QUESTIONABLE", 9.80, 9.20, 40),
+            _mk("Rashod Bateman", "WR", "BAL", "CLE", "BE", "ACTIVE", 9.06, 8.03, 46),
+            _mk("Sam LaPorta", "TE", "DET", "BYE", "BE", "BYE", 15.32, 12.84, 3),
+            _mk("Dallas Goedert", "TE", "PHI", "CAR", "WR/TE", "ACTIVE", 11.97, 10.21, 25),
+            _mk("Steelers D/ST", "D/ST", "PIT", "TB", "D/ST", "ACTIVE", 8.80, 5.57, 5),
+        ]
+    finally:
+        if prev_bytes is not None and prev_filename:
+            data_ingest.set_uploaded_athletic_projections(prev_bytes, prev_filename, persist_to_disk=False)
+        else:
+            data_ingest.set_uploaded_athletic_projections(None, persist_to_disk=False)
 
     return {
         "Eatin TDs like Groceries": eatin_roster,
