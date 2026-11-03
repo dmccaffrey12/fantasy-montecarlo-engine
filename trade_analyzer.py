@@ -74,6 +74,8 @@ NFL_BYES_AND_PLAYOFF_SCHEDULE: Dict[str, Dict[str, Any]] = {
 }
 
 _FULL_SEASON_BOARD_CACHE: Optional[Dict[str, Dict[str, Any]]] = None
+_PLAYER_VALUATION_MEMO: Dict[Tuple[Any, ...], Dict[str, Any]] = {}
+_DEFAULT_TRADE_ROSTERS_MEMO: Dict[Tuple[Any, ...], Dict[str, Any]] = {}
 
 
 def load_full_season_projections_board() -> Dict[str, Dict[str, Any]]:
@@ -240,6 +242,44 @@ def compute_idiosyncratic_player_valuation(
       - Weekly VORP (`wk_vorp`) and Rest-of-Season VORP (`ros_vorp`)
     """
     cfg = scoring_cfg or scoring_config.DEFAULT_SCORING
+    cfg_sig = (
+        cfg.ppr, cfg.pass_td, cfg.completion_bonus, cfg.pass_yd_multiplier,
+        cfg.pass_300_bonus, cfg.pass_400_bonus, cfg.rush_100_bonus, cfg.rec_100_bonus,
+    )
+    base_sig = (
+        tuple(sorted((str(k), round(float((v or {}).get("baseline_mean", 0.0)), 3)) for k, v in baselines.items()))
+        if baselines else ()
+    )
+    bk_in = player.get("score_breakdown") or {}
+    val_sig = (
+        player.get("name"),
+        player.get("position"),
+        player.get("team"),
+        player.get("mu"),
+        player.get("sigma"),
+        player.get("ros_mu"),
+        player.get("ros_sigma"),
+        player.get("avg_points"),
+        player.get("projected_avg_points"),
+        player.get("is_on_bye"),
+        player.get("is_inactive"),
+        player.get("injury_status"),
+        player.get("prop_source"),
+        player.get("cv"),
+        bk_in.get("source"),
+        bk_in.get("ev_milestones"),
+        bk_in.get("ev_long_tds"),
+        bk_in.get("athletic_default_proj"),
+        base_sig,
+        cfg_sig,
+    )
+    if player.get("_idio_val_sig") == val_sig:
+        return copy.deepcopy(player)
+    if val_sig in _PLAYER_VALUATION_MEMO:
+        p_cached = copy.deepcopy(player)
+        p_cached.update(copy.deepcopy(_PLAYER_VALUATION_MEMO[val_sig]))
+        return p_cached
+
     p = copy.deepcopy(player)
     pos = str(p.get("position", "WR")).upper().strip()
     if pos == "DEF":
@@ -391,7 +431,7 @@ def compute_idiosyncratic_player_valuation(
     samples = simulation.sample_player(pos, sim_mu, sim_sig, n=4000, p_active=1.0)
     dist_stats = simulation.summarize_distribution(samples)
 
-    p.update({
+    enriched_fields = {
         "std_proj": round(std_proj, 2),
         "wk_mu": wk_mu,
         "wk_sigma": wk_sigma,
@@ -425,7 +465,12 @@ def compute_idiosyncratic_player_valuation(
         "p50_median": round(dist_stats["median"], 1),
         "p90_ceiling": round(dist_stats["p90"], 1),
         "p_boom_20": round(dist_stats["p_boom_20"] * 100.0, 1),
-    })
+        "_idio_val_sig": val_sig,
+    }
+    if len(_PLAYER_VALUATION_MEMO) > 2048:
+        _PLAYER_VALUATION_MEMO.clear()
+    _PLAYER_VALUATION_MEMO[val_sig] = copy.deepcopy(enriched_fields)
+    p.update(enriched_fields)
     return p
 
 
@@ -1314,17 +1359,25 @@ def get_default_bodhizafa_trade_rosters(
     4-for-3 trade can be evaluated even in standalone / offline test environments.
     """
     cfg = scoring_cfg or scoring_config.DEFAULT_SCORING
-    props_cache = data_ingest.build_all_player_props_cache()
+    cfg_sig = (
+        cfg.ppr, cfg.pass_td, cfg.completion_bonus, cfg.pass_yd_multiplier,
+        cfg.pass_300_bonus, cfg.pass_400_bonus, cfg.rush_100_bonus, cfg.rec_100_bonus,
+    )
+    if cfg_sig in _DEFAULT_TRADE_ROSTERS_MEMO:
+        return copy.deepcopy(_DEFAULT_TRADE_ROSTERS_MEMO[cfg_sig])
+
+    props_cache = {
+        k: {**v, "is_live_odds": v.get("is_live_odds", False)}
+        for k, v in data_ingest.CURATED_NFL_PROPS.items()
+    }
 
     import os
-    prev_bytes = getattr(data_ingest, "_ACTIVE_ATHLETIC_BYTES", None)
-    prev_filename = getattr(data_ingest, "_ACTIVE_ATHLETIC_FILENAME", None)
     wk6_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Week6_Proj_1015.xlsx")
-    if os.path.exists(wk6_path):
-        with open(wk6_path, "rb") as f_wk6:
-            data_ingest.set_uploaded_athletic_projections(
-                f_wk6.read(), "Week6_Proj_1015.xlsx", persist_to_disk=False
-            )
+    wk6_cache = (
+        data_ingest._cached_athletic_projections(None, wk6_path)
+        if os.path.exists(wk6_path)
+        else None
+    )
 
     def _mk(name: str, pos: str, team: str, opp: str, slot: str, status: str, avg_pts: float, proj_avg: float, pos_rank: int) -> Dict[str, Any]:
         is_bye = (opp == "BYE" or status == "BYE")
@@ -1340,6 +1393,7 @@ def get_default_bodhizafa_trade_rosters(
             scoring_cfg=cfg,
             return_breakdown=True,
             player_name=name,
+            athletic_cache=wk6_cache,
         )
         mu = 0.0 if (is_bye or is_inact) else ros_mu
         sigma = 0.0 if (is_bye or is_inact) else ros_sig
@@ -1365,53 +1419,49 @@ def get_default_bodhizafa_trade_rosters(
             "score_breakdown": bk,
         }
 
-    try:
-        eatin_roster = [
-            _mk("Dak Prescott", "QB", "DAL", "GB", "QB", "ACTIVE", 26.10, 25.16, 8),
-            _mk("Jared Goff", "QB", "DET", "BYE", "BE", "BYE", 30.88, 27.30, 3),
-            _mk("Chase Brown", "RB", "CIN", "BYE", "BE", "BYE", 13.00, 15.78, 16),
-            _mk("Bucky Irving", "RB", "TB", "PIT", "RB", "ACTIVE", 15.94, 16.48, 14),
-            _mk("MarShawn Lloyd", "RB", "GB", "DAL", "RB", "ACTIVE", 8.54, 6.40, 35),
-            _mk("Kenny Gainwell", "RB", "TB", "PIT", "BE", "ACTIVE", 7.16, 9.50, 40),
-            _mk("Rico Dowdle", "RB", "PIT", "TB", "BE", "QUESTIONABLE", 5.25, 7.39, 79),
-            _mk("J.K. Dobbins", "RB", "DEN", "SEA", "BE", "ACTIVE", 7.22, 11.76, 39),
-            _mk("Drake London", "WR", "ATL", "CHI", "WR", "ACTIVE", 15.64, 15.89, 13),
-            _mk("DJ Moore", "WR", "BUF", "LV", "WR", "QUESTIONABLE", 9.57, 14.34, 58),
-            _mk("Jalen Coker", "WR", "CAR", "PHI", "OP", "ACTIVE", 19.07, 15.76, 27),
-            _mk("Wan'Dale Robinson", "WR", "TEN", "IND", "WR/TE", "ACTIVE", 10.34, 8.87, 34),
-            _mk("Ladd McConkey", "WR", "LAC", "KC", "BE", "QUESTIONABLE", 9.07, 11.44, 66),
-            _mk("Colston Loveland", "TE", "CHI", "ATL", "RB/WR/TE", "ACTIVE", 4.80, 8.75, 33),
-            _mk("Browns D/ST", "D/ST", "CLE", "BAL", "D/ST", "ACTIVE", 6.60, 5.28, 16),
-            _mk("Jonah Coleman", "RB", "DEN", "SEA", "IR", "OUT", 8.83, 10.02, 50),
-            _mk("Omar Cooper Jr.", "WR", "NYJ", "IND", "IR", "OUT", 13.70, 9.21, 56),
-        ]
+    eatin_roster = [
+        _mk("Dak Prescott", "QB", "DAL", "GB", "QB", "ACTIVE", 26.10, 25.16, 8),
+        _mk("Jared Goff", "QB", "DET", "BYE", "BE", "BYE", 30.88, 27.30, 3),
+        _mk("Chase Brown", "RB", "CIN", "BYE", "BE", "BYE", 13.00, 15.78, 16),
+        _mk("Bucky Irving", "RB", "TB", "PIT", "RB", "ACTIVE", 15.94, 16.48, 14),
+        _mk("MarShawn Lloyd", "RB", "GB", "DAL", "RB", "ACTIVE", 8.54, 6.40, 35),
+        _mk("Kenny Gainwell", "RB", "TB", "PIT", "BE", "ACTIVE", 7.16, 9.50, 40),
+        _mk("Rico Dowdle", "RB", "PIT", "TB", "BE", "QUESTIONABLE", 5.25, 7.39, 79),
+        _mk("J.K. Dobbins", "RB", "DEN", "SEA", "BE", "ACTIVE", 7.22, 11.76, 39),
+        _mk("Drake London", "WR", "ATL", "CHI", "WR", "ACTIVE", 15.64, 15.89, 13),
+        _mk("DJ Moore", "WR", "BUF", "LV", "WR", "QUESTIONABLE", 9.57, 14.34, 58),
+        _mk("Jalen Coker", "WR", "CAR", "PHI", "OP", "ACTIVE", 19.07, 15.76, 27),
+        _mk("Wan'Dale Robinson", "WR", "TEN", "IND", "WR/TE", "ACTIVE", 10.34, 8.87, 34),
+        _mk("Ladd McConkey", "WR", "LAC", "KC", "BE", "QUESTIONABLE", 9.07, 11.44, 66),
+        _mk("Colston Loveland", "TE", "CHI", "ATL", "RB/WR/TE", "ACTIVE", 4.80, 8.75, 33),
+        _mk("Browns D/ST", "D/ST", "CLE", "BAL", "D/ST", "ACTIVE", 6.60, 5.28, 16),
+        _mk("Jonah Coleman", "RB", "DEN", "SEA", "IR", "OUT", 8.83, 10.02, 50),
+        _mk("Omar Cooper Jr.", "WR", "NYJ", "IND", "IR", "OUT", 13.70, 9.21, 56),
+    ]
 
-        bodhizafa_roster = [
-            _mk("Jacoby Brissett", "QB", "ARI", "LAR", "QB", "ACTIVE", 23.62, 24.74, 14),
-            _mk("Sam Darnold", "QB", "SEA", "DEN", "OP", "ACTIVE", 18.72, 22.20, 26),
-            _mk("Baker Mayfield", "QB", "TB", "PIT", "BE", "ACTIVE", 15.53, 19.62, 33),
-            _mk("Bijan Robinson", "RB", "ATL", "CHI", "RB", "ACTIVE", 25.24, 22.99, 2),
-            _mk("Jonathan Taylor", "RB", "IND", "TEN", "RB", "ACTIVE", 19.48, 18.04, 7),
-            _mk("Brian Robinson Jr.", "RB", "ATL", "CHI", "BE", "ACTIVE", 11.22, 8.72, 21),
-            _mk("Seth McGowan", "RB", "IND", "TEN", "BE", "ACTIVE", 5.02, 5.70, 49),
-            _mk("Denzel Boston", "WR", "CLE", "BAL", "WR", "ACTIVE", 14.60, 13.22, 18),
-            _mk("Devaughn Vele", "WR", "NO", "NYG", "WR", "ACTIVE", 12.44, 8.02, 24),
-            _mk("Rashid Shaheed", "WR", "SEA", "DEN", "BE", "ACTIVE", 8.46, 12.54, 50),
-            _mk("Keon Coleman", "WR", "BUF", "LV", "BE", "ACTIVE", 10.08, 6.92, 35),
-            _mk("Dontayvion Wicks", "WR", "PHI", "CAR", "BE", "QUESTIONABLE", 9.80, 9.20, 40),
-            _mk("Rashod Bateman", "WR", "BAL", "CLE", "BE", "ACTIVE", 9.06, 8.03, 46),
-            _mk("Sam LaPorta", "TE", "DET", "BYE", "BE", "BYE", 15.32, 12.84, 3),
-            _mk("Dallas Goedert", "TE", "PHI", "CAR", "WR/TE", "ACTIVE", 11.97, 10.21, 25),
-            _mk("Steelers D/ST", "D/ST", "PIT", "TB", "D/ST", "ACTIVE", 8.80, 5.57, 5),
-        ]
-    finally:
-        if prev_bytes is not None and prev_filename:
-            data_ingest.set_uploaded_athletic_projections(prev_bytes, prev_filename, persist_to_disk=False)
-        else:
-            data_ingest.set_uploaded_athletic_projections(None, persist_to_disk=False)
+    bodhizafa_roster = [
+        _mk("Jacoby Brissett", "QB", "ARI", "LAR", "QB", "ACTIVE", 23.62, 24.74, 14),
+        _mk("Sam Darnold", "QB", "SEA", "DEN", "OP", "ACTIVE", 18.72, 22.20, 26),
+        _mk("Baker Mayfield", "QB", "TB", "PIT", "BE", "ACTIVE", 15.53, 19.62, 33),
+        _mk("Bijan Robinson", "RB", "ATL", "CHI", "RB", "ACTIVE", 25.24, 22.99, 2),
+        _mk("Jonathan Taylor", "RB", "IND", "TEN", "RB", "ACTIVE", 19.48, 18.04, 7),
+        _mk("Brian Robinson Jr.", "RB", "ATL", "CHI", "BE", "ACTIVE", 11.22, 8.72, 21),
+        _mk("Seth McGowan", "RB", "IND", "TEN", "BE", "ACTIVE", 5.02, 5.70, 49),
+        _mk("Denzel Boston", "WR", "CLE", "BAL", "WR", "ACTIVE", 14.60, 13.22, 18),
+        _mk("Devaughn Vele", "WR", "NO", "NYG", "WR", "ACTIVE", 12.44, 8.02, 24),
+        _mk("Rashid Shaheed", "WR", "SEA", "DEN", "BE", "ACTIVE", 8.46, 12.54, 50),
+        _mk("Keon Coleman", "WR", "BUF", "LV", "BE", "ACTIVE", 10.08, 6.92, 35),
+        _mk("Dontayvion Wicks", "WR", "PHI", "CAR", "BE", "QUESTIONABLE", 9.80, 9.20, 40),
+        _mk("Rashod Bateman", "WR", "BAL", "CLE", "BE", "ACTIVE", 9.06, 8.03, 46),
+        _mk("Sam LaPorta", "TE", "DET", "BYE", "BE", "BYE", 15.32, 12.84, 3),
+        _mk("Dallas Goedert", "TE", "PHI", "CAR", "WR/TE", "ACTIVE", 11.97, 10.21, 25),
+        _mk("Steelers D/ST", "D/ST", "PIT", "TB", "D/ST", "ACTIVE", 8.80, 5.57, 5),
+    ]
 
-    return {
+    rosters_out = {
         "Eatin TDs like Groceries": eatin_roster,
         "BODHIZAFA": bodhizafa_roster,
     }
+    _DEFAULT_TRADE_ROSTERS_MEMO[cfg_sig] = copy.deepcopy(rosters_out)
+    return rosters_out
 

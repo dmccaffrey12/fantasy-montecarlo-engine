@@ -23,7 +23,7 @@ Repository Architecture (data/):
 import json
 import os
 import re
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Tuple
 import pandas as pd
 import numpy as np
 
@@ -99,6 +99,20 @@ PRESEASON_TEAM_EXPECTATIONS: Dict[str, str] = {
 }
 
 
+# In-memory stat-validated caches to eliminate redundant Parquet/JSON disk I/O across reruns
+_DF_MEM_CACHE: Dict[str, Tuple[int, int, pd.DataFrame]] = {}
+_NARRATIVES_MEM_CACHE: Dict[str, Tuple[int, int, Dict[str, Any]]] = {}
+_ROLLING_DEFENSE_MEMO: Dict[Tuple[str, int, int, int], Dict[str, Any]] = {}
+
+
+def _file_stat_sig(path: str) -> Tuple[int, int]:
+    try:
+        st_info = os.stat(path)
+        return (st_info.st_mtime_ns, st_info.st_size)
+    except OSError:
+        return (0, 0)
+
+
 def _ensure_data_dir() -> None:
     """Ensure data directory exists."""
     os.makedirs(DATA_DIR, exist_ok=True)
@@ -106,24 +120,47 @@ def _ensure_data_dir() -> None:
 
 def _save_df_parquet(df: pd.DataFrame, parquet_path: str, csv_fallback: Optional[str] = None) -> None:
     _ensure_data_dir()
+    _DF_MEM_CACHE.pop(parquet_path, None)
+    if csv_fallback:
+        _DF_MEM_CACHE.pop(csv_fallback, None)
+    _ROLLING_DEFENSE_MEMO.clear()
     try:
         df.to_parquet(parquet_path, index=False)
+        sig = _file_stat_sig(parquet_path)
+        if sig != (0, 0):
+            _DF_MEM_CACHE[parquet_path] = (sig[0], sig[1], df.copy())
     except Exception:
         if csv_fallback:
             df.to_csv(csv_fallback, index=False)
+            sig = _file_stat_sig(csv_fallback)
+            if sig != (0, 0):
+                _DF_MEM_CACHE[csv_fallback] = (sig[0], sig[1], df.copy())
 
 
 def _load_df_parquet(parquet_path: str, csv_fallback: Optional[str] = None) -> pd.DataFrame:
-    if os.path.exists(parquet_path):
+    sig = _file_stat_sig(parquet_path)
+    if sig != (0, 0):
+        cached = _DF_MEM_CACHE.get(parquet_path)
+        if cached is not None and cached[0] == sig[0] and cached[1] == sig[1]:
+            return cached[2].copy()
         try:
-            return pd.read_parquet(parquet_path)
+            df = pd.read_parquet(parquet_path)
+            _DF_MEM_CACHE[parquet_path] = (sig[0], sig[1], df)
+            return df.copy()
         except Exception:
             pass
-    if csv_fallback and os.path.exists(csv_fallback):
-        try:
-            return pd.read_csv(csv_fallback)
-        except Exception:
-            pass
+    if csv_fallback:
+        csv_sig = _file_stat_sig(csv_fallback)
+        if csv_sig != (0, 0):
+            cached_csv = _DF_MEM_CACHE.get(csv_fallback)
+            if cached_csv is not None and cached_csv[0] == csv_sig[0] and cached_csv[1] == csv_sig[1]:
+                return cached_csv[2].copy()
+            try:
+                df_csv = pd.read_csv(csv_fallback)
+                _DF_MEM_CACHE[csv_fallback] = (csv_sig[0], csv_sig[1], df_csv)
+                return df_csv.copy()
+            except Exception:
+                pass
     return pd.DataFrame()
 
 
@@ -526,9 +563,13 @@ def rebuild_team_narratives() -> Dict[str, Any]:
             "weekly_ledger": weekly_ledger,
         }
 
+    _NARRATIVES_MEM_CACHE.pop(TEAM_NARRATIVES_JSON, None)
     try:
         with open(TEAM_NARRATIVES_JSON, "w", encoding="utf-8") as f:
             json.dump(narratives, f, indent=2)
+        sig = _file_stat_sig(TEAM_NARRATIVES_JSON)
+        if sig != (0, 0):
+            _NARRATIVES_MEM_CACHE[TEAM_NARRATIVES_JSON] = (sig[0], sig[1], narratives)
     except Exception:
         pass
 
@@ -538,11 +579,16 @@ def rebuild_team_narratives() -> Dict[str, Any]:
 def load_team_narratives() -> Dict[str, Any]:
     """Load `data/team_narratives.json` (or rebuild if missing)."""
     _ensure_data_dir()
-    if os.path.exists(TEAM_NARRATIVES_JSON):
+    sig = _file_stat_sig(TEAM_NARRATIVES_JSON)
+    if sig != (0, 0):
+        cached = _NARRATIVES_MEM_CACHE.get(TEAM_NARRATIVES_JSON)
+        if cached is not None and cached[0] == sig[0] and cached[1] == sig[1]:
+            return cached[2]
         try:
             with open(TEAM_NARRATIVES_JSON, "r", encoding="utf-8") as f:
                 data = json.load(f)
                 if data:
+                    _NARRATIVES_MEM_CACHE[TEAM_NARRATIVES_JSON] = (sig[0], sig[1], data)
                     return data
         except Exception:
             pass
@@ -691,6 +737,11 @@ def get_team_defense_rolling(team: str, window: int = 3) -> Dict[str, float]:
     Retrieve rolling moving average defense metrics for a team over the last `window` weeks.
     """
     t_clean = (team or "").upper().strip()
+    rev_sig = _file_stat_sig(REVIEWS_PARQUET)
+    memo_key = (t_clean, int(window), rev_sig[0], rev_sig[1])
+    if rev_sig != (0, 0) and memo_key in _ROLLING_DEFENSE_MEMO:
+        return _ROLLING_DEFENSE_MEMO[memo_key].copy()
+
     prior = DEFAULT_DEFENSIVE_SCHEMES.get(t_clean, {
         "quick_pressure_rate": 0.185,
         "mof_epa_allowed": 0.38,
@@ -746,7 +797,7 @@ def get_team_defense_rolling(team: str, window: int = 3) -> Dict[str, float]:
         final_mof = max(final_mof, prior["mof_epa_allowed"] * 0.86)
         final_rsr = max(final_rsr, prior["rush_sr_allowed"] * 0.97)
 
-    return {
+    res_rolling = {
         "quick_pressure_rate": round(final_qpr, 3),
         "mof_epa_allowed": round(final_mof, 3),
         "rush_sr_allowed": round(final_rsr, 3),
@@ -755,6 +806,9 @@ def get_team_defense_rolling(team: str, window: int = 3) -> Dict[str, float]:
         "weeks_counted": n_weeks,
         "is_rolling": True
     }
+    if rev_sig != (0, 0):
+        _ROLLING_DEFENSE_MEMO[memo_key] = res_rolling
+    return res_rolling.copy()
 
 
 def get_scheme_trend(team: str) -> Dict[str, Any]:

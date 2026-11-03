@@ -10,15 +10,25 @@ Modular Ingestion Layer for Fantasy Football Monte Carlo Engine.
 
 import os
 import re
+import time
+import copy
+import hashlib
 import json
 import statistics
 import requests
 import datetime
 import urllib.parse
+from concurrent.futures import ThreadPoolExecutor
 import streamlit as st
 from typing import Dict, List, Optional, Tuple, Any
 import scoring_config
 import scheme_db
+
+# Shared Keep-Alive HTTP session to pool TLS connections across external APIs
+_HTTP_SESSION = requests.Session()
+_PROPS_CACHE_MEMO: Dict[str, Tuple[float, Dict[str, Dict[str, Any]]]] = {}
+_ATHLETIC_EXCEL_MEMO: Dict[Tuple[Any, ...], Dict[str, Dict[str, Any]]] = {}
+_DEFAULT_MATCHUP_MEMO: Dict[Tuple[Any, ...], Dict[str, Any]] = {}
 
 # Fallback / Default API keys and URLs
 DEFAULT_ODDS_API_KEY = ""
@@ -229,7 +239,7 @@ def fetch_nfl_odds(api_key: Optional[str] = None) -> List[Dict[str, Any]]:
         "oddsFormat": "american"
     }
     try:
-        resp = requests.get(url, params=params, timeout=10)
+        resp = _HTTP_SESSION.get(url, params=params, timeout=(3.0, 6.0))
         if resp.status_code == 200:
             return resp.json()
         return []
@@ -285,13 +295,7 @@ def parse_nfl_games(raw_odds: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return games
 
 
-@st.cache_data(ttl=14400, show_spinner=False)
-def fetch_player_props(event_id: str, api_key: Optional[str] = None) -> Dict[str, Any]:
-    """
-    Ingest player props for a specific NFL game from The Odds API.
-    Cached for 4 hours (14400 seconds) to strictly protect monthly API quota.
-    """
-    key = api_key or get_odds_api_key()
+def _fetch_player_props_http(event_id: str, key: str) -> Dict[str, Any]:
     if not key or not event_id:
         return {}
     url = f"{ODDS_API_BASE_URL}/events/{event_id}/odds"
@@ -302,12 +306,22 @@ def fetch_player_props(event_id: str, api_key: Optional[str] = None) -> Dict[str
         "oddsFormat": "american"
     }
     try:
-        resp = requests.get(url, params=params, timeout=10)
+        resp = _HTTP_SESSION.get(url, params=params, timeout=(3.0, 6.0))
         if resp.status_code == 200:
             return resp.json()
         return {}
     except Exception:
         return {}
+
+
+@st.cache_data(ttl=14400, show_spinner=False)
+def fetch_player_props(event_id: str, api_key: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Ingest player props for a specific NFL game from The Odds API.
+    Cached for 4 hours (14400 seconds) to strictly protect monthly API quota.
+    """
+    key = api_key or get_odds_api_key()
+    return _fetch_player_props_http(event_id, key)
 
 
 def american_odds_to_prob(odds: float) -> float:
@@ -418,10 +432,17 @@ def build_all_player_props_cache(api_key: Optional[str] = None) -> Dict[str, Dic
     Aggregates the consensus median across bookmakers for every prop line and de-vigs
     raw Anytime TD market odds using the game's Vegas O/U total. Cached for 4 hours (14400s).
     """
+    eff_key = api_key or get_odds_api_key() or "__curated__"
+    now_mono = time.monotonic()
+    memo_hit = _PROPS_CACHE_MEMO.get(eff_key)
+    if memo_hit is not None and (now_mono - memo_hit[0]) < 14400.0:
+        return copy.deepcopy(memo_hit[1])
+
     cache: Dict[str, Dict[str, Any]] = {k: {**v, "is_live_odds": v.get("is_live_odds", False)} for k, v in CURATED_NFL_PROPS.items()}
 
     raw_odds = fetch_nfl_odds(api_key=api_key)
     if not raw_odds:
+        _PROPS_CACHE_MEMO[eff_key] = (now_mono, copy.deepcopy(cache))
         return cache
 
     parsed_games = {g["event_id"]: g for g in parse_nfl_games(raw_odds) if g.get("event_id")}
@@ -436,12 +457,22 @@ def build_all_player_props_cache(api_key: Optional[str] = None) -> Dict[str, Dic
         "player_reception_yds": "rec_yds",
     }
 
-    # Ingest props across scheduled NFL games (capped at 8 games to protect API quota)
-    for event in raw_odds[:8]:
+    # Ingest props across scheduled NFL games concurrently (capped at 8 games to protect API quota)
+    real_key = api_key or get_odds_api_key()
+    target_events = [ev for ev in raw_odds[:8] if ev.get("id")]
+    props_by_event: Dict[str, Dict[str, Any]] = {}
+    if target_events and real_key:
+        with ThreadPoolExecutor(max_workers=min(8, len(target_events))) as pool:
+            futs = {ev["id"]: pool.submit(_fetch_player_props_http, ev["id"], real_key) for ev in target_events}
+            for ev_id, fut in futs.items():
+                try:
+                    props_by_event[ev_id] = fut.result()
+                except Exception:
+                    props_by_event[ev_id] = {}
+
+    for event in target_events:
         event_id = event.get("id")
-        if not event_id:
-            continue
-        props_data = fetch_player_props(event_id, api_key=api_key)
+        props_data = props_by_event.get(event_id, {})
         bookmakers = props_data.get("bookmakers", [])
         if not bookmakers:
             continue
@@ -492,6 +523,7 @@ def build_all_player_props_cache(api_key: Optional[str] = None) -> Dict[str, Dic
                 cache[p_name]["anytime_td_prob"] = devig_p
                 cache[p_name]["is_live_odds"] = True
 
+    _PROPS_CACHE_MEMO[eff_key] = (now_mono, copy.deepcopy(cache))
     return cache
 
 
@@ -523,18 +555,28 @@ def get_matched_player_props(
 # 2. POLYMARKET GAMMA API INGESTION
 # ---------------------------------------------------------------------------
 
-@st.cache_data(ttl=14400, show_spinner=False)
-def fetch_polymarket_event(slug: str) -> Optional[Dict[str, Any]]:
-    """
-    Ingest crowd-sourced event/injury probability from Polymarket Gamma API.
-    Uses safe json.loads parsing instead of eval().
-    """
+_POLYMARKET_EVENT_MEMO: Dict[str, Tuple[float, Optional[Dict[str, Any]]]] = {}
+_POLYMARKET_UNREACHABLE_UNTIL: float = 0.0
+_POLYMARKET_TTL_SEC: float = 14400.0
+
+
+def _fetch_polymarket_event_http(slug: str) -> Optional[Dict[str, Any]]:
+    global _POLYMARKET_UNREACHABLE_UNTIL
     if not slug:
         return None
+    clean_slug = slug.strip()
+    now_mono = time.monotonic()
+    cached = _POLYMARKET_EVENT_MEMO.get(clean_slug)
+    if cached is not None and (now_mono - cached[0]) < _POLYMARKET_TTL_SEC:
+        return copy.deepcopy(cached[1]) if cached[1] is not None else None
+
+    if now_mono < _POLYMARKET_UNREACHABLE_UNTIL:
+        return None
+
     url = f"{POLYMARKET_BASE_URL}/events"
-    params = {"slug": slug.strip()}
+    params = {"slug": clean_slug}
     try:
-        resp = requests.get(url, params=params, timeout=1.5)
+        resp = _HTTP_SESSION.get(url, params=params, timeout=1.5)
         if resp.status_code == 200:
             data = resp.json()
             if isinstance(data, list) and len(data) > 0:
@@ -553,7 +595,7 @@ def fetch_polymarket_event(slug: str) -> Optional[Dict[str, Any]]:
                         except Exception:
                             p_active = 0.85
 
-                return {
+                result = {
                     "slug": slug,
                     "title": event.get("title"),
                     "question": market_question,
@@ -561,9 +603,58 @@ def fetch_polymarket_event(slug: str) -> Optional[Dict[str, Any]]:
                     "volume": event.get("volume", 0),
                     "markets": markets
                 }
+                _POLYMARKET_EVENT_MEMO[clean_slug] = (now_mono, result)
+                return copy.deepcopy(result)
+            _POLYMARKET_EVENT_MEMO[clean_slug] = (now_mono, None)
+        return None
+    except requests.exceptions.ConnectionError:
+        _POLYMARKET_UNREACHABLE_UNTIL = time.monotonic() + 30.0
         return None
     except Exception:
         return None
+
+
+@st.cache_data(ttl=14400, show_spinner=False)
+def fetch_polymarket_event(slug: str) -> Optional[Dict[str, Any]]:
+    """
+    Ingest crowd-sourced event/injury probability from Polymarket Gamma API.
+    Uses safe json.loads parsing instead of eval().
+    """
+    return _fetch_polymarket_event_http(slug)
+
+
+def _polymarket_candidate_slugs(player_name: str) -> List[str]:
+    norm_name = normalize_player_name(player_name)
+    if not norm_name:
+        return []
+    first_last = norm_name.replace(" ", "-")
+    return [
+        f"will-{first_last}-play-in-week",
+        f"{first_last}-injury",
+        f"{first_last}-status",
+    ]
+
+
+def _prefetch_polymarket_players(players_and_statuses: List[Tuple[str, str, float]]) -> None:
+    """Concurrently warm Polymarket event lookups for non-ACTIVE/non-OUT players."""
+    slugs_to_check: List[str] = []
+    now_mono = time.monotonic()
+    if now_mono < _POLYMARKET_UNREACHABLE_UNTIL:
+        return
+    for p_name, inj_status, def_p in players_and_statuses:
+        c_st = (inj_status or "ACTIVE").upper().strip()
+        if c_st in ["OUT", "IR", "INJURY_RESERVE", "PUP", "SUSPENDED"]:
+            continue
+        if c_st in ["ACTIVE", "PROBABLE"] and def_p >= 0.90:
+            continue
+        for s in _polymarket_candidate_slugs(p_name):
+            cached = _POLYMARKET_EVENT_MEMO.get(s)
+            if cached is None or (now_mono - cached[0]) >= _POLYMARKET_TTL_SEC:
+                if s not in slugs_to_check:
+                    slugs_to_check.append(s)
+    if slugs_to_check:
+        with ThreadPoolExecutor(max_workers=min(8, len(slugs_to_check))) as pool:
+            list(pool.map(_fetch_polymarket_event_http, slugs_to_check))
 
 
 def get_polymarket_player_probability(
@@ -582,15 +673,8 @@ def get_polymarket_player_probability(
         return 1.0, "Active Consensus (100%)"
 
     # Player has an active injury question mark (e.g. QUESTIONABLE or DOUBTFUL)
-    norm_name = normalize_player_name(player_name)
-    first_last = norm_name.replace(" ", "-")
-    slug_candidates = [
-        f"will-{first_last}-play-in-week",
-        f"{first_last}-injury",
-        f"{first_last}-status"
-    ]
-    for slug in slug_candidates:
-        res = fetch_polymarket_event(slug)
+    for slug in _polymarket_candidate_slugs(player_name):
+        res = _fetch_polymarket_event_http(slug)
         if res and res.get("active_probability") is not None:
             return float(res["active_probability"]), f"Polymarket Live ({res['active_probability']*100:.0f}%)"
 
@@ -961,8 +1045,20 @@ def parse_athletic_projections_excel(
 
 @st.cache_data(ttl=14400, show_spinner=False)
 def _cached_athletic_projections(file_bytes: Optional[bytes], default_path: str) -> Dict[str, Dict[str, Any]]:
+    if file_bytes is not None:
+        memo_key: Tuple[Any, ...] = ("bytes", len(file_bytes), hashlib.sha1(file_bytes).hexdigest())
+    else:
+        try:
+            st_info = os.stat(default_path)
+            memo_key = ("path", default_path, st_info.st_mtime_ns, st_info.st_size)
+        except OSError:
+            memo_key = ("path_missing", default_path)
+    if memo_key in _ATHLETIC_EXCEL_MEMO:
+        return _ATHLETIC_EXCEL_MEMO[memo_key]
     source = file_bytes if file_bytes is not None else default_path
-    return parse_athletic_projections_excel(excel_source=source)
+    parsed = parse_athletic_projections_excel(excel_source=source)
+    _ATHLETIC_EXCEL_MEMO[memo_key] = parsed
+    return parsed
 
 
 def build_athletic_projections_cache() -> Dict[str, Dict[str, Any]]:
@@ -1114,7 +1210,8 @@ def calculate_projection_params(
     alignment_tag: Optional[str] = None,
     adot: Optional[float] = None,
     slot_snap_pct: Optional[float] = None,
-    wide_snap_pct: Optional[float] = None
+    wide_snap_pct: Optional[float] = None,
+    athletic_cache: Optional[Dict[str, Dict[str, Any]]] = None,
 ) -> Any:
     """
     Synthesize distribution parameters (mu, sigma, availability_p) using:
@@ -1205,7 +1302,11 @@ def calculate_projection_params(
     ))
     is_live_vegas = bool(props and props.get("is_live_odds", True))
 
-    ath_entry = get_matched_athletic_projection(player_name, position=position) if player_name else {}
+    ath_entry = (
+        get_matched_athletic_projection(player_name, athletic_cache=athletic_cache, position=position)
+        if player_name
+        else {}
+    )
 
     if ath_entry:
         ath_mu, ath_sigma, ath_breakdown = scoring_config.score_athletic_stat_line(
@@ -1356,6 +1457,19 @@ def sync_espn_league(
     team_map = {}
     team_id_map = {}
 
+    # Concurrently warm Polymarket injury probability lookups across all rostered players
+    poly_candidates: List[Tuple[str, str, float]] = []
+    for _tm in league.teams:
+        for _pl in _tm.roster:
+            _c_st, _p_act, _inact = parse_player_injury_and_status(
+                inj_status_raw=getattr(_pl, "injuryStatus", "ACTIVE"),
+                slot_raw=getattr(_pl, "lineupSlot", _pl.position),
+            )
+            if not _inact and not (_c_st in ["ACTIVE", "PROBABLE"] and _p_act >= 0.90):
+                poly_candidates.append((_pl.name, _c_st, _p_act))
+    if poly_candidates:
+        _prefetch_polymarket_players(poly_candidates)
+
     for team in league.teams:
         starters = []
         bench = []
@@ -1488,6 +1602,9 @@ def sync_espn_league(
         team_dict = {
             "team_id": team.team_id,
             "team_name": str(team.team_name),
+            "team_abbrev": str(getattr(team, "team_abbrev", "") or "").strip(),
+            "wins": int(getattr(team, "wins", 0) or 0),
+            "losses": int(getattr(team, "losses", 0) or 0),
             "owner": owner_display,
             "owner_swids": owner_swids,
             "acquisition_budget_spent": spent_faab,
@@ -1626,9 +1743,11 @@ def sync_espn_league(
                 "cv": breakdown.get("cv", 0.45)
             })
 
-    # Auto-detect User Team
+    # Auto-detect User Team (anchored on immutable SWID / owner / team_abbrev / team_id so mid-season team renames never break)
     user_team_name = None
+    user_team_id = None
     user_opp_name = None
+    user_opp_id = None
 
     # Priority 1: Match SWID against team.owners
     if swid:
@@ -1636,41 +1755,60 @@ def sync_espn_league(
         for t in teams_data:
             if clean_target_swid in t.get("owner_swids", []):
                 user_team_name = t["team_name"]
+                user_team_id = t.get("team_id")
                 break
 
     # Priority 2: user_team_hint if provided in secrets/config
     if not user_team_name and user_team_hint:
         hint_lower = str(user_team_hint).lower().strip()
         for t in teams_data:
-            t_str = f"{t['team_name']} {t.get('owner', '')}".lower()
+            t_str = f"{t['team_name']} {t.get('owner', '')} {t.get('team_abbrev', '')}".lower()
             if hint_lower in t_str:
                 user_team_name = t["team_name"]
+                user_team_id = t.get("team_id")
                 break
 
-    # Priority 3: heuristic check ("eatin")
+    # Priority 3: Immutable owner handle / franchise abbreviation check, then current/legacy team name
+    if not user_team_name:
+        for t in teams_data:
+            owner_l = str(t.get("owner", "")).lower()
+            abbr_u = str(t.get("team_abbrev", "")).upper().strip()
+            if "d_caff" in owner_l or "danny mccaffrey" in owner_l or abbr_u == "DCAF":
+                user_team_name = t["team_name"]
+                user_team_id = t.get("team_id")
+                break
     if not user_team_name:
         for t in teams_data:
             tname = t["team_name"].lower()
-            if "eatin" in tname:
+            if "wan'dale" in tname or "wandale" in tname or "eatin" in tname:
                 user_team_name = t["team_name"]
+                user_team_id = t.get("team_id")
                 break
 
     # Priority 4: default to first team
     if not user_team_name and teams_data:
         user_team_name = teams_data[0]["team_name"]
+        user_team_id = teams_data[0].get("team_id")
 
     if user_team_name and current_week in weekly_matchups:
         for m in weekly_matchups[current_week]:
-            if m["home_team_name"] == user_team_name:
+            if (user_team_id is not None and m.get("home_team_id") == user_team_id) or m["home_team_name"] == user_team_name:
                 user_opp_name = m["away_team_name"]
+                user_opp_id = m.get("away_team_id")
                 break
-            elif m["away_team_name"] == user_team_name:
+            elif (user_team_id is not None and m.get("away_team_id") == user_team_id) or m["away_team_name"] == user_team_name:
                 user_opp_name = m["home_team_name"]
+                user_opp_id = m.get("home_team_id")
                 break
 
     if not user_opp_name:
-        other_teams = [t["team_name"] for t in teams_data if t["team_name"] != user_team_name]
-        user_opp_name = other_teams[0] if other_teams else (teams_data[1]["team_name"] if len(teams_data) > 1 else None)
+        other_teams = [t for t in teams_data if t["team_name"] != user_team_name]
+        if other_teams:
+            user_opp_name = other_teams[0]["team_name"]
+            user_opp_id = other_teams[0].get("team_id")
+        elif len(teams_data) > 1:
+            user_opp_name = teams_data[1]["team_name"]
+            user_opp_id = teams_data[1].get("team_id")
 
     return {
         "success": True,
@@ -1684,7 +1822,9 @@ def sync_espn_league(
         "weekly_matchups": weekly_matchups,
         "free_agents": free_agents_data,
         "user_team_name": user_team_name,
-        "user_opp_name": user_opp_name
+        "user_team_id": user_team_id,
+        "user_opp_name": user_opp_name,
+        "user_opp_id": user_opp_id,
     }
 
 
@@ -1812,6 +1952,25 @@ def get_default_matchup_and_waivers(
     Vegas props and Polymarket crowd probabilities, evaluated dynamically
     under the user's idiosyncratic league scoring rules.
     """
+    cfg_obj = scoring_cfg or scoring_config.DEFAULT_SCORING
+    ath_sig = (
+        _ACTIVE_ATHLETIC_FILENAME,
+        hashlib.sha1(_ACTIVE_ATHLETIC_BYTES).hexdigest() if _ACTIVE_ATHLETIC_BYTES is not None else DEFAULT_ATHLETIC_EXCEL_PATH,
+    )
+    def_key = (
+        round(float(ppr), 2),
+        cfg_obj.ppr,
+        cfg_obj.pass_td,
+        cfg_obj.completion_bonus,
+        cfg_obj.pass_300_bonus,
+        cfg_obj.rush_100_bonus,
+        cfg_obj.rec_100_bonus,
+        ath_sig,
+        scheme_db._file_stat_sig(scheme_db.REVIEWS_PARQUET),
+    )
+    if def_key in _DEFAULT_MATCHUP_MEMO:
+        return copy.deepcopy(_DEFAULT_MATCHUP_MEMO[def_key])
+
     props_cache = build_all_player_props_cache()
 
     def build_player_entry(name: str, pos: str, slot: str, team: str, p_act_default: float = 1.0) -> Dict[str, Any]:
@@ -1893,12 +2052,17 @@ def get_default_matchup_and_waivers(
         ("Tucker Kraft", "TE", "TE", "GB", 1.0),
     ]
 
+    _prefetch_polymarket_players([
+        (nm, "ACTIVE" if p_def >= 0.9 else "QUESTIONABLE", p_def)
+        for nm, _, _, _, p_def in (raw_team_a + raw_bench_a + raw_team_b + raw_waivers)
+    ])
+
     team_a_roster = [build_player_entry(*p) for p in raw_team_a]
     team_a_bench = [build_player_entry(*p) for p in raw_bench_a]
     team_b_roster = [build_player_entry(*p) for p in raw_team_b]
     waiver_pool = [build_player_entry(*p) for p in raw_waivers]
 
-    return {
+    res_default = {
         "team_a_name": "Eatin TDs like Groceries (My Team)",
         "team_a_roster": team_a_roster,
         "team_a_bench": team_a_bench,
@@ -1906,6 +2070,8 @@ def get_default_matchup_and_waivers(
         "team_b_roster": team_b_roster,
         "waiver_pool": waiver_pool
     }
+    _DEFAULT_MATCHUP_MEMO[def_key] = copy.deepcopy(res_default)
+    return res_default
 
 
 # ---------------------------------------------------------------------------

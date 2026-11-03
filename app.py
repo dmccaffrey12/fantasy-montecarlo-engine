@@ -19,6 +19,9 @@ import plotly.express as px
 from scipy.stats import gaussian_kde
 
 import os
+import json
+import html
+import hashlib
 from typing import Dict, Any, List, Optional, Tuple
 import data_ingest
 import simulation
@@ -35,6 +38,177 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+
+def _html_safe(val: Any) -> str:
+    """Escape dynamic strings (such as custom ESPN team names) for safe HTML interpolation."""
+    return html.escape(str(val or ""), quote=True)
+
+
+def _md_safe(val: Any) -> str:
+    """Escape literal dollar signs in dynamic team/player names so Markdown never triggers unintended KaTeX math."""
+    return str(val or "").replace("$", "\\$")
+
+
+def _resolve_week_opponent_name(espn_info: Dict[str, Any], team_name: str) -> Optional[str]:
+    """Resolve a team's scheduled opponent for the current week using immutable team_id first, then team_name."""
+    if not espn_info or not team_name:
+        return None
+    t_map = espn_info.get("team_map", {})
+    t_id = (t_map.get(team_name) or {}).get("team_id")
+    curr_wk = espn_info.get("current_week")
+    wk_list = (espn_info.get("weekly_matchups") or {}).get(curr_wk, [])
+    for m in wk_list:
+        if (t_id is not None and m.get("home_team_id") == t_id) or m.get("home_team_name") == team_name:
+            return m.get("away_team_name")
+        if (t_id is not None and m.get("away_team_id") == t_id) or m.get("away_team_name") == team_name:
+            return m.get("home_team_name")
+    return None
+
+
+def _sim_cache_sig(*parts: Any) -> str:
+    """Build a fast deterministic SHA-256 cache key across rosters, settings, and scheme DB state."""
+    def _compact(obj: Any) -> Any:
+        if isinstance(obj, list):
+            return [_compact(x) for x in obj]
+        if isinstance(obj, dict):
+            if "name" in obj and ("mu" in obj or "position" in obj):
+                return (
+                    obj.get("name"),
+                    obj.get("position"),
+                    obj.get("slot"),
+                    obj.get("team"),
+                    obj.get("opponent"),
+                    obj.get("mu"),
+                    obj.get("sigma"),
+                    obj.get("ros_mu"),
+                    obj.get("ros_sigma"),
+                    obj.get("p_active"),
+                    obj.get("injury_status"),
+                    obj.get("is_inactive"),
+                    obj.get("avg_points"),
+                    obj.get("projected_avg_points"),
+                )
+            return {str(k): _compact(v) for k, v in sorted(obj.items()) if k not in ("roster", "starters", "bench", "ir", "props", "score_breakdown")}
+        if hasattr(obj, "__dict__"):
+            return _compact(vars(obj))
+        return obj
+
+    payload = {
+        "parts": [_compact(p) for p in parts],
+        "scheme_sig": scheme_db._file_stat_sig(scheme_db.REVIEWS_PARQUET),
+    }
+    return hashlib.sha256(json.dumps(payload, sort_keys=True, default=str).encode("utf-8")).hexdigest()
+
+
+@st.cache_data(ttl=1800, show_spinner=False)
+def _cached_matchup_bundle(sig: str, _team_a: List[Dict[str, Any]], _team_b: List[Dict[str, Any]], _bench_a: List[Dict[str, Any]], n_sims: int) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
+    m_res = simulation.simulate_matchup(_team_a, _team_b, n_simulations=n_sims)
+    c_slots = simulation.find_contested_lineup_slots(_team_a, _bench_a, m_res["p_win_a"], threshold=2.5)
+    return m_res, c_slots
+
+
+@st.cache_data(ttl=1800, show_spinner=False)
+def _cached_start_sit_eval(
+    sig: str,
+    _cand_a: Dict[str, Any],
+    _cand_b: Dict[str, Any],
+    _team_a: List[Dict[str, Any]],
+    _team_b: List[Dict[str, Any]],
+    slot_name: str,
+    n_sims: int,
+) -> Dict[str, Any]:
+    return simulation.evaluate_start_sit_decision(
+        _cand_a,
+        _cand_b,
+        base_team_roster=_team_a,
+        opponent_roster=_team_b,
+        slot_name=slot_name,
+        n_simulations=n_sims,
+    )
+
+
+@st.cache_data(ttl=1800, show_spinner=False)
+def _cached_roster_optimizations(
+    sig: str,
+    _team_a: List[Dict[str, Any]],
+    _bench_a: List[Dict[str, Any]],
+    _team_b: List[Dict[str, Any]],
+    n_sims: int,
+) -> Dict[str, Any]:
+    return simulation.find_roster_optimizations(_team_a, _bench_a, _team_b, n_simulations=n_sims)
+
+
+@st.cache_data(ttl=1800, show_spinner=False)
+def _cached_waiver_suite(
+    sig: str,
+    _team_a: List[Dict[str, Any]],
+    _bench_a: List[Dict[str, Any]],
+    _team_b: List[Dict[str, Any]],
+    _waivers: List[Dict[str, Any]],
+    _all_a: List[Dict[str, Any]],
+    _qbs_a: List[Dict[str, Any]],
+    _all_rb_pool: List[Dict[str, Any]],
+    remaining_faab: int,
+    mode_param: str,
+    n_sims: int,
+) -> Dict[str, Any]:
+    base_res = vorp.calculate_waiver_baselines(_waivers, n_simulations=n_sims)
+    upg_df = vorp.calculate_waiver_roster_upgrades(
+        _bench_a,
+        _waivers,
+        n_simulations=min(n_sims, 3000),
+        full_roster=_all_a,
+        max_roster_qbs=2,
+        remaining_faab=int(remaining_faab),
+        mode=mode_param,
+    )
+    r_vorp_df = vorp.calculate_roster_vorp(
+        _team_a,
+        base_res,
+        opponent_roster=_team_b,
+        n_simulations=n_sims,
+    )
+    w_rank_df = vorp.rank_waiver_wire_pool(
+        _waivers,
+        base_res,
+        n_simulations=n_sims,
+        roster_qbs=_qbs_a,
+        mode=mode_param,
+    )
+    cont_df = vorp.calculate_contingency_leverage(_all_rb_pool, n_simulations=n_sims)
+    return {
+        "baselines": base_res,
+        "df_upgrades": upg_df,
+        "df_roster_vorp": r_vorp_df,
+        "df_waiver_rankings": w_rank_df,
+        "df_contingency": cont_df,
+    }
+
+
+@st.cache_data(ttl=1800, show_spinner=False)
+def _cached_playoff_leverage(
+    sig: str,
+    team_a_name: str,
+    _team_a: List[Dict[str, Any]],
+    _cands: List[Dict[str, Any]],
+    curr_wk: int,
+    _league_teams: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    return simulation.simulate_playoff_leverage_matrix(
+        team_a_name=team_a_name,
+        team_a_roster=_team_a,
+        waiver_candidates=_cands,
+        current_week=curr_wk,
+        total_reg_weeks=14,
+        n_season_sims=2000,
+        league_teams=_league_teams,
+    )
+
+
+@st.cache_data(ttl=1800, show_spinner=False)
+def _cached_trade_evaluation(sig: str, _kwargs: Dict[str, Any]) -> Dict[str, Any]:
+    return trade_analyzer.evaluate_trade_package(**_kwargs)
 
 # Custom styling
 st.markdown("""
@@ -115,19 +289,37 @@ if "selected_team_a" not in st.session_state:
 if "selected_team_b" not in st.session_state:
     st.session_state.selected_team_b = None
 
+if "selected_team_a_id" not in st.session_state:
+    st.session_state.selected_team_a_id = None
+
+if "selected_team_b_id" not in st.session_state:
+    st.session_state.selected_team_b_id = None
+
 
 # ---------------------------------------------------------------------------
 # SIDEBAR CONTROLS
 # ---------------------------------------------------------------------------
 st.sidebar.title("🏈 Engine Controls")
 
-if st.sidebar.button("🔄 Clear Cache & Re-Sync League", use_container_width=True):
+if st.sidebar.button("🔄 Clear Cache & Re-Sync League", width="stretch"):
     st.cache_data.clear()
+    data_ingest._PROPS_CACHE_MEMO.clear()
+    data_ingest._POLYMARKET_EVENT_MEMO.clear()
+    data_ingest._DEFAULT_MATCHUP_MEMO.clear()
+    trade_analyzer._PLAYER_VALUATION_MEMO.clear()
+    trade_analyzer._DEFAULT_TRADE_ROSTERS_MEMO.clear()
     st.session_state.espn_league = None
     st.session_state.espn_sync_error = None
     st.session_state.espn_last_attempt = None
     st.session_state.selected_team_a = None
     st.session_state.selected_team_b = None
+    st.session_state.selected_team_a_id = None
+    st.session_state.selected_team_b_id = None
+    st.session_state.pop("prev_team_a_for_opp", None)
+    st.session_state.pop("team_a_select", None)
+    st.session_state.pop("team_b_select", None)
+    st.session_state.pop("trade_team_a_select", None)
+    st.session_state.pop("trade_team_b_select", None)
     st.rerun()
 
 st.sidebar.markdown("### 📊 Primary Projection Anchor")
@@ -137,25 +329,28 @@ uploaded_athletic_xlsx = st.sidebar.file_uploader(
     help="Drop in The Athletic's Wednesday release for waivers or Sunday morning update for start/sit triage."
 )
 if uploaded_athletic_xlsx is not None:
-    file_sig = f"{uploaded_athletic_xlsx.name}_{uploaded_athletic_xlsx.size}"
-    data_ingest.set_uploaded_athletic_projections(
-        uploaded_athletic_xlsx,
-        uploaded_athletic_xlsx.name,
-        persist_to_disk=True
-    )
+    raw_xlsx_bytes = uploaded_athletic_xlsx.getvalue()
+    file_sig = f"{uploaded_athletic_xlsx.name}_{len(raw_xlsx_bytes)}_{hashlib.sha1(raw_xlsx_bytes).hexdigest()[:12]}"
     if st.session_state.get("athletic_file_sig") != file_sig:
+        data_ingest.set_uploaded_athletic_projections(
+            raw_xlsx_bytes,
+            uploaded_athletic_xlsx.name,
+            persist_to_disk=False
+        )
+        data_ingest._DEFAULT_MATCHUP_MEMO.clear()
+        trade_analyzer._PLAYER_VALUATION_MEMO.clear()
         st.session_state["athletic_file_sig"] = file_sig
         st.session_state.espn_league = None
         st.session_state.espn_last_attempt = None
-        st.cache_data.clear()
         st.rerun()
 else:
     if st.session_state.get("athletic_file_sig") is not None:
-        data_ingest.set_uploaded_athletic_projections(None)
+        data_ingest.set_uploaded_athletic_projections(None, persist_to_disk=False)
+        data_ingest._DEFAULT_MATCHUP_MEMO.clear()
+        trade_analyzer._PLAYER_VALUATION_MEMO.clear()
         st.session_state["athletic_file_sig"] = None
         st.session_state.espn_league = None
         st.session_state.espn_last_attempt = None
-        st.cache_data.clear()
         st.rerun()
 
 ath_summary = data_ingest.get_athletic_projection_summary()
@@ -232,19 +427,34 @@ if target_league_id and (
             st.session_state.espn_league = sync_result
             st.session_state.espn_sync_error = None
             teams = sync_result.get("teams", [])
+            id_map = sync_result.get("team_id_map", {})
             user_t = sync_result.get("user_team_name")
             user_opp = sync_result.get("user_opp_name")
+            prev_a_id = st.session_state.get("selected_team_a_id")
+            prev_b_id = st.session_state.get("selected_team_b_id")
+            if prev_a_id is not None and prev_a_id in id_map:
+                user_t = id_map[prev_a_id]["team_name"]
+            if prev_b_id is not None and prev_b_id in id_map and id_map[prev_b_id]["team_name"] != user_t:
+                user_opp = id_map[prev_b_id]["team_name"]
+            elif user_t:
+                user_opp = _resolve_week_opponent_name(sync_result, user_t) or user_opp
             league_title = f"🏆 {sync_result.get('league_name', 'ESPN League')}"
             st.session_state["active_data_source"] = league_title
             if user_t:
                 st.session_state.selected_team_a = user_t
+                st.session_state.selected_team_a_id = (sync_result.get("team_map", {}).get(user_t) or {}).get("team_id")
                 st.session_state["team_a_select"] = user_t
+                st.session_state["prev_team_a_for_opp"] = user_t
                 st.session_state.selected_team_b = user_opp or (teams[1]["team_name"] if len(teams) > 1 else teams[0]["team_name"])
+                st.session_state.selected_team_b_id = (sync_result.get("team_map", {}).get(st.session_state.selected_team_b) or {}).get("team_id")
                 st.session_state["team_b_select"] = st.session_state.selected_team_b
             elif len(teams) >= 2:
                 st.session_state.selected_team_a = teams[0]["team_name"]
+                st.session_state.selected_team_a_id = teams[0].get("team_id")
                 st.session_state["team_a_select"] = teams[0]["team_name"]
+                st.session_state["prev_team_a_for_opp"] = teams[0]["team_name"]
                 st.session_state.selected_team_b = teams[1]["team_name"]
+                st.session_state.selected_team_b_id = teams[1].get("team_id")
                 st.session_state["team_b_select"] = teams[1]["team_name"]
             st.rerun()
         else:
@@ -267,19 +477,16 @@ if has_espn:
     curr_choice = st.session_state.get("active_data_source")
     if curr_choice not in mode_options or curr_choice == "🏈 Curated Demo Matchup (Bills vs Lions)":
         st.session_state["active_data_source"] = league_label
-
-default_mode_idx = 0
-if "active_data_source" in st.session_state and st.session_state["active_data_source"] in mode_options:
-    default_mode_idx = mode_options.index(st.session_state["active_data_source"])
+elif st.session_state.get("active_data_source") not in mode_options:
+    st.session_state["active_data_source"] = mode_options[0]
 
 active_mode_selection = st.sidebar.radio(
     "Data Source",
     mode_options,
-    index=default_mode_idx,
     key="active_data_source"
 )
 
-APP_BUILD_VERSION = "2026.10.22-v3.2"
+APP_BUILD_VERSION = "2026.11.03-v3.4"
 st.sidebar.caption(f"⚡ Engine Build: `{APP_BUILD_VERSION}`")
 
 # ESPN Sync Management in Sidebar
@@ -299,7 +506,7 @@ with st.sidebar.expander("⚙️ ESPN Connection Settings", expanded=not has_esp
     s2 = st.text_input("espn_s2", value=espn_creds.get("espn_s2") or "", type="password", help="espn_s2 cookie string for private leagues")
     swid = st.text_input("SWID", value=espn_creds.get("swid") or "", help="SWID cookie string e.g. {12345678-ABCD-...}")
 
-    if st.button("🔄 Sync / Re-sync ESPN League", use_container_width=True):
+    if st.button("🔄 Sync / Re-sync ESPN League", width="stretch"):
         if not l_id.strip():
             st.error("Please enter a valid numeric League ID.")
         else:
@@ -323,19 +530,34 @@ with st.sidebar.expander("⚙️ ESPN Connection Settings", expanded=not has_esp
                     st.session_state.espn_sync_error = None
                     st.session_state.espn_last_attempt = (int(l_id.strip()), int(yr), scoring_format, st.session_state.get("athletic_file_sig"), active_ath_anchor)
                     teams = sync_res.get("teams", [])
+                    id_map = sync_res.get("team_id_map", {})
                     user_t = sync_res.get("user_team_name")
                     user_opp = sync_res.get("user_opp_name")
+                    prev_a_id = st.session_state.get("selected_team_a_id")
+                    prev_b_id = st.session_state.get("selected_team_b_id")
+                    if prev_a_id is not None and prev_a_id in id_map:
+                        user_t = id_map[prev_a_id]["team_name"]
+                    if prev_b_id is not None and prev_b_id in id_map and id_map[prev_b_id]["team_name"] != user_t:
+                        user_opp = id_map[prev_b_id]["team_name"]
+                    elif user_t:
+                        user_opp = _resolve_week_opponent_name(sync_res, user_t) or user_opp
                     league_title = f"🏆 {sync_res.get('league_name', 'ESPN League')}"
                     st.session_state["active_data_source"] = league_title
                     if user_t:
                         st.session_state.selected_team_a = user_t
+                        st.session_state.selected_team_a_id = (sync_res.get("team_map", {}).get(user_t) or {}).get("team_id")
                         st.session_state["team_a_select"] = user_t
+                        st.session_state["prev_team_a_for_opp"] = user_t
                         st.session_state.selected_team_b = user_opp or (teams[1]["team_name"] if len(teams) > 1 else teams[0]["team_name"])
+                        st.session_state.selected_team_b_id = (sync_res.get("team_map", {}).get(st.session_state.selected_team_b) or {}).get("team_id")
                         st.session_state["team_b_select"] = st.session_state.selected_team_b
                     elif len(teams) >= 2:
                         st.session_state.selected_team_a = teams[0]["team_name"]
+                        st.session_state.selected_team_a_id = teams[0].get("team_id")
                         st.session_state["team_a_select"] = teams[0]["team_name"]
+                        st.session_state["prev_team_a_for_opp"] = teams[0]["team_name"]
                         st.session_state.selected_team_b = teams[1]["team_name"]
+                        st.session_state.selected_team_b_id = teams[1].get("team_id")
                         st.session_state["team_b_select"] = teams[1]["team_name"]
                     st.success(f"Connected: {sync_res.get('league_name')} ({len(teams)} teams)")
                     st.rerun()
@@ -373,13 +595,14 @@ if is_espn_active:
     teams_list = espn_info.get("teams", [])
     team_names = [t["team_name"] for t in teams_list]
     team_map = espn_info.get("team_map", {})
+    team_id_map = espn_info.get("team_id_map", {})
     fa_count = len(espn_info.get("free_agents", []))
 
     # Top League Banner
     st.markdown(f"""
     <div class="league-banner">
         <div>
-            <div class="league-title">🏆 {espn_info.get('league_name')} ({espn_info.get('year')})</div>
+            <div class="league-title">🏆 {_html_safe(espn_info.get('league_name'))} ({espn_info.get('year')})</div>
             <div class="league-subtitle">● SYNCED LIVE &nbsp;·&nbsp; {len(teams_list)} TEAMS &nbsp;·&nbsp; {fa_count} WAIVER FREE AGENTS &nbsp;·&nbsp; WEEK {espn_info.get('current_week', 1)}</div>
         </div>
     </div>
@@ -390,47 +613,53 @@ if is_espn_active:
     m_type_col1, m_type_col2 = st.columns([1, 1])
 
     with m_type_col1:
-        # Team A (User Team)
-        default_a_idx = 0
-        if st.session_state.get("team_a_select") in team_names:
-            default_a_idx = team_names.index(st.session_state["team_a_select"])
-        elif st.session_state.get("selected_team_a") in team_names:
-            default_a_idx = team_names.index(st.session_state.selected_team_a)
-        else:
-            for idx, t in enumerate(team_names):
-                if "eatin" in t.lower():
-                    default_a_idx = idx
-                    break
+        # Team A (User Team) — seamlessly handles mid-season team renames via immutable team_id / SWID
+        if st.session_state.get("team_a_select") not in team_names:
+            saved_a_id = st.session_state.get("selected_team_a_id")
+            if saved_a_id is not None and saved_a_id in team_id_map:
+                default_a_name = team_id_map[saved_a_id]["team_name"]
+            elif espn_info.get("user_team_name") in team_names:
+                default_a_name = espn_info["user_team_name"]
+            elif st.session_state.get("selected_team_a") in team_names:
+                default_a_name = st.session_state.selected_team_a
+            else:
+                default_a_name = team_names[0]
+            st.session_state["team_a_select"] = default_a_name
 
         selected_a = st.selectbox(
             "🏠 Team A (My Team)",
             team_names,
-            index=default_a_idx,
             key="team_a_select"
         )
         st.session_state.selected_team_a = selected_a
+        st.session_state.selected_team_a_id = (team_map.get(selected_a) or {}).get("team_id")
+
+    team_a_changed = st.session_state.get("prev_team_a_for_opp") not in (None, selected_a)
+    st.session_state["prev_team_a_for_opp"] = selected_a
 
     with m_type_col2:
-        # Team B (Opponent Team)
+        # Team B (Opponent Team) — auto-pairs scheduled weekly opponent when Team A changes or renames occur
         available_b_options = [t for t in team_names if t != selected_a] or team_names
-        default_b_idx = 0
-        if st.session_state.get("team_b_select") in available_b_options:
-            default_b_idx = available_b_options.index(st.session_state["team_b_select"])
-        elif st.session_state.get("selected_team_b") in available_b_options:
-            default_b_idx = available_b_options.index(st.session_state.selected_team_b)
-        else:
-            for idx, t in enumerate(available_b_options):
-                if "puka" in t.lower():
-                    default_b_idx = idx
-                    break
+        if team_a_changed or st.session_state.get("team_b_select") not in available_b_options:
+            sched_opp = _resolve_week_opponent_name(espn_info, selected_a)
+            saved_b_id = st.session_state.get("selected_team_b_id")
+            if not team_a_changed and saved_b_id is not None and saved_b_id in team_id_map and team_id_map[saved_b_id]["team_name"] in available_b_options:
+                default_b_name = team_id_map[saved_b_id]["team_name"]
+            elif sched_opp in available_b_options:
+                default_b_name = sched_opp
+            elif not team_a_changed and st.session_state.get("selected_team_b") in available_b_options:
+                default_b_name = st.session_state.selected_team_b
+            else:
+                default_b_name = available_b_options[0]
+            st.session_state["team_b_select"] = default_b_name
 
         selected_b = st.selectbox(
             "🚀 Team B (Opponent)",
             available_b_options,
-            index=default_b_idx,
             key="team_b_select"
         )
         st.session_state.selected_team_b = selected_b
+        st.session_state.selected_team_b_id = (team_map.get(selected_b) or {}).get("team_id")
 
     # Build active matchup data from chosen ESPN teams
     team_a_dict = team_map.get(selected_a, teams_list[0])
@@ -488,12 +717,15 @@ tab_matchup, tab_startsit, tab_vorp, tab_trade, tab_feeds, tab_scheme = st.tabs(
 # TAB 1: SUNDAY MORNING COMMAND CENTER
 # ===========================================================================
 with tab_matchup:
-    # Run 10,000-run correlated Cholesky Gaussian Copula simulation
+    # Run 10,000-run correlated Cholesky Gaussian Copula simulation (cached across widget reruns)
+    matchup_sig = _sim_cache_sig("matchup", team_a_name, team_b_name, team_a_roster, team_b_roster, team_a_bench, n_iterations)
     with st.spinner(f"Running {n_iterations:,} Correlated Monte Carlo simulations for {team_a_name} vs {team_b_name}..."):
-        matchup_result = simulation.simulate_matchup(
+        matchup_result, contested_slots = _cached_matchup_bundle(
+            matchup_sig,
             team_a_roster,
             team_b_roster,
-            n_simulations=n_iterations
+            team_a_bench,
+            n_iterations,
         )
 
     p_win_a = matchup_result["p_win_a"]
@@ -508,7 +740,7 @@ with tab_matchup:
     with m_col1:
         st.markdown(f"""
         <div class="metric-card">
-            <div class="metric-title">{team_a_name} P(Win)</div>
+            <div class="metric-title">{_html_safe(team_a_name)} P(Win)</div>
             <div class="metric-value green-val">{p_win_a * 100:.1f}%</div>
             <div class="metric-sub">Implied Moneyline: {ml_str}</div>
         </div>
@@ -517,7 +749,7 @@ with tab_matchup:
     with m_col2:
         st.markdown(f"""
         <div class="metric-card">
-            <div class="metric-title">{team_a_name} Projected (Med)</div>
+            <div class="metric-title">{_html_safe(team_a_name)} Projected (Med)</div>
             <div class="metric-value blue-val">{a_summary['median']:.1f}</div>
             <div class="metric-sub">Floor (P10): {a_summary['p10']:.1f} · Ceiling (P90): {a_summary['p90']:.1f}</div>
         </div>
@@ -526,7 +758,7 @@ with tab_matchup:
     with m_col3:
         st.markdown(f"""
         <div class="metric-card">
-            <div class="metric-title">{team_b_name} Projected (Med)</div>
+            <div class="metric-title">{_html_safe(team_b_name)} Projected (Med)</div>
             <div class="metric-value amber-val">{b_summary['median']:.1f}</div>
             <div class="metric-sub">Floor (P10): {b_summary['p10']:.1f} · Ceiling (P90): {b_summary['p90']:.1f}</div>
         </div>
@@ -551,7 +783,7 @@ with tab_matchup:
             mode="gauge+number",
             value=p_win_a * 100,
             number={'suffix': "%", 'valueformat': ".1f", 'font': {'size': 44, 'color': gauge_color}},
-            title={'text': f"<b>{team_a_name}</b><br><span style='font-size:0.82em;color:#94a3b8'>ML: {ml_str} · Exp. Margin: {m_summary['mean']:+0.1f}</span>", 'font': {'size': 16, 'color': '#f8fafc'}},
+            title={'text': f"<b>{_html_safe(team_a_name)}</b><br><span style='font-size:0.82em;color:#94a3b8'>ML: {ml_str} · Exp. Margin: {m_summary['mean']:+0.1f}</span>", 'font': {'size': 16, 'color': '#f8fafc'}},
             gauge={
                 'axis': {'range': [0, 100], 'tickwidth': 1, 'tickcolor': "#64748b", 'nticks': 6},
                 'bar': {'color': gauge_color, 'thickness': 0.28},
@@ -576,7 +808,7 @@ with tab_matchup:
             height=265,
             margin=dict(l=20, r=20, t=35, b=10)
         )
-        st.plotly_chart(fig_gauge, use_container_width=True)
+        st.plotly_chart(fig_gauge, width="stretch")
 
     with col_margin:
         st.subheader("Margin of Victory Distribution (Correlated Stack Matrix)")
@@ -612,14 +844,12 @@ with tab_matchup:
             height=265,
             margin=dict(l=20, r=20, t=30, b=20)
         )
-        st.plotly_chart(fig_margin, use_container_width=True)
+        st.plotly_chart(fig_margin, width="stretch")
 
     # 2. Contested Lineup Slots & Pre-Paired Decision Cards
     st.markdown("---")
     st.markdown("### ⚔️ Contested Lineup Slots & Sunday Decision Cards")
     st.caption("Automatically surfaced borderline starter decisions: any bench asset projecting within 2.5 points of a starter (or higher), pre-paired with net Win% leverage, exact positional percentiles, Vegas Implied Team Totals, and QB Stack tags.")
-
-    contested_slots = simulation.find_contested_lineup_slots(team_a_roster, team_a_bench, p_win_a, threshold=2.5)
 
     if contested_slots:
         card_cols = st.columns(min(len(contested_slots), 2))
@@ -708,7 +938,7 @@ with tab_matchup:
                 "slot": "Slot", "name": "Player", "position": "Pos", "p_active": "P(Active)", "prop_source": "Data Feed", "injury_status": "Status"
             })
             df_display_a = data_ingest.format_distribution_columns(df_display_a)
-            st.dataframe(df_display_a, use_container_width=True, hide_index=True)
+            st.dataframe(df_display_a, width="stretch", hide_index=True)
 
         with col_lb:
             st.markdown(f"**{team_b_name} Starters**")
@@ -718,7 +948,7 @@ with tab_matchup:
                 "slot": "Slot", "name": "Player", "position": "Pos", "p_active": "P(Active)", "prop_source": "Data Feed", "injury_status": "Status"
             })
             df_display_b = data_ingest.format_distribution_columns(df_display_b)
-            st.dataframe(df_display_b, use_container_width=True, hide_index=True)
+            st.dataframe(df_display_b, width="stretch", hide_index=True)
 
 
 # ===========================================================================
@@ -814,15 +1044,17 @@ with tab_startsit:
     if cand_b.get("is_inactive") or cand_b.get("p_active", 1.0) <= 0.0 or cand_b.get("slot") in ["IR", "IR_ELIGIBLE"]:
         st.error(f"🚨 **CRITICAL LINEUP WARNING**: **{cand_b_name}** is designated **{cand_b.get('injury_status', 'IR')}** (0.0 projected pts, 0% active). This player CANNOT be started!")
 
-    # Run Start/Sit Comparative Simulation
+    # Run Start/Sit Comparative Simulation (cached across unrelated widget reruns)
+    ss_sig = _sim_cache_sig("startsit", cand_a, cand_b, team_a_roster, team_b_roster, cand_a.get("slot", "FLEX"), n_iterations)
     with st.spinner("Analyzing Start/Sit distribution trade-offs..."):
-        ss_result = simulation.evaluate_start_sit_decision(
+        ss_result = _cached_start_sit_eval(
+            ss_sig,
             cand_a,
             cand_b,
-            base_team_roster=team_a_roster,
-            opponent_roster=team_b_roster,
-            slot_name=cand_a.get("slot", "FLEX"),
-            n_simulations=n_iterations
+            team_a_roster,
+            team_b_roster,
+            cand_a.get("slot", "FLEX"),
+            n_iterations,
         )
 
     # Scheme Matchup & Defensive Funnel Breakdown
@@ -955,18 +1187,20 @@ with tab_startsit:
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
         margin=dict(l=20, r=20, t=40, b=20)
     )
-    st.plotly_chart(fig_cand, use_container_width=True)
+    st.plotly_chart(fig_cand, width="stretch")
 
     # Comprehensive Start/Sit Leverage Audit Table for Team A
     st.markdown("---")
     st.subheader(f"📋 Comprehensive Start/Sit Leverage Audit for {team_a_name}")
     st.caption("Vectorized evaluation of every possible bench-to-starter substitution across all 10,000 correlated Monte Carlo iterations.")
     if team_a_bench:
-        opt_result = simulation.find_roster_optimizations(
+        opt_sig = _sim_cache_sig("roster_opt", team_a_roster, team_a_bench, team_b_roster, n_iterations)
+        opt_result = _cached_roster_optimizations(
+            opt_sig,
             team_a_roster,
             team_a_bench,
             team_b_roster,
-            n_simulations=n_iterations
+            n_iterations,
         )
         if not opt_result["audit_table"].empty:
             audit_cols = [
@@ -979,7 +1213,7 @@ with tab_startsit:
             ]
             st.dataframe(
                 opt_result["audit_table"][audit_cols],
-                use_container_width=True,
+                width="stretch",
                 hide_index=True
             )
         else:
@@ -1029,9 +1263,42 @@ with tab_vorp:
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # Dynamic Replacement Baselines
-    with st.spinner("Computing dynamic replacement baselines..."):
-        baselines = vorp.calculate_waiver_baselines(waiver_pool, n_simulations=n_iterations)
+    # Dynamic Replacement Baselines & Waiver Evaluation Suite (cached across unrelated widget reruns)
+    all_team_a_players = (team_a_dict.get("roster", team_a_roster) if is_espn_active else team_a_roster) + team_a_bench
+    team_a_qbs = [p for p in all_team_a_players if p.get("position", "").upper() == "QB"]
+    qb_str = ", ".join([f"{p['name']} ({p.get('mu', 0):.1f} pts)" for p in team_a_qbs]) if team_a_qbs else "None"
+    all_rb_pool = waiver_pool + (team_a_dict.get("roster", team_a_roster) if is_espn_active else team_a_roster)
+
+    waiver_suite_sig = _sim_cache_sig(
+        "waiver_suite",
+        team_a_roster,
+        team_a_bench,
+        team_b_roster,
+        waiver_pool,
+        all_team_a_players,
+        int(remaining_faab),
+        mode_param,
+        n_iterations,
+    )
+    with st.spinner(f"Evaluating waiver wire pool & dynamic baselines under {waiver_mode_label}..."):
+        waiver_suite = _cached_waiver_suite(
+            waiver_suite_sig,
+            team_a_roster,
+            team_a_bench,
+            team_b_roster,
+            waiver_pool,
+            all_team_a_players,
+            team_a_qbs,
+            all_rb_pool,
+            int(remaining_faab),
+            mode_param,
+            n_iterations,
+        )
+    baselines = waiver_suite["baselines"]
+    df_upgrades = waiver_suite["df_upgrades"]
+    df_roster_vorp = waiver_suite["df_roster_vorp"]
+    df_waiver_rankings = waiver_suite["df_waiver_rankings"]
+    df_contingency = waiver_suite["df_contingency"]
 
     b_col1, b_col2, b_col3, b_col4, b_col5 = st.columns(5)
     for col, pos in zip([b_col1, b_col2, b_col3, b_col4, b_col5], ["QB", "RB", "WR", "TE", "FLEX"]):
@@ -1046,22 +1313,6 @@ with tab_vorp:
             """, unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
-
-    # Evaluate Targeted Waiver Upgrades with Atomic Transaction Pairs
-    all_team_a_players = (team_a_dict.get("roster", team_a_roster) if is_espn_active else team_a_roster) + team_a_bench
-    team_a_qbs = [p for p in all_team_a_players if p.get("position", "").upper() == "QB"]
-    qb_str = ", ".join([f"{p['name']} ({p.get('mu', 0):.1f} pts)" for p in team_a_qbs]) if team_a_qbs else "None"
-
-    with st.spinner(f"Evaluating waiver wire pool under {waiver_mode_label}..."):
-        df_upgrades = vorp.calculate_waiver_roster_upgrades(
-            team_a_bench,
-            waiver_pool,
-            n_simulations=min(n_iterations, 3000),
-            full_roster=all_team_a_players,
-            max_roster_qbs=2,
-            remaining_faab=int(remaining_faab),
-            mode=mode_param
-        )
 
     st.markdown("### ⚡ Atomic Claim Sheet (Priority Orders)")
     st.caption(f"Ordered queue of atomic Add ➔ Drop pairs with dynamically sized FAAB allocations ready for submission into your league manager. **🔒 2-QB Rule Enforced:** Quarterback claims are evaluated exclusively against rostered QBs ({qb_str}) to preserve the 2-QB limit.")
@@ -1117,7 +1368,7 @@ with tab_vorp:
 
         with st.expander("📋 View Detailed Upgrade Audit Table", expanded=False):
             disp_cols = [c for c in ["Priority", "Target Waiver Add", "Pos", "Cut Candidate", "Cut Pos", "Projected (Med)", "Floor (P10)", "Ceiling (P90)", "Win% Leverage", "Net Proj Gain", "Net P90 Gain", "Suggested FAAB", "Upgrade Rationale"] if c in df_upgrades.columns]
-            st.dataframe(df_upgrades[disp_cols], use_container_width=True, hide_index=True)
+            st.dataframe(df_upgrades[disp_cols], width="stretch", hide_index=True)
     else:
         st.info(f"Your bench on {team_a_name} is currently stronger than the available waiver wire pool at key positions.")
 
@@ -1125,24 +1376,16 @@ with tab_vorp:
 
     # Active Roster VORP Table with Standardized Columns
     st.subheader(f"Active Roster VORP for {team_a_name}")
-    with st.spinner("Evaluating active roster against waiver baselines..."):
-        df_roster_vorp = vorp.calculate_roster_vorp(
-            team_a_roster,
-            baselines,
-            opponent_roster=team_b_roster,
-            n_simulations=n_iterations
-        )
     disp_vorp_cols = [c for c in ["Player", "Pos", "Slot", "Projected (Med)", "Floor (P10)", "Ceiling (P90)", "Waiver Baseline", "Points VORP", "Win% VORP (Delta P(Win))"] if c in df_roster_vorp.columns]
-    st.dataframe(df_roster_vorp[disp_vorp_cols], use_container_width=True, hide_index=True)
+    st.dataframe(df_roster_vorp[disp_vorp_cols], width="stretch", hide_index=True)
 
     # Waiver Wire Pool Rankings
     st.subheader(f"Top Waiver Wire Targets ({len(waiver_pool)} Available Free Agents)")
-    df_waiver_rankings = vorp.rank_waiver_wire_pool(waiver_pool, baselines, n_simulations=n_iterations, roster_qbs=team_a_qbs, mode=mode_param)
 
     col_w1, col_w2 = st.columns([1.1, 0.9])
     with col_w1:
         disp_rank_cols = [c for c in ["Player", "Pos", "Team", "Projected (Med)", "Floor (P10)", "Ceiling (P90)", "Streamer OS (P≥12)", "Net Over Baseline", "2-QB Context"] if c in df_waiver_rankings.columns]
-        st.dataframe(df_waiver_rankings[disp_rank_cols], use_container_width=True, hide_index=True)
+        st.dataframe(df_waiver_rankings[disp_rank_cols], width="stretch", hide_index=True)
 
     with col_w2:
         top_plot_waivers = df_waiver_rankings.head(15)
@@ -1163,15 +1406,13 @@ with tab_vorp:
             yaxis=dict(autorange="reversed"),
             margin=dict(l=20, r=20, t=40, b=20)
         )
-        st.plotly_chart(fig_waiver, use_container_width=True)
+        st.plotly_chart(fig_waiver, width="stretch")
 
     # Contingency & Handcuff Bench Value Table
     st.markdown("---")
     st.subheader("🛡️ Backup RB Contingency & Handcuff Leverage Index")
     st.caption("Quantifies the call option value of backup running backs: Contingency Index = P(Starter Injury) × Conditional RB1 Output. Ranked by 90th percentile contingency upside.")
-    all_rb_pool = waiver_pool + (team_a_dict.get("roster", team_a_roster) if is_espn_active else team_a_roster)
-    df_contingency = vorp.calculate_contingency_leverage(all_rb_pool, n_simulations=n_iterations)
-    st.dataframe(df_contingency, use_container_width=True, hide_index=True)
+    st.dataframe(df_contingency, width="stretch", hide_index=True)
 
     # Floor Surge & Contrarian Buy-Low Scanner
     st.markdown("---")
@@ -1201,7 +1442,7 @@ with tab_vorp:
 
             st.dataframe(
                 df_scanner[display_cols],
-                use_container_width=True,
+                width="stretch",
                 hide_index=True
             )
         else:
@@ -1283,14 +1524,21 @@ with tab_feeds:
     curr_wk = int(st.session_state.espn_league.get("current_week", 6)) if is_espn_active else 6
     candidate_pool_for_bye = (waiver_pool[:8] if waiver_pool else []) + (team_a_bench[:4] if team_a_bench else [])
 
-    playoff_matrix = simulation.simulate_playoff_leverage_matrix(
-        team_a_name=team_a_name,
-        team_a_roster=team_a_roster,
-        waiver_candidates=candidate_pool_for_bye,
-        current_week=curr_wk,
-        total_reg_weeks=14,
-        n_season_sims=2000,
-        league_teams=league_teams_for_sim
+    playoff_sig = _sim_cache_sig(
+        "playoff_matrix",
+        team_a_name,
+        team_a_roster,
+        candidate_pool_for_bye,
+        curr_wk,
+        [(t.get("team_name"), len(t.get("roster", []))) for t in league_teams_for_sim],
+    )
+    playoff_matrix = _cached_playoff_leverage(
+        playoff_sig,
+        team_a_name,
+        team_a_roster,
+        candidate_pool_for_bye,
+        curr_wk,
+        league_teams_for_sim,
     )
 
     pm_col1, pm_col2, pm_col3, pm_col4 = st.columns(4)
@@ -1304,7 +1552,7 @@ with tab_feeds:
         st.metric("Remaining Schedule Horizon", f"{playoff_matrix['remaining_weeks']} Weeks")
 
     if not playoff_matrix["leverage_table"].empty:
-        st.dataframe(playoff_matrix["leverage_table"], use_container_width=True, hide_index=True)
+        st.dataframe(playoff_matrix["leverage_table"], width="stretch", hide_index=True)
 
     st.markdown("---")
 
@@ -1346,7 +1594,7 @@ with tab_feeds:
         })
 
     if prop_table_rows:
-        st.dataframe(pd.DataFrame(prop_table_rows), use_container_width=True, hide_index=True)
+        st.dataframe(pd.DataFrame(prop_table_rows), width="stretch", hide_index=True)
 
     with st.expander("🏈 View NFL Game Lines, Polymarket Crowd Risk Inspector & 32-Team Defensive Schemes", expanded=False):
         raw_odds = data_ingest.fetch_nfl_odds(api_key=odds_api_key)
@@ -1355,7 +1603,7 @@ with tab_feeds:
             df_games = pd.DataFrame(parsed_games)
             st.dataframe(
                 df_games[["away_team", "home_team", "spread", "total", "away_implied", "home_implied", "commence_time"]],
-                use_container_width=True,
+                width="stretch",
                 hide_index=True
             )
 
@@ -1368,16 +1616,23 @@ with tab_feeds:
             )
         with poly_col2:
             st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
-            query_poly = st.button("Query Polymarket Gamma API", use_container_width=True)
+            query_poly = st.button("Query Polymarket Gamma API", width="stretch")
 
-        if query_poly or custom_slug:
-            poly_result = data_ingest.fetch_polymarket_event(custom_slug)
-            if poly_result:
-                p_col1, p_col2 = st.columns(2)
-                with p_col1:
-                    st.metric("Crowd Implied Probability", f"{poly_result['active_probability'] * 100:.1f}%")
-                with p_col2:
-                    st.metric("Market Volume ($)", f"${poly_result.get('volume', 0):,.2f}")
+        if query_poly and custom_slug.strip():
+            st.session_state["poly_inspector_result"] = data_ingest.fetch_polymarket_event(custom_slug.strip())
+            st.session_state["poly_inspector_slug"] = custom_slug.strip()
+
+        poly_result = (
+            st.session_state.get("poly_inspector_result")
+            if st.session_state.get("poly_inspector_slug") == custom_slug.strip()
+            else None
+        )
+        if poly_result:
+            p_col1, p_col2 = st.columns(2)
+            with p_col1:
+                st.metric("Crowd Implied Probability", f"{poly_result['active_probability'] * 100:.1f}%")
+            with p_col2:
+                st.metric("Market Volume ($)", f"${poly_result.get('volume', 0):,.2f}")
 
         scheme_rows = [
             {
@@ -1393,7 +1648,7 @@ with tab_feeds:
             }
             for team_code, metrics in data_ingest.NFL_DEFENSIVE_SCHEMES.items()
         ]
-        st.dataframe(pd.DataFrame(scheme_rows), use_container_width=True, hide_index=True)
+        st.dataframe(pd.DataFrame(scheme_rows), width="stretch", hide_index=True)
 
 
 # ===========================================================================
@@ -1418,7 +1673,7 @@ with tab_scheme:
             "Scans `newsletters/` for `week*_preview.pdf` and `week*_review.pdf` in chronological order "
             "(Week 1 ➔ Present), idempotently upserts both Parquet tables, and rebuilds `team_narratives.json`."
         )
-        if st.button("🚀 Batch Process Newsletters Folder", type="primary", use_container_width=True, key="batch_ingest_btn"):
+        if st.button("🚀 Batch Process Newsletters Folder", type="primary", width="stretch", key="batch_ingest_btn"):
             prog_bar = st.progress(10, text="Scanning newsletters/ directory for preview & review PDFs...")
             batch_res = scheme_db.batch_ingest_newsletters(folder_path="newsletters", auto_seed_if_empty=True)
             prog_bar.progress(75, text="Rebuilding longitudinal team_narratives.json ledger...")
@@ -1434,7 +1689,7 @@ with tab_scheme:
                 f"**{b_res['narratives_count']} Teams** updated in `team_narratives.json`."
             )
             if not b_res["summary_df"].empty:
-                st.dataframe(b_res["summary_df"], use_container_width=True, hide_index=True)
+                st.dataframe(b_res["summary_df"], width="stretch", hide_index=True)
 
     with ing_col_single:
         st.markdown("#### 📄 Individual Weekly Newsletter Uploader")
@@ -1455,8 +1710,8 @@ with tab_scheme:
             )
         with up_c3:
             tag_week = st.number_input("NFL Week", min_value=1, max_value=22, value=3, step=1)
-            load_sample_rev = st.button("📄 Sample Review", use_container_width=True, help="Load sample Week 3 Review PDF")
-            load_sample_prev = st.button("📘 Sample Preview", use_container_width=True, help="Load sample Week 3 Preview PDF")
+            load_sample_rev = st.button("📄 Sample Review", width="stretch", help="Load sample Week 3 Review PDF")
+            load_sample_prev = st.button("📘 Sample Preview", width="stretch", help="Load sample Week 3 Preview PDF")
 
         pdf_source = None
         forced_type = None if doc_type_toggle == "Auto-Detect" else doc_type_toggle
@@ -1511,9 +1766,9 @@ with tab_scheme:
 
                     p_tab1, p_tab2 = st.tabs(["📘 Preview Coverage Shells & Funnels", "🎯 Player Matchup Angles"])
                     with p_tab1:
-                        st.dataframe(prev_df, use_container_width=True, hide_index=True)
+                        st.dataframe(prev_df, width="stretch", hide_index=True)
                     with p_tab2:
-                        st.dataframe(ang_df, use_container_width=True, hide_index=True)
+                        st.dataframe(ang_df, width="stretch", hide_index=True)
                 else:
                     team_df = parsed.get("team_metrics", pd.DataFrame())
                     player_df = parsed.get("player_metrics", pd.DataFrame())
@@ -1531,9 +1786,9 @@ with tab_scheme:
 
                     r_tab1, r_tab2 = st.tabs(["🛡️ Realized Team Scheme Metrics", "🏃 Realized Player Usage Metrics"])
                     with r_tab1:
-                        st.dataframe(team_df, use_container_width=True, hide_index=True)
+                        st.dataframe(team_df, width="stretch", hide_index=True)
                     with r_tab2:
-                        st.dataframe(player_df, use_container_width=True, hide_index=True)
+                        st.dataframe(player_df, width="stretch", hide_index=True)
             else:
                 st.error(f"Error parsing PDF: {parsed.get('error', 'Unknown parsing error')}")
 
@@ -1548,7 +1803,7 @@ with tab_scheme:
     dd_col1, dd_col2 = st.columns([1, 3])
     with dd_col1:
         sel_team = st.selectbox("Select NFL Team for Deep Dive", all_teams, index=default_team_idx, key="deep_dive_team_select")
-        if st.button("🔄 Reset / Re-Seed 3-Wk Baseline", use_container_width=True, key="reseed_scheme_btn"):
+        if st.button("🔄 Reset / Re-Seed 3-Wk Baseline", width="stretch", key="reseed_scheme_btn"):
             scheme_db.init_default_scheme_history(force=True)
             st.cache_data.clear()
             st.rerun()
@@ -1640,7 +1895,7 @@ with tab_scheme:
             "Real MOF EPA": timeline_df["realized_mof_epa"].map(lambda x: f"{x:+.2f}"),
             "Pass OE%": timeline_df["pass_oe"].map(lambda x: f"{x:+.1f}%"),
         })
-        st.dataframe(disp_tl, use_container_width=True, hide_index=True)
+        st.dataframe(disp_tl, width="stretch", hide_index=True)
 
         # Plotly Trend Curves (Week 1 -> Present)
         ch_col1, ch_col2 = st.columns(2)
@@ -1676,7 +1931,7 @@ with tab_scheme:
                 margin=dict(l=35, r=25, t=45, b=35),
                 legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
             )
-            st.plotly_chart(fig_pr, use_container_width=True)
+            st.plotly_chart(fig_pr, width="stretch")
 
         with ch_col2:
             fig_mof = go.Figure()
@@ -1711,7 +1966,7 @@ with tab_scheme:
                 margin=dict(l=35, r=35, t=45, b=35),
                 legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
             )
-            st.plotly_chart(fig_mof, use_container_width=True)
+            st.plotly_chart(fig_mof, width="stretch")
 
     # Primary WR/TE Target Share Trajectory (Week 1 -> Present)
     st.markdown("#### 🏃 Primary Skill Player Target Share & Usage Evolution (Week 1 ➔ Present)")
@@ -1761,7 +2016,7 @@ with tab_scheme:
                 margin=dict(l=35, r=35, t=45, b=35),
                 legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
             )
-            st.plotly_chart(fig_p, use_container_width=True)
+            st.plotly_chart(fig_p, width="stretch")
         else:
             st.info(f"No historical usage records found for {sel_player}.")
 
@@ -1798,7 +2053,7 @@ with tab_scheme:
             "Scheme Impact Notes": modified_p.get("scheme_notes", "Neutral baseline matchup")
         })
 
-    st.dataframe(pd.DataFrame(scheme_impact_rows), use_container_width=True, hide_index=True)
+    st.dataframe(pd.DataFrame(scheme_impact_rows), width="stretch", hide_index=True)
 
 
 # ===========================================================================
@@ -1813,11 +2068,18 @@ with tab_trade:
     )
 
     # Resolve available league teams & rosters (Live ESPN sync or calibrated Week 6 fallback)
+    trade_id_map: Dict[Any, str] = {}
+    trade_name_to_id: Dict[str, Any] = {}
     if is_espn_active and st.session_state.get("espn_league"):
+        espn_teams_for_trade = st.session_state.espn_league.get("teams", [])
         trade_team_map = {
             t["team_name"]: t.get("roster", t.get("starters", []) + t.get("bench", []) + t.get("ir", []))
-            for t in st.session_state.espn_league.get("teams", [])
+            for t in espn_teams_for_trade
         }
+        for t in espn_teams_for_trade:
+            if t.get("team_id") is not None:
+                trade_id_map[t["team_id"]] = t["team_name"]
+                trade_name_to_id[t["team_name"]] = t["team_id"]
     else:
         trade_team_map = trade_analyzer.get_default_bodhizafa_trade_rosters(scoring_cfg=active_scoring_cfg)
         if team_a_name not in trade_team_map:
@@ -1827,34 +2089,46 @@ with tab_trade:
 
     trade_team_names = list(trade_team_map.keys())
 
-    # Default Team A to Eatin TDs like Groceries, Team B to BODHIZAFA
-    def_ta_idx = 0
-    for idx_t, t_nm in enumerate(trade_team_names):
-        if "eatin" in t_nm.lower() or t_nm == team_a_name:
-            def_ta_idx = idx_t
-            break
+    # Default Team A to active user franchise (tracking immutable team_id across mid-season renames)
+    if st.session_state.get("trade_team_a_select") not in trade_team_names:
+        saved_ta_id = st.session_state.get("trade_team_a_id")
+        if saved_ta_id is not None and saved_ta_id in trade_id_map:
+            st.session_state["trade_team_a_select"] = trade_id_map[saved_ta_id]
+        elif team_a_name in trade_team_names:
+            st.session_state["trade_team_a_select"] = team_a_name
+        else:
+            st.session_state["trade_team_a_select"] = trade_team_names[0]
 
     t_col_a, t_col_b = st.columns(2)
     with t_col_a:
         trade_team_a = st.selectbox(
             "🏠 Your Franchise (Team A)",
             trade_team_names,
-            index=def_ta_idx,
             key="trade_team_a_select",
         )
+        if trade_team_a in trade_name_to_id:
+            st.session_state["trade_team_a_id"] = trade_name_to_id[trade_team_a]
+
     with t_col_b:
         partner_options = [t for t in trade_team_names if t != trade_team_a] or trade_team_names
-        def_tb_idx = 0
-        for idx_t, t_nm in enumerate(partner_options):
-            if "bodhizafa" in t_nm.lower():
-                def_tb_idx = idx_t
-                break
+        if st.session_state.get("trade_team_b_select") not in partner_options:
+            saved_tb_id = st.session_state.get("trade_team_b_id")
+            if saved_tb_id is not None and saved_tb_id in trade_id_map and trade_id_map[saved_tb_id] in partner_options:
+                st.session_state["trade_team_b_select"] = trade_id_map[saved_tb_id]
+            else:
+                def_tb_name = partner_options[0]
+                for t_nm in partner_options:
+                    if "bodhizafa" in t_nm.lower():
+                        def_tb_name = t_nm
+                        break
+                st.session_state["trade_team_b_select"] = def_tb_name
         trade_team_b = st.selectbox(
             "🤝 Trade Partner Franchise (Team B)",
             partner_options,
-            index=def_tb_idx,
             key="trade_team_b_select",
         )
+        if trade_team_b in trade_name_to_id:
+            st.session_state["trade_team_b_id"] = trade_name_to_id[trade_team_b]
 
     roster_a_full = trade_team_map.get(trade_team_a, [])
     roster_b_full = trade_team_map.get(trade_team_b, [])
@@ -1868,19 +2142,33 @@ with tab_trade:
         if n in b_player_names
     ]
 
+    if st.session_state.get("prev_trade_team_a") != trade_team_a or "trade_gives_multiselect" not in st.session_state:
+        st.session_state["trade_gives_multiselect"] = default_gives
+        st.session_state["prev_trade_team_a"] = trade_team_a
+    else:
+        st.session_state["trade_gives_multiselect"] = [
+            p for p in st.session_state["trade_gives_multiselect"] if p in a_player_names
+        ]
+
+    if st.session_state.get("prev_trade_team_b") != trade_team_b or "trade_receives_multiselect" not in st.session_state:
+        st.session_state["trade_receives_multiselect"] = default_receives
+        st.session_state["prev_trade_team_b"] = trade_team_b
+    else:
+        st.session_state["trade_receives_multiselect"] = [
+            p for p in st.session_state["trade_receives_multiselect"] if p in b_player_names
+        ]
+
     sel_col_out, sel_col_in = st.columns(2)
     with sel_col_out:
         selected_gives = st.multiselect(
-            f"📤 {trade_team_a} Trades Away (Sends to {trade_team_b})",
+            f"📤 {_md_safe(trade_team_a)} Trades Away (Sends to {_md_safe(trade_team_b)})",
             options=a_player_names,
-            default=default_gives,
             key="trade_gives_multiselect",
         )
     with sel_col_in:
         selected_receives = st.multiselect(
-            f"📥 {trade_team_a} Acquires (Receives from {trade_team_b})",
+            f"📥 {_md_safe(trade_team_a)} Acquires (Receives from {_md_safe(trade_team_b)})",
             options=b_player_names,
-            default=default_receives,
             key="trade_receives_multiselect",
         )
 
@@ -1894,37 +2182,54 @@ with tab_trade:
             and str(p.get("position", "")).upper() not in ["QB", "D/ST", "DEF"]
             and str(p.get("slot", "")).upper() not in ["IR", "IR_ELIGIBLE"]
         ]
-        default_drop_idx = 0
-        for idx_d, d_nm in enumerate(remaining_bench_names):
-            if "dowdle" in d_nm.lower():
-                default_drop_idx = idx_d
-                break
         drop_opts = remaining_bench_names + [n for n in selected_receives if n not in remaining_bench_names] + ["None (Wait / Use Open Slot)"]
+        if st.session_state.get("trade_forced_drop_select") not in drop_opts:
+            def_drop_name = drop_opts[0]
+            for d_nm in remaining_bench_names:
+                if "dowdle" in d_nm.lower():
+                    def_drop_name = d_nm
+                    break
+            st.session_state["trade_forced_drop_select"] = def_drop_name
         forced_drop_choice = st.selectbox(
             f"⚠️ Uneven Trade ({len(selected_receives)}-for-{len(selected_gives)}): Select {n_extra} Bench Player to Drop for Roster Compliance",
             options=drop_opts,
-            index=default_drop_idx if default_drop_idx < len(drop_opts) else 0,
             key="trade_forced_drop_select",
         )
 
     if not selected_gives or not selected_receives:
         st.info("Select at least one outgoing and one incoming player above to run the 10,000-iteration Idiosyncratic Trade Evaluation.")
     else:
+        trade_kwargs = {
+            "team_a_name": trade_team_a,
+            "team_a_roster": roster_a_full,
+            "team_b_name": trade_team_b,
+            "team_b_roster": roster_b_full,
+            "team_a_gives_names": selected_gives,
+            "team_a_receives_names": selected_receives,
+            "week6_opponent_name": team_b_name,
+            "week6_opponent_starters": team_b_roster,
+            "waiver_pool": waiver_pool,
+            "scoring_cfg": active_scoring_cfg,
+            "n_simulations": n_iterations,
+            "forced_drop_override": forced_drop_choice,
+        }
+        trade_sig = _sim_cache_sig(
+            "trade_eval",
+            trade_team_a,
+            roster_a_full,
+            trade_team_b,
+            roster_b_full,
+            selected_gives,
+            selected_receives,
+            team_b_name,
+            team_b_roster,
+            waiver_pool,
+            scoring_format,
+            n_iterations,
+            forced_drop_choice,
+        )
         with st.spinner("Running 10,000-iteration Dual-Horizon Monte Carlo Trade Evaluation..."):
-            trade_eval = trade_analyzer.evaluate_trade_package(
-                team_a_name=trade_team_a,
-                team_a_roster=roster_a_full,
-                team_b_name=trade_team_b,
-                team_b_roster=roster_b_full,
-                team_a_gives_names=selected_gives,
-                team_a_receives_names=selected_receives,
-                week6_opponent_name=team_b_name,
-                week6_opponent_starters=team_b_roster,
-                waiver_pool=waiver_pool,
-                scoring_cfg=active_scoring_cfg,
-                n_simulations=n_iterations,
-                forced_drop_override=forced_drop_choice,
-            )
+            trade_eval = _cached_trade_evaluation(trade_sig, trade_kwargs)
 
         tm = trade_eval["metrics"]
         verdict_color = "#10b981" if trade_eval["composite_edge_pts"] >= 1.0 else ("#f59e0b" if trade_eval["composite_edge_pts"] >= -1.25 else "#ef4444")
@@ -1965,9 +2270,9 @@ with tab_trade:
             wp_col = "green-val" if tm["wk6_win_prob_delta"] >= 0 else "amber-val"
             st.markdown(f"""
             <div class="metric-card">
-                <div class="metric-title">Week 6 Win Prob Δ vs {trade_eval['week6_opponent_name']}</div>
+                <div class="metric-title">Matchup Win Prob Δ vs {_html_safe(trade_eval['week6_opponent_name'])}</div>
                 <div class="metric-value {wp_col}">{tm['wk6_win_prob_delta']:+.1f}%</div>
-                <div class="metric-sub">{tm['wk6_win_prob_pre']:.1f}% ➔ {tm['wk6_win_prob_post']:.1f}% (More than 2x Win Odds!)</div>
+                <div class="metric-sub">{tm['wk6_win_prob_pre']:.1f}% ➔ {tm['wk6_win_prob_post']:.1f}%</div>
             </div>
             """, unsafe_allow_html=True)
         with k3:
@@ -2031,10 +2336,10 @@ with tab_trade:
             "and SumerSports Scheme-Adjusted Fantasy Playoff Average (`Playoffs W15-17`)."
         )
         st.markdown(f"**📥 Assets Acquired by {trade_team_a}**")
-        st.dataframe(trade_eval["tables"]["incoming_df"], use_container_width=True, hide_index=True)
+        st.dataframe(trade_eval["tables"]["incoming_df"], width="stretch", hide_index=True)
 
         st.markdown(f"**📤 Assets Sent to {trade_team_b}**")
-        st.dataframe(trade_eval["tables"]["outgoing_df"], use_container_width=True, hide_index=True)
+        st.dataframe(trade_eval["tables"]["outgoing_df"], width="stretch", hide_index=True)
 
         # Interactive Plotly Charts: Week-by-Week Championship Trajectory (Wks 6-17) + Slot-by-Slot Net Delta
         chart_col1, chart_col2 = st.columns(2)
@@ -2066,7 +2371,7 @@ with tab_trade:
                 margin=dict(l=20, r=20, t=30, b=20),
                 legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
             )
-            st.plotly_chart(fig_traj, use_container_width=True)
+            st.plotly_chart(fig_traj, width="stretch")
 
         with chart_col2:
             st.markdown("#### ⚖️ Multi-Horizon Slot-by-Slot Lineup Net Delta")
@@ -2103,7 +2408,7 @@ with tab_trade:
                 margin=dict(l=20, r=20, t=30, b=20),
                 legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
             )
-            st.plotly_chart(fig_slot_delta, use_container_width=True)
+            st.plotly_chart(fig_slot_delta, width="stretch")
 
         # Multi-Horizon Lineup & Schedule Audits
         st.markdown("#### 🗂️ Optimal 9-Starter Lineup & Championship Schedule Audits")
@@ -2120,49 +2425,49 @@ with tab_trade:
         with sub_traj:
             st.dataframe(
                 trade_eval["tables"]["weekly_trajectory_df"].drop(columns=["Delta_Num"]),
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
             )
         with sub_bayes:
             st.dataframe(
                 trade_eval["tables"]["bayes_lineup_diff_df"].drop(columns=["Delta_Num"]),
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
             )
         with sub_fs:
             st.dataframe(
                 trade_eval["tables"]["fs_lineup_diff_df"].drop(columns=["Delta_Num"]),
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
             )
         with sub_playoffs:
             st.dataframe(
                 trade_eval["tables"]["playoff_lineup_diff_df"].drop(columns=["Delta_Num"]),
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
             )
         with sub_true_ros:
             st.dataframe(
                 trade_eval["tables"]["true_ros_lineup_diff_df"].drop(columns=["Delta_Num"]),
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
             )
         with sub_wk6:
             st.dataframe(
                 trade_eval["tables"]["wk6_lineup_diff_df"].drop(columns=["Delta_Num"]),
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
             )
         with sub_ros_model:
             st.dataframe(
                 trade_eval["tables"]["model_lineup_diff_df"].drop(columns=["Delta_Num"]),
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
             )
         with sub_partner:
             st.dataframe(
                 trade_eval["tables"]["partner_ros_diff_df"].drop(columns=["Delta_Num"]),
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
             )
 
